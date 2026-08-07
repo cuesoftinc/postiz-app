@@ -60,6 +60,22 @@ export function Login() {
       setLoading(false);
     }
   };
+  // SSO-only mode (Cuesoft internal): render a clean, dedicated Generic OIDC
+  // sign-in block. Every hook above runs unconditionally before this early
+  // return, so hook order is stable. The legacy Github/Google/email-password
+  // form below is kept intact but unreachable while isGeneral && genericOauth.
+  if (isGeneral && genericOauth) {
+    return (
+      <div className="flex flex-col flex-1 gap-[24px]">
+        <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start">
+          {t('sign_in', 'Sign In')}
+        </h1>
+        <div className="flex">
+          <OauthProvider />
+        </div>
+      </div>
+    );
+  }
   return (
     <FormProvider {...form}>
       <form className="flex-1 flex" onSubmit={form.handleSubmit(onSubmit)}>

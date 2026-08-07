@@ -38,6 +38,8 @@ type Inputs = {
   provider: string;
 };
 export function Register() {
+  const t = useT();
+  const { isGeneral, genericOauth } = useVariables();
   const getQuery = useSearchParams();
   const fetch = useFetch();
   const [provider] = useState(getQuery?.get('provider')?.toUpperCase());
@@ -62,7 +64,23 @@ export function Register() {
       setShow(true);
     }
   }, [provider, code]);
+  // Pre-auth signup UI only (no OAuth callback in progress: no code & no
+  // provider). In SSO-only mode render the same clean Generic OIDC block as
+  // /auth/login instead of the email/password sign-up form. The OAuth callback
+  // path (provider && code -> load() -> RegisterAfter) below is untouched.
   if (!code && !provider) {
+    if (isGeneral && genericOauth) {
+      return (
+        <div className="flex flex-col flex-1 gap-[24px]">
+          <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start">
+            {t('sign_in', 'Sign In')}
+          </h1>
+          <div className="flex">
+            <OauthProvider />
+          </div>
+        </div>
+      );
+    }
     return <RegisterAfter token="" provider="LOCAL" />;
   }
   if (!show) {
