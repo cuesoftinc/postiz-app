@@ -5,7 +5,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import Link from 'next/link';
 import { Button } from '@gitroom/react/form/button';
 import { Input } from '@gitroom/react/form/input';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { GithubProvider } from '@gitroom/frontend/components/auth/providers/github.provider';
@@ -117,6 +117,12 @@ export function RegisterAfter({
   const isAfterProvider = useMemo(() => {
     return !!token && !!provider;
   }, [token, provider]);
+  // SSO (provider) registrations skip the company-name screen entirely: a
+  // provider token is present and the provider is not LOCAL. For these we
+  // default the company field to a sensible non-empty value (>= 3 chars, so
+  // CreateOrgUserDto still validates) and auto-submit once on mount. LOCAL
+  // signup is unchanged and still shows the company field.
+  const isProviderSignup = !!token && provider !== 'LOCAL';
   const resolver = useMemo(() => {
     return classValidatorResolver(CreateOrgUserDto);
   }, []);
@@ -125,9 +131,14 @@ export function RegisterAfter({
     defaultValues: {
       providerToken: token,
       provider: provider,
+      // No human-entered name/email is available in provider mode, so default
+      // the personal-workspace org name to a constant. The user joins Cuesoft
+      // Inc via the invite afterwards.
+      ...(isProviderSignup ? { company: 'Personal' } : {}),
     },
   });
   const fetchData = useFetch();
+  const autoSubmittedRef = useRef(false);
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
     setLoading(true);
     await fetchData('/auth/register', {
@@ -163,6 +174,25 @@ export function RegisterAfter({
         });
       });
   };
+  useEffect(() => {
+    if (!isProviderSignup) {
+      return;
+    }
+    // Guard against React StrictMode's double-invoked effects (dev) so the
+    // registration is submitted exactly once. The `company` default is already
+    // seeded via defaultValues above, so handleSubmit validates and submits it.
+    if (autoSubmittedRef.current) {
+      return;
+    }
+    autoSubmittedRef.current = true;
+    form.handleSubmit(onSubmit)();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Provider mode never renders the form; it shows a loading state while the
+  // auto-submit above completes and the user is redirected.
+  if (isProviderSignup) {
+    return <LoadingComponent />;
+  }
   return (
     <FormProvider {...form}>
       <form className="flex-1 flex" onSubmit={form.handleSubmit(onSubmit)}>

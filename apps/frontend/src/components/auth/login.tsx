@@ -25,6 +25,10 @@ export function Login() {
   const t = useT();
   const [loading, setLoading] = useState(false);
   const [notActivated, setNotActivated] = useState(false);
+  // SSO-only mode secondary path: reveal the LOCAL email/password form for
+  // direct-provisioned accounts outside the Google Workspace. Declared with
+  // the other hooks, before any early return, to keep hook order stable.
+  const [showEmail, setShowEmail] = useState(false);
   const { isGeneral, neynarClientId, billingEnabled, genericOauth } =
     useVariables();
   const resolver = useMemo(() => {
@@ -66,14 +70,86 @@ export function Login() {
   // form below is kept intact but unreachable while isGeneral && genericOauth.
   if (isGeneral && genericOauth) {
     return (
-      <div className="flex flex-col flex-1 gap-[24px]">
-        <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start">
-          {t('sign_in', 'Sign In')}
-        </h1>
-        <div className="flex">
-          <OauthProvider />
+      <FormProvider {...form}>
+        <div className="flex flex-col flex-1 gap-[24px]">
+          <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start">
+            {t('sign_in', 'Sign In')}
+          </h1>
+          {/* Primary: Cuesoft SSO */}
+          <div className="flex">
+            <OauthProvider />
+          </div>
+          {/* Secondary, discreet: LOCAL email/password for direct-provisioned
+              accounts that cannot use SSO. Reuses the same form + onSubmit. */}
+          {!showEmail ? (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setShowEmail(true)}
+                className="text-[14px] underline opacity-70 hover:opacity-100 cursor-pointer"
+              >
+                {t('sign_in_with_email', 'Sign in with email')}
+              </button>
+            </div>
+          ) : (
+            <form
+              className="flex flex-col gap-[12px]"
+              onSubmit={form.handleSubmit(onSubmit)}
+            >
+              <div className="text-textColor">
+                <Input
+                  label="Email"
+                  translationKey="label_email"
+                  {...form.register('email')}
+                  type="email"
+                  placeholder={t('email_address', 'Email Address')}
+                />
+                <Input
+                  label="Password"
+                  translationKey="label_password"
+                  {...form.register('password')}
+                  autoComplete="off"
+                  type="password"
+                  placeholder={t('label_password', 'Password')}
+                />
+              </div>
+              {notActivated && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-[10px] p-4">
+                  <p className="text-amber-400 text-sm mb-2">
+                    {t(
+                      'account_not_activated',
+                      'Your account is not activated yet. Please check your email for the activation link.'
+                    )}
+                  </p>
+                  <Link
+                    href="/auth/activate"
+                    className="text-amber-400 underline hover:font-bold text-sm"
+                  >
+                    {t('resend_activation_email', 'Resend Activation Email')}
+                  </Link>
+                </div>
+              )}
+              <div className="w-full flex">
+                <Button
+                  type="submit"
+                  className="flex-1 rounded-[10px] !h-[52px]"
+                  loading={loading}
+                >
+                  {t('sign_in_1', 'Sign in')}
+                </Button>
+              </div>
+              <p className="text-sm text-center">
+                <Link
+                  href="/auth/forgot"
+                  className="underline hover:font-bold cursor-pointer"
+                >
+                  {t('forgot_password', 'Forgot password')}
+                </Link>
+              </p>
+            </form>
+          )}
         </div>
-      </div>
+      </FormProvider>
     );
   }
   return (
