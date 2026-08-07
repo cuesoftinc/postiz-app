@@ -41,16 +41,17 @@ export class EmailService {
     addTo: 'top' | 'bottom',
     replyTo?: string
   ) {
-    return this._temporalService.client
-      .getRawClient()
-      ?.workflow.signalWithStart('sendEmailWorkflow', {
-        taskQueue: 'main',
-        workflowId: 'send_email',
-        signal: 'sendEmail',
-        args: [{ queue: [] }],
-        signalArgs: [{ to, subject, html, replyTo, addTo }],
-        workflowIdConflictPolicy: 'USE_EXISTING',
-      });
+    // Cuesoft fork: upstream routes every transactional email through a single
+    // long-lived Temporal workflow (`sendEmailWorkflow`, signalWithStart /
+    // USE_EXISTING on the `main` queue). On this self-hosted instance that
+    // singleton wedges after container recreates — signals are accepted but the
+    // workflow task times out (`WorkflowTaskTimedOut`) and its queue never
+    // drains, so password resets / invites / activations are silently dropped
+    // (the endpoint still returns success). Our volume is tiny, so we send
+    // synchronously through the same nodemailer path (with its own 3-attempt
+    // retry) and skip Temporal entirely. `addTo` only ordered the workflow
+    // queue and is irrelevant for an immediate send.
+    return this.sendEmailSync(to, subject, html, replyTo);
   }
 
   async sendEmailSync(
