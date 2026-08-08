@@ -9,6 +9,12 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  // Cuesoft fork: transactional email is sent synchronously inside HTTP requests
+  // (see EmailService.sendEmail), so an SMTP stall must fail fast instead of
+  // hanging password-reset/invite endpoints until the proxy 504s.
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 20_000,
 });
 
 export class NodeMailerProvider implements EmailInterface {

@@ -64,11 +64,15 @@ export function Register() {
       setShow(true);
     }
   }, [provider, code]);
-  // Pre-auth signup UI only (no OAuth callback in progress: no code & no
-  // provider). In SSO-only mode render the same clean Generic OIDC block as
-  // /auth/login instead of the email/password sign-up form. The OAuth callback
-  // path (provider && code -> load() -> RegisterAfter) below is untouched.
-  if (!code && !provider) {
+  // Pre-auth signup UI only (no OAuth callback in progress = no `code`). A bare
+  // `?provider=X` hint WITHOUT a code (e.g. the middleware's logged-out
+  // /settings -> /auth?provider=GENERIC redirect) is NOT a callback — treating
+  // it as one used to render <LoadingComponent/> forever, since load() only
+  // runs when provider && code. In SSO-only mode render the same clean Generic
+  // OIDC block as /auth/login instead of the email/password sign-up form. The
+  // real OAuth callback path (provider && code -> load() -> RegisterAfter)
+  // below is untouched.
+  if (!code) {
     if (isGeneral && genericOauth) {
       return (
         <div className="flex flex-col flex-1 gap-[24px]">
@@ -189,8 +193,26 @@ export function RegisterAfter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Provider mode never renders the form; it shows a loading state while the
-  // auto-submit above completes and the user is redirected.
+  // auto-submit above completes and the user is redirected. If that submit
+  // FAILS, surface the error — onSubmit writes it via form.setError('email'),
+  // which used to be invisible behind the spinner (a permanent dead-end).
   if (isProviderSignup) {
+    const providerError = form.formState.errors.email?.message;
+    if (providerError) {
+      return (
+        <div className="flex flex-col flex-1 gap-[16px]">
+          <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start">
+            {t('sign_up_failed', 'Sign-up failed')}
+          </h1>
+          <div className="text-red-400 text-[14px]">{String(providerError)}</div>
+          <p className="text-sm">
+            <Link href="/auth/login" className="underline hover:font-bold">
+              {t('back_to_sign_in', 'Back to sign in')}
+            </Link>
+          </p>
+        </div>
+      );
+    }
     return <LoadingComponent />;
   }
   return (

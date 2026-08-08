@@ -10,6 +10,7 @@ on:
     paths:
       - 'apps/**'
       - 'libraries/**'
+      - 'var/**' # nginx.conf etc — baked into the image
       - 'Dockerfile.dev'
       - '.github/workflows/cuesoft-build-image.yml'
   workflow_dispatch:
@@ -48,6 +49,8 @@ jobs:
           provenance: false
           build-args: |
             NEXT_PUBLIC_VERSION=v2.23.0
+          # sha- tag = immutable rollback point; the mutable tags move with every push
           tags: |
             ghcr.io/cuesoftinc/postiz-app:v2.23.0-sso
             ghcr.io/cuesoftinc/postiz-app:cuesoft-latest
+            ghcr.io/cuesoftinc/postiz-app:sha-${{ github.sha }}
