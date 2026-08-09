@@ -7,6 +7,7 @@ import { Button } from '@gitroom/react/form/button';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 
 const useApprovedApps = () => {
   const fetch = useFetch();
@@ -74,9 +75,10 @@ export const ApprovedAppsComponent: FC = () => {
 
       <div className="bg-sixth border-fifth border rounded-[4px] p-[24px]">
         {!apps?.length ? (
-          <div className="text-customColor18">
-            {t('no_approved_apps', 'No approved apps yet.')}
-          </div>
+          <EmptyState
+            variant="inline"
+            title={t('no_approved_apps', 'No approved apps yet.')}
+          />
         ) : (
           <div className="flex flex-col gap-[16px]">
             {apps.map((app: any) => (

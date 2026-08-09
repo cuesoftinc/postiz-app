@@ -14,9 +14,9 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
-import clsx from 'clsx';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import ReactLoading from '@gitroom/frontend/components/layout/loading';
+import { Loader } from '@gitroom/frontend/components/cuesoft/loader';
+import { PagerButton } from '@gitroom/frontend/components/cuesoft/pressables';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 export const UpDown: FC<{
@@ -154,11 +154,10 @@ export const StarsTableComponent = () => {
   return (
     <div className="flex flex-1 flex-col gap-[15px] min-h-[426px]">
       <div className="text-textColor flex gap-[8px] items-center select-none">
-        <div
+        <PagerButton
+          direction="prev"
           onClick={changePage('decrease')}
-          className={clsx(
-            (page === 1 || loading) && 'opacity-50 pointer-events-none'
-          )}
+          disabled={page === 1 || loading}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -172,15 +171,14 @@ export const StarsTableComponent = () => {
               fill="#E9E9F1"
             />
           </svg>
-        </div>
+        </PagerButton>
         <h2 className="text-[24px]">{t('stars_per_day', 'Stars per day')}</h2>
-        <div
+        <PagerButton
+          direction="next"
           onClick={changePage('increase')}
-          className={clsx(
-            !isLoadingStars &&
-              (loading || stars?.stars?.length < 10) &&
-              'opacity-50 pointer-events-none'
-          )}
+          disabled={
+            !isLoadingStars && (loading || stars?.stars?.length < 10)
+          }
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -194,11 +192,9 @@ export const StarsTableComponent = () => {
               fill="#E9E9F1"
             />
           </svg>
-        </div>
+        </PagerButton>
         <div>
-          {loading && (
-            <ReactLoading type="spin" color="#fff" width={20} height={20} />
-          )}
+          {loading && <Loader size={20} color="#fff" />}
         </div>
       </div>
       <div className="flex-1 bg-secondary">

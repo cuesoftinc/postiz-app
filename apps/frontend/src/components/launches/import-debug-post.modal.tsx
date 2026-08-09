@@ -8,6 +8,7 @@ import { Button } from '@gitroom/react/form/button';
 import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
 import { useSWRConfig } from 'swr';
 import clsx from 'clsx';
+import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
 
 interface DebugPostData {
   type: string;
@@ -126,7 +127,7 @@ export const ImportDebugPostModal: FC<{ close: () => void }> = ({ close }) => {
   }, [parsed, selectedIntegrationId, fetch, toaster, t, close, mutate]);
 
   return (
-    <div className="flex flex-col gap-[16px] min-w-[500px] phone:min-w-0 phone:w-[calc(100vw-64px)]">
+    <ModalBody width={500}>
       <textarea
         className="w-full h-[200px] p-[12px] rounded-[8px] bg-input border border-tableBorder text-textColor font-mono text-[13px] resize-y"
         placeholder={t(
@@ -250,6 +251,6 @@ export const ImportDebugPostModal: FC<{ close: () => void }> = ({ close }) => {
           </Button>
         </div>
       )}
-    </div>
+    </ModalBody>
   );
 };

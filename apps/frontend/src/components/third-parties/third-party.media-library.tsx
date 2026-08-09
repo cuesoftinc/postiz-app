@@ -9,6 +9,7 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import clsx from 'clsx';
 import { VideoFrame } from '@gitroom/react/helpers/video.frame';
 import { Pagination } from '@gitroom/frontend/components/media/media.component';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 
 const ThirdPartyMediaLibraryBrowser: FC<{
   integration: any;
@@ -101,9 +102,10 @@ const ThirdPartyMediaLibraryBrowser: FC<{
             </div>
           )}
           {!isLoading && (!data?.results || !data.results.length) && (
-            <div className="flex items-center justify-center h-full text-textColor/60">
-              {t('no_media_found', 'No media found')}
-            </div>
+            <EmptyState
+              title={t('no_media_found', 'No media found')}
+              className="h-full"
+            />
           )}
           {!isLoading && !!data?.results?.length && (
             <div className="grid grid-cols-4 gap-[8px]">

@@ -53,6 +53,8 @@ import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { useDebounce } from 'use-debounce';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
+import { PagerButton } from '@gitroom/frontend/components/cuesoft/pressables';
 const Polonto = dynamic(
   () => import('@gitroom/frontend/components/launches/polonto')
 );
@@ -120,15 +122,17 @@ export const Pagination: FC<{
 
   return (
     <ul className="flex flex-row items-center gap-1 justify-center mt-[15px]">
-      <li className={clsx(current === 0 && 'opacity-20 pointer-events-none')}>
-        <div
-          className="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 gap-1 ps-2.5 text-gray-400 hover:text-white border-[#1F1F1F] hover:bg-forth"
+      <li>
+        <PagerButton
+          direction="prev"
+          disabled={current === 0}
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 gap-1 ps-2.5 text-gray-400 hover:text-white border-newBorder hover:bg-forth"
           aria-label="Go to previous page"
           onClick={() => setPage(current - 1)}
         >
           <ChevronLeftIcon className="lucide lucide-chevron-left h-4 w-4" />
           <span>{t('previous', 'Previous')}</span>
-        </div>
+        </PagerButton>
       </li>
       {paginationItems.map((item, index) => (
         <li key={index}>
@@ -137,34 +141,32 @@ export const Pagination: FC<{
               ...
             </span>
           ) : (
-            <div
-              aria-current="page"
+            <PagerButton
+              active={current === item - 1}
               onClick={() => setPage(item - 1)}
               className={clsx(
-                'cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border hover:bg-forth h-10 w-10 hover:text-white border-newBorder',
+                'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border hover:bg-forth h-10 w-10 hover:text-white border-newBorder',
                 current === item - 1
                   ? 'bg-forth !text-white'
                   : 'text-textColor hover:text-white'
               )}
             >
               {item}
-            </div>
+            </PagerButton>
           )}
         </li>
       ))}
-      <li
-        className={clsx(
-          current + 1 === totalPages && 'opacity-20 pointer-events-none'
-        )}
-      >
-        <a
-          className="text-textColor hover:text-white group cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 gap-1 pe-2.5 text-gray-400 border-[#1F1F1F] hover:bg-forth"
+      <li>
+        <PagerButton
+          direction="next"
+          disabled={current + 1 === totalPages}
+          className="text-textColor hover:text-white group inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 gap-1 pe-2.5 text-gray-400 border-newBorder hover:bg-forth"
           aria-label="Go to next page"
           onClick={() => setPage(current + 1)}
         >
           <span>{t('next', 'Next')}</span>
           <ChevronRightIcon className="lucide lucide-chevron-right h-4 w-4" />
-        </a>
+        </PagerButton>
       </li>
     </ul>
   );
@@ -473,16 +475,15 @@ export const MediaBox: FC<{
           <div
             className={clsx(
               'absolute -left-[3px] -top-[3px] withp3 h-full overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner',
-              !isLoading &&
-                !data?.results?.length &&
-                'flex justify-center items-center gap-[20px] flex-col'
+              !isLoading && !data?.results?.length && 'flex'
             )}
           >
             {!isLoading && !data?.results?.length && (
-              <>
-                <NoMediaIcon />
-                <div className="text-[20px] font-[600]">
-                  {debouncedSearch
+              <EmptyState
+                variant="hero"
+                icon={<NoMediaIcon />}
+                title={
+                  debouncedSearch
                     ? t(
                         'no_media_match_search',
                         'No media matches your search'
@@ -490,24 +491,28 @@ export const MediaBox: FC<{
                     : t(
                         'you_dont_have_any_media_yet',
                         "You don't have any media yet"
-                      )}
-                </div>
-                <div className="whitespace-pre-line text-newTextColor/[0.6] text-center">
-                  {t(
-                    'select_or_upload_pictures_max_1gb',
-                    'Select or upload pictures (maximum 1 GB per upload).'
-                  )}{' '}
-                  {'\n'}
-                  {t(
-                    'you_can_drag_drop_pictures',
-                    'You can also drag & drop pictures.'
-                  )}
-                </div>
-                <div className="forceChange flex gap-[8px]">
-                  {btn}
-                  <ThirdPartyMediaLibrary onImported={() => mutate()} />
-                </div>
-              </>
+                      )
+                }
+                description={
+                  <span className="whitespace-pre-line">
+                    {t(
+                      'select_or_upload_pictures_max_1gb',
+                      'Select or upload pictures (maximum 1 GB per upload).'
+                    )}{' '}
+                    {'\n'}
+                    {t(
+                      'you_can_drag_drop_pictures',
+                      'You can also drag & drop pictures.'
+                    )}
+                  </span>
+                }
+                action={
+                  <div className="forceChange flex gap-[8px]">
+                    {btn}
+                    <ThirdPartyMediaLibrary onImported={() => mutate()} />
+                  </div>
+                }
+              />
             )}
             {isLoading && (
               <>

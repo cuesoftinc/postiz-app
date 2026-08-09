@@ -5,6 +5,7 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Button } from '@gitroom/react/form/button';
+import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
 
 export const AgentMediaModal: FC = () => {
   const fetch = useFetch();
@@ -29,7 +30,7 @@ export const AgentMediaModal: FC = () => {
   }, [fetch, closeCurrent]);
 
   return (
-    <div className="flex flex-col gap-[20px] max-w-[520px]">
+    <ModalBody gap={20} maxWidth={520}>
       <div className="text-[14px] leading-[22px] text-newTextColor opacity-80">
         {t(
           'agent_media_different_company',
@@ -98,6 +99,6 @@ export const AgentMediaModal: FC = () => {
           {t('cancel', 'Cancel')}
         </Button>
       </div>
-    </div>
+    </ModalBody>
   );
 };

@@ -6,6 +6,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { Button } from '@gitroom/react/form/button';
 import { StatisticsModal } from '@gitroom/frontend/components/launches/statistics';
@@ -71,12 +72,12 @@ export const MissingReleaseModal: FC<{
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center text-textColor py-[20px]">
-        {t(
+      <EmptyState
+        title={t(
           'no_missing_content',
           'No content found from this provider. The provider may not support this feature.'
         )}
-      </div>
+      />
     );
   }
 

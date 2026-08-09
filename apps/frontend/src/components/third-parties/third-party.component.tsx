@@ -1,7 +1,6 @@
 'use client';
 
 import clsx from 'clsx';
-import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ThirdPartyListComponent } from '@gitroom/frontend/components/third-parties/third-party.list.component';
 import React, { FC, useCallback, useState } from 'react';
@@ -9,9 +8,16 @@ import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
-import useCookie from 'react-use-cookie';
-import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { sidePanelRoot } from '@gitroom/frontend/components/new-layout/side-panel';
+import {
+  SidePanelHeader,
+  useSidePanelCollapse,
+} from '@gitroom/frontend/components/new-layout/side-panel-header';
+import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
+import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
+import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
+import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
 
 export const ThirdPartyMenuComponent: FC<{
   reload: () => void;
@@ -19,16 +25,15 @@ export const ThirdPartyMenuComponent: FC<{
 }> = (props) => {
   const { tParty, reload } = props;
   const fetch = useFetch();
-  const [show, setShow] = useState(false);
+  // useDropdown instead of a bare useState: the kebab gains click-away and
+  // Escape dismissal (plan-flagged deliberate behavior change — it previously
+  // only closed by re-clicking the kebab or picking an action)
+  const { open: show, close, toggle: changeShow, ref } = useDropdown();
   const t = useT();
   const toaster = useToaster();
 
-  const changeShow = () => {
-    setShow((prev) => !prev);
-  };
-
   const deleteChannel = (id: string) => async () => {
-    setShow(false);
+    close();
     if (
       !(await deleteDialog('Are you sure you want to delete this integration?'))
     ) {
@@ -49,7 +54,11 @@ export const ThirdPartyMenuComponent: FC<{
   };
 
   return (
-    <div className="cursor-pointer relative select-none" onClick={changeShow}>
+    <div
+      className="cursor-pointer relative select-none"
+      onClick={changeShow}
+      ref={ref}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"
@@ -63,10 +72,7 @@ export const ThirdPartyMenuComponent: FC<{
         />
       </svg>
       {show && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className={`absolute top-[100%] start-0 p-[8px] px-[20px] bg-fifth flex flex-col gap-[16px] z-[100] rounded-[8px] border border-tableBorder text-nowrap`}
-        >
+        <DropdownPanel surface="menu" anchor="start">
           <div
             className="flex gap-[12px] items-center"
             onClick={deleteChannel(tParty.id)}
@@ -89,7 +95,7 @@ export const ThirdPartyMenuComponent: FC<{
               {t('delete_integration', 'Delete Integration')}
             </div>
           </div>
-        </div>
+        </DropdownPanel>
       )}
     </div>
   );
@@ -111,7 +117,7 @@ export const ThirdPartyComponent = () => {
     refreshWhenHidden: false,
     refreshWhenOffline: false,
   });
-  const [collapseMenu, setCollapseMenu] = useCookie('collapseMenu', '0');
+  const { collapsed, toggle } = useSidePanelCollapse();
 
   return (
     <>
@@ -119,35 +125,11 @@ export const ThirdPartyComponent = () => {
         data-side-panel="flow"
         className={clsx(
           'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all phone:p-[12px]',
-          sidePanelRoot(collapseMenu === '1')
+          sidePanelRoot(collapsed)
         )}
       >
         <div className="flex gap-[12px] flex-col">
-          <div className="flex items-center">
-            <h2 className="group-[.sidebar]:hidden flex-1 text-[20px] font-[500]">
-              {t('integrations')}
-            </h2>
-            <div
-              onClick={() => setCollapseMenu(collapseMenu === '1' ? '0' : '1')}
-              className="group-[.sidebar]:rotate-[180deg] group-[.sidebar]:mx-auto text-btnText bg-btnSimple rounded-[6px] w-[24px] h-[24px] flex items-center justify-center cursor-pointer select-none"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="7"
-                height="13"
-                viewBox="0 0 7 13"
-                fill="none"
-              >
-                <path
-                  d="M6 11.5L1 6.5L6 1.5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          </div>
+          <SidePanelHeader title={t('integrations')} onToggle={toggle} />
           <div className="flex flex-col gap-[10px]">
             <div className="flex-1 flex flex-col gap-[14px]">
               <div
@@ -156,45 +138,33 @@ export const ThirdPartyComponent = () => {
                 )}
               >
                 {!isLoading && !data?.length ? (
-                  <div>No Integrations Yet</div>
+                  <EmptyState
+                    title={t('no_integrations_yet', 'No Integrations Yet')}
+                  />
                 ) : (
                   data?.map((p: any) => (
-                    <div
+                    <ChannelRow
                       key={p.id}
-                      className={clsx('flex gap-[8px] items-center group/profile hover:bg-boxHover')}
-                    >
-                      <div className="h-full w-[4px] rounded-s-[3px] opacity-0 group-hover/profile:opacity-100 transition-opacity">
-                        <SVGLine />
-                      </div>
-                      <div
-                        className={clsx(
-                          'relative rounded-full flex justify-center items-center'
-                        )}
-                        data-tooltip-id="tooltip"
-                        data-tooltip-content={p.title}
-                      >
-                        <ImageWithFallback
-                          fallbackSrc={`/icons/third-party/${p.identifier}.png`}
-                          src={`/icons/third-party/${p.identifier}.png`}
-                          className="rounded-full"
-                          alt={p.title}
-                          width={32}
-                          height={32}
+                      integration={p}
+                      gap={8}
+                      center={false}
+                      roundedEnd={false}
+                      tooltip={p.title}
+                      avatar={
+                        <ChannelAvatar
+                          picture={`/icons/third-party/${p.identifier}.png`}
+                          fallback={`/icons/third-party/${p.identifier}.png`}
+                          identifier={p.identifier}
+                          name={p.title}
+                          size={32}
+                          shape="round"
+                          showBadge={false}
                         />
-                      </div>
-                      <div
-                        // @ts-ignore
-                        role="Handle"
-                        className={clsx(
-                          'flex-1 whitespace-nowrap text-ellipsis overflow-hidden group-[.sidebar]:hidden'
-                        )}
-                        data-tooltip-id="tooltip"
-                        data-tooltip-content={p.title}
-                      >
-                        {p.name}
-                      </div>
-                      <ThirdPartyMenuComponent reload={mutate} tParty={p} />
-                    </div>
+                      }
+                      trailing={
+                        <ThirdPartyMenuComponent reload={mutate} tParty={p} />
+                      }
+                    />
                   ))
                 )}
               </div>

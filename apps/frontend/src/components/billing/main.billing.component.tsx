@@ -6,7 +6,7 @@ import { Button } from '@gitroom/react/form/button';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Subscription } from '@prisma/client';
 import { useDebouncedCallback } from 'use-debounce';
-import ReactLoading from '@gitroom/frontend/components/layout/loading';
+import { Loader } from '@gitroom/frontend/components/cuesoft/loader';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import dayjs from 'dayjs';
@@ -62,7 +62,7 @@ export const Prorate: FC<{
   if (loading) {
     return (
       <div className="pt-[12px]">
-        <ReactLoading type="spin" color="#fff" width={20} height={20} />
+        <Loader size={20} color="#fff" />
       </div>
     );
   }

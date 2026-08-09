@@ -9,6 +9,15 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Button } from '@gitroom/react/form/button';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
+import { DataTable } from '@gitroom/frontend/components/cuesoft/data-table';
+import { TablePagination } from '@gitroom/frontend/components/cuesoft/table-pagination';
+import {
+  ToolbarField,
+  ToolbarInput,
+  ToolbarRow,
+  ToolbarSelect,
+} from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
 
 interface ErrorRow {
   id: string;
@@ -59,7 +68,11 @@ const ErrorDetailsModal: FC<{ row: ErrorRow }> = ({ row }) => {
   }, [parsedMessage, parsedBody, row, toaster]);
 
   return (
-    <div className="rounded-[4px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px] relative w-full phone:w-[calc(100vw-64px)] max-h-[80vh] overflow-auto">
+    <ModalBody
+      width="100%"
+      gap={0}
+      className="rounded-[4px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px] relative w-full max-h-[80vh] overflow-auto"
+    >
       <div className="sticky top-0 bg-newBgColorInner py-[16px] flex items-center justify-between gap-[12px] z-10 border-b border-newTableBorder mb-[12px]">
         <div className="text-[16px] font-[600]">Error Details</div>
         <div className="flex gap-[8px] items-center">
@@ -131,7 +144,7 @@ const ErrorDetailsModal: FC<{ row: ErrorRow }> = ({ row }) => {
           ? parsedBody
           : JSON.stringify(parsedBody, null, 2)}
       </pre>
-    </div>
+    </ModalBody>
   );
 };
 
@@ -249,16 +262,15 @@ export const AdminErrorsComponent: FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-[12px] items-end bg-newBgColorInner border border-newTableBorder rounded-[8px] p-[12px]">
-        <div className="flex flex-col gap-[6px]">
-          <div className="text-[12px] opacity-70">Platform</div>
-          <select
+      <ToolbarRow card>
+        <ToolbarField label="Platform">
+          <ToolbarSelect
             value={platform}
             onChange={(e) => {
               setPage(0);
               setPlatform(e.target.value);
             }}
-            className="bg-newBgColorInner h-[38px] border border-newTableBorder rounded-[8px] px-[10px] text-[14px] text-textColor min-w-[180px]"
+            className="min-w-[180px]"
           >
             <option value="">All platforms</option>
             {(platforms || []).map((p) => (
@@ -266,24 +278,23 @@ export const AdminErrorsComponent: FC = () => {
                 {p}
               </option>
             ))}
-          </select>
-        </div>
+          </ToolbarSelect>
+        </ToolbarField>
 
-        <div className="flex flex-col gap-[6px]">
-          <div className="text-[12px] opacity-70">Email contains</div>
+        <ToolbarField label="Email contains">
           <div className="flex gap-[8px]">
-            <input
+            <ToolbarInput
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') onApplyEmail();
               }}
               placeholder="user@example.com"
-              className="bg-newBgColorInner h-[38px] border border-newTableBorder rounded-[8px] px-[10px] text-[14px] text-textColor min-w-[240px]"
+              className="min-w-[240px]"
             />
             <Button onClick={onApplyEmail}>Apply</Button>
           </div>
-        </div>
+        </ToolbarField>
 
         <label className="flex items-center gap-[6px] text-[13px] cursor-pointer h-[38px]">
           <input
@@ -297,28 +308,26 @@ export const AdminErrorsComponent: FC = () => {
           Unknown Error first
         </label>
 
-        <div className="flex flex-col gap-[6px]">
-          <div className="text-[12px] opacity-70">Per page</div>
-          <select
+        <ToolbarField label="Per page">
+          <ToolbarSelect
             value={limit}
             onChange={(e) => {
               setPage(0);
               setLimit(parseInt(e.target.value, 10));
             }}
-            className="bg-newBgColorInner h-[38px] border border-newTableBorder rounded-[8px] px-[10px] text-[14px] text-textColor"
           >
             {[10, 20, 50, 100].map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
             ))}
-          </select>
-        </div>
+          </ToolbarSelect>
+        </ToolbarField>
 
         <Button secondary onClick={onClear}>
           Clear filters
         </Button>
-      </div>
+      </ToolbarRow>
 
       {isLoading ? (
         <LoadingComponent />
@@ -327,85 +336,88 @@ export const AdminErrorsComponent: FC = () => {
       ) : !data || data.items.length === 0 ? (
         <div className="opacity-70">No errors found.</div>
       ) : (
-        <div className="border border-newTableBorder rounded-[8px] overflow-hidden">
-          <div className="grid grid-cols-[170px_120px_220px_1fr_220px] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[12px] uppercase opacity-70 border-b border-newTableBorder phone:hidden">
-            <div>Created</div>
-            <div>Platform</div>
-            <div>User / Org</div>
-            <div>Message</div>
-            <div className="text-right">Actions</div>
-          </div>
-          {data.items.map((row) => {
-            const isUnknown = (row.message || '').includes('Unknown Error');
-            const emails =
-              row.organization?.users
-                ?.map((u) => u.user?.email)
-                .filter(Boolean)
-                .join(', ') || '—';
-            const preview =
-              (row.message || '').length > 280
-                ? row.message.slice(0, 280) + '…'
-                : row.message;
-            return (
-              <div
-                key={row.id}
-                className="grid grid-cols-[170px_120px_220px_1fr_220px] phone:grid-cols-1 phone:gap-[6px] gap-[12px] px-[12px] py-[10px] text-[13px] border-b border-newTableBorder last:border-b-0 items-start"
-              >
-                <div className="opacity-90">
-                  {new Date(row.createdAt).toLocaleString()}
-                </div>
-                <div>
-                  <span
-                    className={
-                      isUnknown
-                        ? 'text-red-400 font-[600]'
-                        : 'opacity-90'
-                    }
-                  >
-                    {row.platform}
-                  </span>
-                </div>
-                <div className="break-all">
-                  <div>{emails}</div>
+        <DataTable<ErrorRow>
+          columns={[
+            {
+              key: 'created',
+              header: 'Created',
+              width: '170px',
+              cellClassName: 'opacity-90',
+              render: (row) => new Date(row.createdAt).toLocaleString(),
+            },
+            {
+              key: 'platform',
+              header: 'Platform',
+              width: '120px',
+              render: (row) => (
+                <span
+                  className={
+                    (row.message || '').includes('Unknown Error')
+                      ? 'text-red-400 font-[600]'
+                      : 'opacity-90'
+                  }
+                >
+                  {row.platform}
+                </span>
+              ),
+            },
+            {
+              key: 'userOrg',
+              header: 'User / Org',
+              width: '220px',
+              cellClassName: 'break-all',
+              render: (row) => (
+                <>
+                  <div>
+                    {row.organization?.users
+                      ?.map((u) => u.user?.email)
+                      .filter(Boolean)
+                      .join(', ') || '—'}
+                  </div>
                   <div className="opacity-60 text-[12px]">
                     {row.organization?.name}
                   </div>
-                </div>
-                <div className="break-all whitespace-pre-wrap font-mono text-[12px] opacity-90">
-                  {preview}
-                </div>
-                <div className="flex gap-[8px] justify-end phone:justify-start">
+                </>
+              ),
+            },
+            {
+              key: 'message',
+              header: 'Message',
+              cellClassName:
+                'break-all whitespace-pre-wrap font-mono text-[12px] opacity-90',
+              render: (row) =>
+                (row.message || '').length > 280
+                  ? row.message.slice(0, 280) + '…'
+                  : row.message,
+            },
+            {
+              key: 'actions',
+              header: 'Actions',
+              width: '220px',
+              align: 'right',
+              cellClassName: 'flex gap-[8px] justify-end phone:justify-start',
+              render: (row) => (
+                <>
                   <Button secondary onClick={() => openDetails(row)}>
                     View
                   </Button>
                   <Button onClick={() => copyRow(row)}>Copy</Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                </>
+              ),
+            },
+          ]}
+          rows={data.items}
+          rowKey={(row) => row.id}
+        />
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="text-[13px] opacity-70">
-          Page {page + 1} of {totalPages}
-        </div>
-        <div className="flex gap-[8px]">
-          <Button
-            secondary
-            disabled={page === 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-          >
-            Previous
-          </Button>
-          <Button
-            disabled={!data?.hasMore}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        hasMore={!!data?.hasMore}
+        onPrev={() => setPage((p) => Math.max(0, p - 1))}
+        onNext={() => setPage((p) => p + 1)}
+      />
     </div>
   );
 };

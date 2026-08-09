@@ -1,7 +1,7 @@
 import { Button } from '@gitroom/react/form/button';
 import React, { FC, useCallback, useState } from 'react';
 import clsx from 'clsx';
-import Loading from '@gitroom/frontend/components/layout/loading';
+import { Loader } from '@gitroom/frontend/components/cuesoft/loader';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
@@ -211,7 +211,7 @@ export const AiVideo: FC<{
       >
         {loading && (
           <div className="absolute start-[50%] -translate-x-[50%]">
-            <Loading height={30} width={30} type="spin" color="#fff" />
+            <Loader size={30} color="#fff" />
           </div>
         )}
         <div

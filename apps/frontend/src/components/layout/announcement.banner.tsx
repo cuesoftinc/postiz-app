@@ -8,6 +8,7 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Button } from '@gitroom/react/form/button';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
+import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
 
 type AnnouncementColor = 'INFO' | 'WARNING' | 'ERROR';
 
@@ -69,7 +70,9 @@ const AnnouncementDetailModal: FC<{
   }, [announcement.id, onDelete]);
 
   return (
-    <div className="flex flex-col gap-[16px] min-w-[500px]">
+    // ModalBody bakes in the phone fallback this copy of the width recipe had
+    // dropped (min-w-[500px] with no phone:min-w-0 = live mobile overflow)
+    <ModalBody width={500}>
       <div className="text-newTextColor/60 text-[13px]">
         {new Date(announcement.createdAt).toLocaleDateString()}
       </div>
@@ -87,7 +90,7 @@ const AnnouncementDetailModal: FC<{
           </Button>
         </div>
       )}
-    </div>
+    </ModalBody>
   );
 };
 
@@ -134,6 +137,8 @@ export const AnnouncementBanner: FC = () => {
     <div
       className={`${style.bg} ${style.hover} text-white px-[16px] py-[8px] text-center cursor-pointer rounded-[8px] text-[14px] font-[500] transition-colors`}
       onClick={handleClick(latest)}
+      role="button"
+      tabIndex={0}
     >
       {latest.title}
       {announcements.length > 1 && (

@@ -5,6 +5,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ChartSocial } from '@gitroom/frontend/components/analytics/chart-social';
 import { Select } from '@gitroom/react/form/select';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { MissingReleaseModal } from '@gitroom/frontend/components/launches/missing-release.modal';
 
 interface AnalyticsData {
@@ -152,9 +153,10 @@ export const StatisticsModal: FC<{
               {t('short_links_statistics', 'Short Links Statistics')}
             </h3>
             {statisticsData?.clicks?.length === 0 ? (
-              <div className="text-gray-400">
-                {t('no_short_link_results', 'No short link results')}
-              </div>
+              <EmptyState
+                variant="inline"
+                title={t('no_short_link_results', 'No short link results')}
+              />
             ) : (
               <div className="grid grid-cols-3">
                 <div className="bg-forth p-[4px] rounded-tl-lg">
@@ -186,9 +188,9 @@ export const StatisticsModal: FC<{
           {/* No analytics available message */}
           {(!analyticsData || !Array.isArray(analyticsData) || analyticsData.length === 0) &&
             (!statisticsData?.clicks || statisticsData.clicks.length === 0) && (
-              <div className="text-center text-gray-400 py-[20px]">
-                {t('no_statistics_available', 'No statistics available for this post')}
-              </div>
+              <EmptyState
+                title={t('no_statistics_available', 'No statistics available for this post')}
+              />
             )}
         </div>
       )}

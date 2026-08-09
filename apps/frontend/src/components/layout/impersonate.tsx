@@ -16,6 +16,16 @@ import { ImportDebugPostModal } from '@gitroom/frontend/components/launches/impo
 import { useForm, FormProvider } from 'react-hook-form';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
+import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
+import {
+  Chip,
+  ChoiceChipGroup,
+} from '@gitroom/frontend/components/cuesoft/pressables';
+import {
+  UserSearchDropdown,
+  UserSearchItem,
+} from '@gitroom/frontend/components/cuesoft/dropdown/user-search-dropdown';
 
 interface Charge {
   id: string;
@@ -408,7 +418,7 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-[16px] min-w-[500px] phone:min-w-0 phone:w-[calc(100vw-64px)]">
+    <ModalBody width={500}>
       <div className="max-h-[400px] overflow-y-auto phone:overflow-x-auto">
         {!charges?.length ? (
           <div className="text-center py-[20px] text-newTextColor/60">
@@ -535,7 +545,7 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
           {t('cancel_subscription', 'Cancel Subscription')}
         </Button>
       </div>
-    </div>
+    </ModalBody>
   );
 };
 
@@ -551,12 +561,9 @@ const ManageBilling = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-red-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <Chip className="bg-red-700" onClick={handleClick}>
       {t('manage_billing', 'Manage Billing')}
-    </div>
+    </Chip>
   );
 };
 
@@ -637,7 +644,7 @@ const AddAnnouncementModal: FC<{ close: () => void }> = ({ close }) => {
   }, [title, description, color]);
 
   return (
-    <div className="flex flex-col gap-[16px] min-w-[500px] phone:min-w-0 phone:w-[calc(100vw-64px)]">
+    <ModalBody width={500}>
       <Input
         label={t('announcement_title', 'Title')}
         name="title"
@@ -664,21 +671,13 @@ const AddAnnouncementModal: FC<{ close: () => void }> = ({ close }) => {
         <label className="text-[14px]">
           {t('announcement_color', 'Color')}
         </label>
-        <div className="flex gap-[8px]">
-          {colorOptions.map((opt) => (
-            <div
-              key={opt.value}
-              onClick={() => setColor(opt.value)}
-              className={`flex-1 text-center py-[8px] rounded-[8px] text-white text-[13px] cursor-pointer transition-opacity ${opt.className} ${
-                color === opt.value ? 'opacity-100 ring-2 ring-white' : 'opacity-40'
-              }`}
-            >
-              {opt.label}
-            </div>
-          ))}
-        </div>
+        <ChoiceChipGroup
+          options={colorOptions}
+          value={color}
+          onChange={setColor}
+        />
       </div>
-      <div className="flex justify-end">
+      <ModalFooter>
         <Button
           onClick={handleSubmit}
           loading={saving}
@@ -687,8 +686,8 @@ const AddAnnouncementModal: FC<{ close: () => void }> = ({ close }) => {
         >
           {t('create_announcement', 'Create Announcement')}
         </Button>
-      </div>
-    </div>
+      </ModalFooter>
+    </ModalBody>
   );
 };
 
@@ -704,12 +703,9 @@ const AddAnnouncement = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-green-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <Chip className="bg-green-700" onClick={handleClick}>
       {t('add_announcement', 'Add Announcement')}
-    </div>
+    </Chip>
   );
 };
 
@@ -758,7 +754,7 @@ const AddTeamMemberModal: FC<{ close: () => void }> = ({ close }) => {
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(submit)}>
-        <div className="flex flex-col gap-[10px] min-w-[400px] phone:min-w-0 phone:w-[calc(100vw-64px)]">
+        <ModalBody width={400} gap={10}>
           <Input
             label="Email"
             placeholder={t('enter_email', 'Enter email')}
@@ -772,7 +768,7 @@ const AddTeamMemberModal: FC<{ close: () => void }> = ({ close }) => {
           <Button type="submit" loading={saving} className="rounded-[4px]">
             {t('add_team_member', 'Add Team Member')}
           </Button>
-        </div>
+        </ModalBody>
       </form>
     </FormProvider>
   );
@@ -790,42 +786,27 @@ const AddTeamMember = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-teal-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <Chip className="bg-teal-700" onClick={handleClick}>
       {t('add_team_member', 'Add Team Member')}
-    </div>
+    </Chip>
   );
 };
 
 const ViewErrors = () => {
   const t = useT();
-  const handleClick = useCallback(() => {
-    window.location.href = '/admin/errors';
-  }, []);
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-blue-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <Chip href="/admin/errors" className="bg-blue-700">
       {t('view_errors', 'View Errors')}
-    </div>
+    </Chip>
   );
 };
 
 const ViewStats = () => {
   const t = useT();
-  const handleClick = useCallback(() => {
-    window.location.href = '/admin/stats';
-  }, []);
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-purple-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <Chip href="/admin/stats" className="bg-purple-700">
       {t('view_stats', 'View Stats')}
-    </div>
+    </Chip>
   );
 };
 
@@ -842,12 +823,9 @@ const ImportDebugPost = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-yellow-600 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <Chip className="bg-yellow-600" onClick={handleClick}>
       {t('import_debug_post', 'Import Debug Post')}
-    </div>
+    </Chip>
   );
 };
 
@@ -857,11 +835,7 @@ const SwitchUser = () => {
   const toaster = useToaster();
   const currentUser = useUser();
   const [name, setName] = useState('');
-  const [selected, setSelected] = useState<{
-    id: string;
-    name: string;
-    email: string;
-  } | null>(null);
+  const [selected, setSelected] = useState<UserSearchItem | null>(null);
   const [switching, setSwitching] = useState(false);
 
   const load = useCallback(async () => {
@@ -900,13 +874,10 @@ const SwitchUser = () => {
       }));
   }, [data, currentUser?.id]);
 
-  const pick = useCallback(
-    (item: { id: string; name: string; email: string }) => () => {
-      setSelected(item);
-      setName('');
-    },
-    []
-  );
+  const pick = useCallback((item: UserSearchItem) => {
+    setSelected(item);
+    setName('');
+  }, []);
 
   const doSwitch = useCallback(async () => {
     if (!selected) {
@@ -975,26 +946,11 @@ const SwitchUser = () => {
         {t('switch_user', 'Switch User')}
       </Button>
       {!!mapData?.length && !selected && (
-        <>
-          <div
-            className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[998]"
-            onClick={() => setName('')}
-          />
-          <div className="absolute top-[100%] start-0 w-full bg-sixth border border-customColor6 text-textColor z-[999]">
-            {mapData.map((item: any) => (
-              <div
-                onClick={pick(item)}
-                key={item.id}
-                className="p-[10px] border-b border-customColor6 hover:bg-tableBorder cursor-pointer"
-              >
-                {t('user_1', 'user:')}
-                {item.id.split('-').at(-1)} -{' '}
-                {item.name ? `${item.name} - ` : ''}
-                {item.email}
-              </div>
-            ))}
-          </div>
-        </>
+        <UserSearchDropdown
+          items={mapData}
+          onPick={pick}
+          onDismiss={() => setName('')}
+        />
       )}
     </div>
   );
@@ -1073,12 +1029,16 @@ export const Impersonate = () => {
                   {t('currently_impersonating', 'Currently Impersonating')}
                 </div>
                 <div>
-                  <div
-                    className="px-[10px] rounded-[4px] bg-red-500 text-white cursor-pointer"
+                  <Chip
+                    className="bg-red-500"
                     onClick={stopImpersonating}
+                    aria-label={t(
+                      'stop_impersonating',
+                      'Stop impersonating'
+                    )}
                   >
                     X
-                  </div>
+                  </Chip>
                 </div>
                 {user?.tier?.current === 'FREE' && <Subscription />}
                 {user?.tier?.team_members && <AddTeamMember />}
@@ -1107,24 +1067,11 @@ export const Impersonate = () => {
             )}
           </div>
           {!!data?.length && (
-            <>
-              <div
-                className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[998]"
-                onClick={() => setName('')}
-              />
-              <div className="absolute top-[100%] w-full start-0 bg-sixth border border-customColor6 text-textColor z-[999]">
-                {mapData?.map((user: any) => (
-                  <div
-                    onClick={setUser(user.id)}
-                    key={user.id}
-                    className="p-[10px] border-b border-customColor6 hover:bg-tableBorder cursor-pointer"
-                  >
-                    {t('user_1', 'user:')}
-                    {user.id.split('-').at(-1)} - {user.name} - {user.email}
-                  </div>
-                ))}
-              </div>
-            </>
+            <UserSearchDropdown
+              items={mapData || []}
+              onPick={(item) => setUser(item.id)()}
+              onDismiss={() => setName('')}
+            />
           )}
         </div>
       </div>

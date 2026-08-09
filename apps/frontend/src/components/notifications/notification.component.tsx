@@ -5,8 +5,9 @@ import useSWR from 'swr';
 import { FC, useCallback, useState } from 'react';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import { useClickAway } from '@uidotdev/usehooks';
 import ReactLoading from '@gitroom/frontend/components/layout/loading';
+import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
+import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 function replaceLinks(text: string) {
   const urlRegex =
@@ -61,15 +62,15 @@ export const NotificationOpenComponent = () => {
 
   const { data, isLoading } = useSWR('notifications', loadNotifications);
   return (
-    <div
-      id="notification-popup"
+    <DropdownPanel
+      surface="panel"
+      anchor="end"
       // 420px is wider than a phone and this is anchored end-0 to the bell, so
-      // on mobile it hung off the left edge with its text cut off
-      className="opacity-0 animate-normalFadeDown mt-[10px] absolute w-[420px] max-w-[calc(100vw-24px)] min-h-[200px] top-[100%] end-0 bg-third text-textColor rounded-[16px] flex flex-col border border-tableBorder z-[600]"
+      // on mobile it hung off the left edge with its text cut off — hence the
+      // max-w guard
+      className="opacity-0 animate-normalFadeDown mt-[10px] w-[420px] max-w-[calc(100vw-48px)] min-h-[200px] flex flex-col"
     >
-      <div
-        className={`p-[16px] border-b border-tableBorder font-bold`}
-      >
+      <div className={`p-[16px] border-b border-tableBorder font-bold`}>
         {t('notifications', 'Notifications')}
       </div>
 
@@ -101,12 +102,12 @@ export const NotificationOpenComponent = () => {
             )
           )}
       </div>
-    </div>
+    </DropdownPanel>
   );
 };
 const NotificationComponent = () => {
   const fetch = useFetch();
-  const [show, setShow] = useState(false);
+  const { open: show, toggle, ref } = useDropdown();
   const loadNotifications = useCallback(async () => {
     return await (await fetch('/notifications')).json();
   }, []);
@@ -121,9 +122,8 @@ const NotificationComponent = () => {
         revalidate: false,
       }
     );
-    setShow(!show);
-  }, [show, data]);
-  const ref = useClickAway<HTMLDivElement>(() => setShow(false));
+    toggle();
+  }, [toggle, data]);
   return (
     <div className="relative cursor-pointer select-none" ref={ref}>
       <div onClick={changeShow}>

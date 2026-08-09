@@ -15,6 +15,8 @@ import { Button } from '@gitroom/react/form/button';
 import { useHotkeys } from 'react-hotkeys-hook';
 import clsx from 'clsx';
 import { EventEmitter } from 'events';
+import { ModalCloseButton } from '@gitroom/frontend/components/cuesoft/modal/modal-close-button';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 
 interface OpenModalInterface {
   title?: any;
@@ -67,6 +69,40 @@ const useModalStore = create<State>((set) => ({
 }));
 
 const CurrentModalContext = createContext({ id: '' });
+
+// openModal({ size: 'xl' }) used to put the literal string 'xl' into inline
+// `style.width` — invalid CSS the browser drops — while ALSO disabling the
+// default `min-w-[600px]` class (skipped whenever `size` is set). Treat `size`
+// as a width only when it is a number or a CSS length; 'xl' (the one named
+// size in use — generator.tsx) resolves to undefined so the chrome's default
+// 600px min-width (with its phone fallback) applies, which is what it
+// evidently wanted.
+const resolveModalWidth = (size?: string | number) => {
+  if (typeof size === 'number') {
+    return size;
+  }
+  if (!size) {
+    return undefined;
+  }
+  // CSS lengths in use: '80%', '60%', '100%', '500px', 'calc(100% - 80px)'
+  return /^[\d.]|^calc\(|^var\(/.test(size) ? size : undefined;
+};
+
+// `classNames.modal` was declared but never applied — a leftover of the
+// Mantine modal API. It is honored on the shell div below with one temporary
+// guard: the stale `bg-transparent` token is stripped. In the compiled
+// cascade `bg-transparent` beats the shell's `bg-newBgColorInner`, and five
+// old-theme call sites still pass it even though the new-theme migration
+// removed their children's self-chrome cards (teams AddMember, billing
+// Accept + Info, add.provider Web3Providers + CustomVariables) — honoring it
+// there would leave those modals floating card-less over the 30%-alpha
+// backdrop. Remove the guard once those call sites regain self-chrome or
+// drop the stale token.
+const resolveShellClassNames = (classNames?: { modal?: string }) =>
+  classNames?.modal
+    ?.split(' ')
+    .filter((token) => token && token !== 'bg-transparent')
+    .join(' ');
 
 interface ModalManagerInterface extends ModalManagerStoreInterface {
   closeCurrent(): void;
@@ -129,6 +165,9 @@ export const Component: FC<{
     [isLast, closeModalFunction]
   );
 
+  const sizeWidth = resolveModalWidth(modal.size);
+  const shellClassNames = resolveShellClassNames(modal.classNames);
+
   if (modal.removeLayout) {
     return (
       <div
@@ -153,7 +192,7 @@ export const Component: FC<{
               className={clsx(
                 modal.fullScreen ? 'w-full h-full flex-1' : 'mx-auto py-[48px]'
               )}
-              {...(modal.size && { style: { width: modal.size } })}
+              {...(sizeWidth && { style: { width: sizeWidth } })}
             >
               {typeof modal.children === 'function'
                 ? modal.children(closeModalFunction)
@@ -189,7 +228,7 @@ export const Component: FC<{
                   ? ''
                   : 'min-h-full pt-[100px] pb-[100px]'
                 : 'h-screen',
-              modal.size && modal.height
+              sizeWidth && modal.height
                 ? 'flex justify-center items-center'
                 : 'top-0 left-0'
             )}
@@ -202,12 +241,13 @@ export const Component: FC<{
                 // min-w-[600px] is wider than a phone, so on mobile the modal
                 // body overran the viewport and pushed its own close button
                 // (and any second column) off-screen.
-                modal.size ? '' : 'min-w-[600px] phone:min-w-0',
-                modal.fullScreen && 'h-full'
+                sizeWidth ? '' : 'min-w-[600px] phone:min-w-0',
+                modal.fullScreen && 'h-full',
+                shellClassNames
               )}
-              {...((!!modal.size || !!modal.height || !!modal.maxSize) && {
+              {...((!!sizeWidth || !!modal.height || !!modal.maxSize) && {
                 style: {
-                  ...(modal.size ? { width: modal.size } : {}),
+                  ...(sizeWidth ? { width: sizeWidth } : {}),
                   ...(modal.height ? { height: modal.height } : {}),
                   // an explicit size must still never exceed the viewport
                   maxWidth: modal.maxSize ?? '100vw',
@@ -222,33 +262,14 @@ export const Component: FC<{
                 {typeof modal.withCloseButton === 'undefined' ||
                 modal.withCloseButton ? (
                   <div className="cursor-pointer">
-                    <button
-                      className="outline-none absolute end-[20px] top-[20px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
-                      type="button"
-                      onClick={closeModalFunction}
-                    >
-                      <svg
-                        viewBox="0 0 15 15"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                      >
-                        <path
-                          d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z"
-                          fill="currentColor"
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                        ></path>
-                      </svg>
-                    </button>
+                    <ModalCloseButton onClick={closeModalFunction} />
                   </div>
                 ) : null}
               </div>
               <div
                 className={clsx(
                   'whitespace-pre-line',
-                  !!modal.height && !!modal.size && 'flex flex-1 flex-col'
+                  !!modal.height && !!sizeWidth && 'flex flex-1 flex-col'
                 )}
               >
                 {RenderComponent}
@@ -347,7 +368,8 @@ export const DecisionModal: FC<{
   return (
     <div className="flex flex-col">
       <div className="max-w-[600px]">{description}</div>
-      <div className="flex gap-[12px] mt-[16px]">
+      {/* gap 12 -> 10 is the ModalFooter kit's called-out normalization */}
+      <ModalFooter align="start">
         <Button
           onClick={() => {
             resolution(true);
@@ -366,7 +388,7 @@ export const DecisionModal: FC<{
             {cancelLabel}
           </Button>
         )}
-      </div>
+      </ModalFooter>
     </div>
   );
 };

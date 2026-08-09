@@ -342,7 +342,10 @@ export const GeneratorComponent = () => {
       title: t('generate_posts', 'Generate Posts'),
       withCloseButton: false,
       classNames: {
-        modal: 'bg-transparent text-textColor',
+        // 'bg-transparent' was a Mantine-era leftover: GeneratorPopup has no
+        // self-chrome card, so honoring it would leave the form floating on
+        // the backdrop. 'xl' now resolves to the chrome's 600px min-width.
+        modal: 'text-textColor',
       },
       size: 'xl',
       children: (

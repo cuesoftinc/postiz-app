@@ -58,6 +58,7 @@ import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
+import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -1212,7 +1213,7 @@ const DebugJsonModal: FC<{ post: any }> = ({ post }) => {
   }, [fetch, post, toaster, t, closeCurrent]);
 
   return (
-    <div className="flex flex-col gap-[16px] p-[16px]">
+    <ModalBody>
       <div className="text-textColor text-[14px]">
         {t('debug_choose_copy', 'Choose what you want to copy')}
       </div>
@@ -1224,7 +1225,7 @@ const DebugJsonModal: FC<{ post: any }> = ({ post }) => {
           {t('copy_debug_json', 'Copy Debug JSON')}
         </Button>
       </div>
-    </div>
+    </ModalBody>
   );
 };
 const CopyDebug = () => {

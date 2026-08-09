@@ -3,7 +3,7 @@
 import { AddProviderButton } from '@gitroom/frontend/components/launches/add.provider.component';
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
-import { capitalize, groupBy, orderBy } from 'lodash';
+import { groupBy, orderBy } from 'lodash';
 import { CalendarWeekProvider } from '@gitroom/frontend/components/launches/calendar.context';
 import { Filters } from '@gitroom/frontend/components/launches/filters';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -27,6 +27,12 @@ import { useIntegrationList } from '@gitroom/frontend/components/launches/helper
 import useCookie from 'react-use-cookie';
 import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
 import { sidePanelRoot, sidePanelPane } from '@gitroom/frontend/components/new-layout/side-panel';
+import {
+  SidePanelHeader,
+  SidePanelVersion,
+  useSidePanelCollapse,
+} from '@gitroom/frontend/components/new-layout/side-panel-header';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 
 export const SVGLine = () => {
   return (
@@ -360,7 +366,7 @@ export const LaunchesComponent = () => {
   const fireEvents = useFireEvents();
   const t = useT();
   const [reload, setReload] = useState(false);
-  const [collapseMenu, setCollapseMenu] = useCookie('collapseMenu', '0');
+  const { collapsed, toggle, collapseMenu } = useSidePanelCollapse();
   const [mode] = useCookie('mode', 'dark');
   const { isLoading, data: integrations, mutate } = useIntegrationList();
 
@@ -500,10 +506,7 @@ export const LaunchesComponent = () => {
       <CalendarWeekProvider integrations={sortedIntegrations}>
         <div
           data-side-panel="absolute"
-          className={clsx(
-            'flex relative flex-col',
-            sidePanelRoot(collapseMenu === '1')
-          )}
+          className={clsx('flex relative flex-col', sidePanelRoot(collapsed))}
         >
           <div
             className={clsx(
@@ -511,33 +514,7 @@ export const LaunchesComponent = () => {
               sidePanelPane
             )}
           >
-            <div className="flex items-center">
-              <h2 className="group-[.sidebar]:hidden flex-1 text-[20px] font-[500]">
-                {t('channels')}
-              </h2>
-              <div
-                onClick={() =>
-                  setCollapseMenu(collapseMenu === '1' ? '0' : '1')
-                }
-                className="group-[.sidebar]:rotate-[180deg] group-[.sidebar]:mx-auto text-btnText bg-btnSimple rounded-[6px] w-[24px] h-[24px] flex items-center justify-center cursor-pointer select-none"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="7"
-                  height="13"
-                  viewBox="0 0 7 13"
-                  fill="none"
-                >
-                  <path
-                    d="M6 11.5L1 6.5L6 1.5"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
+            <SidePanelHeader title={t('channels')} onToggle={toggle} />
             <div className="flex flex-col gap-[8px] group-[.sidebar]:mx-auto group-[.sidebar]:w-[44px]">
               <AddProviderButton update={() => update(true)} />
               <div className="flex gap-[8px] group-[.sidebar]:flex-col">
@@ -549,8 +526,9 @@ export const LaunchesComponent = () => {
             </div>
             <div className="gap-[32px] flex flex-col select-none flex-1">
               {sortedIntegrations.length === 0 && collapseMenu === '0' && (
-                <div className="flex-1 max-h-[500px] justify-center items-center flex">
-                  <div className="flex flex-col gap-[12px] text-center">
+                <EmptyState
+                  variant="hero"
+                  image={
                     <img
                       src={
                         mode === 'dark'
@@ -560,18 +538,15 @@ export const LaunchesComponent = () => {
                       alt="No channels"
                       className="mx-auto min-w-[100%]"
                     />
-                    <div className="font-[600] text-[20px]">
-                      {t('no_channels', 'No channels yet')}
-                    </div>
-                    <div className="text-[14px]">
-                      {t('connect_your_accounts')}
-                    </div>
-                  </div>
-                </div>
+                  }
+                  title={t('no_channels', 'No channels yet')}
+                  description={t('connect_your_accounts')}
+                  className="max-h-[500px]"
+                />
               )}
               {menuIntegrations.map((menu) => (
                 <MenuGroupComponent
-                  collapsed={collapseMenu === '1'}
+                  collapsed={collapsed}
                   changeItemGroup={changeItemGroup}
                   key={menu.name}
                   group={menu}
@@ -583,16 +558,7 @@ export const LaunchesComponent = () => {
                 />
               ))}
             </div>
-            <div className="mt-[5px] text-center flex flex-col">
-              {billingEnabled && user?.isLifetime && (
-                <div>{capitalize(user?.tier?.current || '')} tier</div>
-              )}
-              <div>
-                {process.env.NEXT_PUBLIC_VERSION
-                  ? process.env.NEXT_PUBLIC_VERSION
-                  : ''}
-              </div>
-            </div>
+            <SidePanelVersion />
           </div>
         </div>
         <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">

@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import clsx from 'clsx';
 import { Button } from '@gitroom/react/form/button';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { useCustomProviderFunction } from '@gitroom/frontend/components/launches/helpers/use.custom.provider.function';
 
 const SWR_OPTIONS = {
@@ -107,8 +108,9 @@ export function withContinueProvider<TItem, TSelection>(
 
     if (!isLoading && !resolvedData?.length) {
       return (
-        <div className="text-center flex flex-col justify-center items-center text-[18px] leading-[26px] h-[300px]">
-          {emptyStateMessages.map((msg, index) => (
+        <EmptyState
+          className="h-[300px]"
+          title={emptyStateMessages.map((msg, index) => (
             <span key={msg.key}>
               {t(msg.key, msg.text)}
               {index < emptyStateMessages.length - 1 && (
@@ -119,7 +121,7 @@ export function withContinueProvider<TItem, TSelection>(
               )}
             </span>
           ))}
-        </div>
+        />
       );
     }
 

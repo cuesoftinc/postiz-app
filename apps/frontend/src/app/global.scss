@@ -1026,7 +1026,7 @@ button { white-space: nowrap; }
     display: none !important;
   }
   /* the version string burned a full centered row */
-  [class*="mt-[5px]"].text-center.flex.flex-col { display: none !important; }
+  [data-side-panel-footer] { display: none !important; }
 
   /* Settings sub-nav: the 260px column sat in a 370px shell, leaving a dead
      gutter and pushing the actual settings content far below the fold. It is

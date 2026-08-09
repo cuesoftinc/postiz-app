@@ -4,20 +4,21 @@ import useSWR from 'swr';
 import { useCallback, useMemo, useState } from 'react';
 import { capitalize, orderBy } from 'lodash';
 import clsx from 'clsx';
-import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
-import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { RenderAnalytics } from '@gitroom/frontend/components/platform-analytics/render.analytics';
-import { Select } from '@gitroom/react/form/select';
 import { Button } from '@gitroom/react/form/button';
 import { useRouter } from 'next/navigation';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import useCookie from 'react-use-cookie';
-import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { sidePanelRoot } from '@gitroom/frontend/components/new-layout/side-panel';
+import {
+  SidePanelHeader,
+  useSidePanelCollapse,
+} from '@gitroom/frontend/components/new-layout/side-panel-header';
+import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
+import { ToolbarSelect } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
 const allowedIntegrations = [
   'facebook',
   'instagram',
@@ -39,7 +40,7 @@ export const PlatformAnalytics = () => {
   const [current, setCurrent] = useState(0);
   const [key, setKey] = useState(7);
   const [refresh, setRefresh] = useState(false);
-  const [collapseMenu, setCollapseMenu] = useCookie('collapseMenu', '0');
+  const { collapsed, toggle } = useSidePanelCollapse();
   const toaster = useToaster();
   const load = useCallback(async () => {
     const int = (
@@ -177,38 +178,15 @@ export const PlatformAnalytics = () => {
         data-side-panel="flow"
         className={clsx(
           'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all phone:p-[12px]',
-          sidePanelRoot(collapseMenu === '1')
+          sidePanelRoot(collapsed)
         )}
       >
         <div className="flex gap-[12px] flex-col">
-          <div className="flex items-center">
-            <h2 className="group-[.sidebar]:hidden flex-1 text-[20px] font-[500]">
-              {t('channels')}
-            </h2>
-            <div
-              onClick={() => setCollapseMenu(collapseMenu === '1' ? '0' : '1')}
-              className="group-[.sidebar]:rotate-[180deg] group-[.sidebar]:mx-auto text-btnText bg-btnSimple rounded-[6px] w-[24px] h-[24px] flex items-center justify-center cursor-pointer select-none"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="7"
-                height="13"
-                viewBox="0 0 7 13"
-                fill="none"
-              >
-                <path
-                  d="M6 11.5L1 6.5L6 1.5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          </div>
+          <SidePanelHeader title={t('channels')} onToggle={toggle} />
           {sortedIntegrations.map((integration, index) => (
-            <div
+            <ChannelRow
               key={integration.id}
+              integration={integration}
               onClick={() => {
                 if (integration.refreshNeeded) {
                   toaster.show(
@@ -223,54 +201,8 @@ export const PlatformAnalytics = () => {
                 }, 10);
                 setCurrent(index);
               }}
-              className={clsx(
-                'flex gap-[12px] items-center group/profile justify-center hover:bg-boxHover rounded-e-[8px]',
-                currentIntegration.id !== integration.id &&
-                  'opacity-20 hover:opacity-100 cursor-pointer'
-              )}
-            >
-              <div
-                className={clsx(
-                  'relative rounded-full flex justify-center items-center gap-[6px]',
-                  integration.disabled && 'opacity-50'
-                )}
-              >
-                {(integration.inBetweenSteps || integration.refreshNeeded) && (
-                  <div className="absolute start-0 top-0 w-[39px] h-[46px] cursor-pointer">
-                    <div className="bg-red-500 w-[15px] h-[15px] rounded-full start-0 -top-[5px] absolute z-[200] text-[10px] flex justify-center items-center">
-                      !
-                    </div>
-                    <div className="bg-primary/60 w-[39px] h-[46px] start-0 top-0 absolute rounded-full z-[199]" />
-                  </div>
-                )}
-                <div className="h-full w-[4px] -ms-[12px] rounded-s-[3px] opacity-0 group-hover/profile:opacity-100 transition-opacity">
-                  <SVGLine />
-                </div>
-                <ImageWithFallback
-                  fallbackSrc={`/icons/platforms/${integration.identifier}.png`}
-                  src={integration.picture}
-                  className="rounded-[8px]"
-                  alt={integration.identifier}
-                  width={36}
-                  height={36}
-                />
-                <SafeImage
-                  src={`/icons/platforms/${integration.identifier}.png`}
-                  className="rounded-[8px] absolute z-10 bottom-[5px] -end-[5px] border border-fifth"
-                  alt={integration.identifier}
-                  width={18.41}
-                  height={18.41}
-                />
-              </div>
-              <div
-                className={clsx(
-                  'flex-1 whitespace-nowrap text-ellipsis overflow-hidden group-[.sidebar]:hidden',
-                  integration.disabled && 'opacity-50'
-                )}
-              >
-                {integration.name}
-              </div>
-            </div>
+              dimmed={currentIntegration.id !== integration.id}
+            />
           ))}
         </div>
       </div>
@@ -278,19 +210,18 @@ export const PlatformAnalytics = () => {
         {!!options.length && (
           <div className="flex-1 flex flex-col gap-[14px]">
             <div className="max-w-[200px]">
-              <Select
-                label=""
+              <ToolbarSelect
                 name="date"
-                disableForm={true}
-                hideErrors={true}
+                value={keys}
                 onChange={(e) => setKey(+e.target.value)}
+                className="w-full"
               >
                 {options.map((option) => (
                   <option key={option.key} value={option.key}>
                     {option.value}
                   </option>
                 ))}
-              </Select>
+              </ToolbarSelect>
             </div>
             <div className="flex-1">
               {!!keys && !!currentIntegration && !refresh && (

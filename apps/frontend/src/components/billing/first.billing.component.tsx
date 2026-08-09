@@ -28,6 +28,7 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import useCookie from 'react-use-cookie';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 import { DeveloperIconComponent } from '@gitroom/frontend/components/developer/developer.icon.component';
+import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
 
 const ModeComponent = dynamic(
   () => import('@gitroom/frontend/components/layout/mode.component'),
@@ -83,13 +84,15 @@ export const FirstBillingComponent = () => {
     modals.openModal({
       title: 'Grow Fast With Postiz (Play the video)',
       children: (
-        <iframe
-          className="h-full aspect-video min-w-[800px]"
-          src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
-          title="Postiz Tutorial"
-          allow="autoplay"
-          allowFullScreen
-        />
+        <ModalBody width={800}>
+          <iframe
+            className="h-full aspect-video"
+            src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
+            title="Postiz Tutorial"
+            allow="autoplay"
+            allowFullScreen
+          />
+        </ModalBody>
       ),
     });
   };
