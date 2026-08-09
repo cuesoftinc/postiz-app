@@ -317,7 +317,7 @@ export const TopMenu: FC = () => {
   const { isGeneral, billingEnabled } = useVariables();
   return (
     <>
-      <div className="flex flex-1 flex-col minCustom:gap-[16px] blurMe phone:flex-row phone:gap-0 phone:items-center">
+      <div className="flex flex-1 flex-col minCustom:gap-[16px] blurMe phone:contents">
         {
           // @ts-ignore
           user?.orgId &&
@@ -350,7 +350,7 @@ export const TopMenu: FC = () => {
               ))
         }
       </div>
-      <div className="flex flex-col minCustom:gap-[20px] custom:gap-[8px] blurMe phone:flex-row phone:gap-0 phone:items-center">
+      <div className="flex flex-col minCustom:gap-[20px] custom:gap-[8px] blurMe phone:contents">
         {secondMenu
           .filter((f) => {
             if (f.hide) {

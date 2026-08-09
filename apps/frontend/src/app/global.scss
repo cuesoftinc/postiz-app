@@ -802,6 +802,14 @@ html[dir='rtl'] [dir='ltr'] {
   max-width: calc(100% / 6);
 }
 
+/* Six per row is ~58px per tile on a 412px phone — too small to see or tap. */
+@media (max-width: 767px) {
+  .w8-max {
+    width: calc(100% / 3);
+    max-width: calc(100% / 3);
+  }
+}
+
 .withp3 {
   width: calc(100% + 9px);
   height: calc(100% + 6px);
