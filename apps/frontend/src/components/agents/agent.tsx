@@ -22,6 +22,7 @@ import { Integration } from '@prisma/client';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { sidePanelRoot, sidePanelPane } from '@gitroom/frontend/components/new-layout/side-panel';
 
 export const MediaPortal: FC<{
   media: { path: string; id: string }[];
@@ -106,12 +107,18 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
 
   return (
     <div
+      data-side-panel="absolute"
       className={clsx(
         'trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative',
-        collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
+        sidePanelRoot(collapseMenu === '1')
       )}
     >
-      <div className="absolute top-0 start-0 w-full h-full p-[20px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor phone:static phone:h-auto phone:p-[12px] phone:overflow-visible">
+      <div
+        className={clsx(
+          'absolute top-0 start-0 w-full h-full p-[20px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
+          sidePanelPane
+        )}
+      >
         <div className="flex items-center">
           <h2 className="group-[.sidebar]:hidden flex-1 text-[20px] font-[500] mb-[15px]">
             {t('select_channels', 'Select Channels')}
@@ -235,7 +242,12 @@ const Threads: FC = () => {
         'w-[260px]'
       )}
     >
-      <div className="absolute top-0 start-0 w-full h-full p-[20px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor phone:static phone:h-auto phone:p-[12px] phone:overflow-visible">
+      <div
+        className={clsx(
+          'absolute top-0 start-0 w-full h-full p-[20px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
+          sidePanelPane
+        )}
+      >
         <div className="mb-[15px] justify-center flex group-[.sidebar]:pb-[15px]">
           <Link
             href={`/agents`}

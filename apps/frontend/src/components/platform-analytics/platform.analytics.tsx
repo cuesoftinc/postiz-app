@@ -17,6 +17,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import useCookie from 'react-use-cookie';
 import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { sidePanelRoot } from '@gitroom/frontend/components/new-layout/side-panel';
 const allowedIntegrations = [
   'facebook',
   'instagram',
@@ -173,9 +174,10 @@ export const PlatformAnalytics = () => {
   return (
     <>
       <div
+        data-side-panel="flow"
         className={clsx(
-          'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all',
-          collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
+          'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all phone:p-[12px]',
+          sidePanelRoot(collapseMenu === '1')
         )}
       >
         <div className="flex gap-[12px] flex-col">

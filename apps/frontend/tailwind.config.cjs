@@ -249,12 +249,6 @@ module.exports = {
         },
       }),
       screens: {
-        // Real phones. `mobile` below is (max-width: 1025px), which is laptop
-        // territory, and Tailwind's default `md` emits no utilities in this
-        // project — so responsive work needs an explicit phone breakpoint.
-        phone: {
-          raw: '(max-width: 767px)',
-        },
         mobile: {
           raw: '(max-width: 1025px)',
         },
@@ -272,6 +266,29 @@ module.exports = {
         },
         custom: {
           raw: '(max-height: 800px)',
+        },
+        // Landscape phone / short laptop window. Width is the wrong test here:
+        // at 915x412 the width says "desktop" so the rail applies, but the rail
+        // needs ~7x54px plus the logo and simply does not fit — Settings fell
+        // 4px below the fold.
+        short: {
+          raw: '(max-height: 700px)',
+        },
+        // Real phones. `mobile` above is (max-width: 1025px), which is laptop
+        // territory, and Tailwind's default `md` emits no utilities in this
+        // project — so responsive work needs an explicit phone breakpoint.
+        //
+        // ORDER MATTERS, and this has to stay second-to-last. `custom` /
+        // `minCustom` are *height* queries, so on a phone in portrait BOTH
+        // `custom:` and `phone:` match. They carry identical specificity, so
+        // whichever Tailwind emits later wins — and screens emit in the order
+        // declared here. With `phone` first, stock's `custom:h-[44px]` beat our
+        // `phone:h-[56px]`, squashing the bottom tab bar until the labels were
+        // clipped to 3px tall. Declared last, phone rules win, which is what
+        // "phone-specific" should mean. `xs` (<=401px) stays after it because
+        // it is narrower still.
+        phone: {
+          raw: '(max-width: 767px)',
         },
         xs: {
           max: '401px',

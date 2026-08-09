@@ -840,39 +840,52 @@ html[dir='rtl'] [dir='ltr'] {
    the pair:  [class^="TOKEN"], [class*=" TOKEN"]
    — start-of-attribute, or preceded by a space — which matches only the
    unprefixed class. It also makes `min-h-`/`max-h-` non-matching for free.
+
+   WHY THIS IS STILL A STYLESHEET and not ~370 edits in the components: these
+   are upstream's own class strings, spread across the whole vendored tree. We
+   rebase this fork onto postiz-app; rewriting every arbitrary value in place
+   would turn every future rebase into a conflict, to say nothing of being
+   undone the next time upstream touches a file. A global re-scale of vendored
+   markup belongs in one global place.
+
+   ESCAPE HATCH — every rule below is `:not([data-cs])`. When a component needs
+   to own its own size, put `data-cs` on that element and the ladder leaves it
+   alone. Use it instead of fighting the `!important` with more specificity;
+   that is what silently pinned the super-admin banner to 40px when the
+   component asked for `h-[52px]` at auto height.
    ========================================================================== */
 html {
   font-size: 14px;
 }
 
 /* display type -> standard ladder (small text, 16px and below, stays stock) */
-[class^="text-[48px]"], [class*=" text-[48px]"] { font-size: 32px !important; }
-[class^="text-[40px]"], [class*=" text-[40px]"] { font-size: 28px !important; }
-[class^="text-[30px]"], [class*=" text-[30px]"] { font-size: 24px !important; }
-[class^="text-[28px]"], [class*=" text-[28px]"] { font-size: 22px !important; }
-[class^="text-[24px]"], [class*=" text-[24px]"] { font-size: 20px !important; }
-[class^="text-[20px]"], [class*=" text-[20px]"] { font-size: 16px !important; }
-[class^="text-[18px]"], [class*=" text-[18px]"] { font-size: 16px !important; }
+[class^="text-[48px]"]:not([data-cs]), [class*=" text-[48px]"]:not([data-cs]) { font-size: 32px !important; }
+[class^="text-[40px]"]:not([data-cs]), [class*=" text-[40px]"]:not([data-cs]) { font-size: 28px !important; }
+[class^="text-[30px]"]:not([data-cs]), [class*=" text-[30px]"]:not([data-cs]) { font-size: 24px !important; }
+[class^="text-[28px]"]:not([data-cs]), [class*=" text-[28px]"]:not([data-cs]) { font-size: 22px !important; }
+[class^="text-[24px]"]:not([data-cs]), [class*=" text-[24px]"]:not([data-cs]) { font-size: 20px !important; }
+[class^="text-[20px]"]:not([data-cs]), [class*=" text-[20px]"]:not([data-cs]) { font-size: 16px !important; }
+[class^="text-[18px]"]:not([data-cs]), [class*=" text-[18px]"]:not([data-cs]) { font-size: 16px !important; }
 
 /* controls: standard 32/36/40 heights */
-[class^="h-[52px]"], [class*=" h-[52px]"] { height: 40px !important; }
-[class^="h-[48px]"], [class*=" h-[48px]"] { height: 36px !important; }
-[class^="h-[44px]"], [class*=" h-[44px]"] { height: 36px !important; }
-[class^="h-[40px]"], [class*=" h-[40px]"] { height: 32px !important; }
-[class^="min-h-[44px]"], [class*=" min-h-[44px]"] { min-height: 36px !important; }
-[class^="min-h-[40px]"], [class*=" min-h-[40px]"] { min-height: 32px !important; }
-[class^="min-w-[44px]"], [class*=" min-w-[44px]"] { min-width: 36px !important; }
+[class^="h-[52px]"]:not([data-cs]), [class*=" h-[52px]"]:not([data-cs]) { height: 40px !important; }
+[class^="h-[48px]"]:not([data-cs]), [class*=" h-[48px]"]:not([data-cs]) { height: 36px !important; }
+[class^="h-[44px]"]:not([data-cs]), [class*=" h-[44px]"]:not([data-cs]) { height: 36px !important; }
+[class^="h-[40px]"]:not([data-cs]), [class*=" h-[40px]"]:not([data-cs]) { height: 32px !important; }
+[class^="min-h-[44px]"]:not([data-cs]), [class*=" min-h-[44px]"]:not([data-cs]) { min-height: 36px !important; }
+[class^="min-h-[40px]"]:not([data-cs]), [class*=" min-h-[40px]"]:not([data-cs]) { min-height: 32px !important; }
+[class^="min-w-[44px]"]:not([data-cs]), [class*=" min-w-[44px]"]:not([data-cs]) { min-width: 36px !important; }
 /* primary CTAs (Create Post) clamp with max-h + custom padding */
-[class^="max-h-[44px]"], [class*=" max-h-[44px]"] {
+[class^="max-h-[44px]"]:not([data-cs]), [class*=" max-h-[44px]"]:not([data-cs]) {
   max-height: 36px !important; padding-top: 8px !important; padding-bottom: 8px !important;
 }
 
 /* tame only the largest paddings/gaps */
-[class^="p-[24px]"], [class*=" p-[24px]"] { padding: 16px !important; }
-[class^="p-[20px]"], [class*=" p-[20px]"] { padding: 16px !important; }
-[class^="px-[20px]"], [class*=" px-[20px]"] { padding-left: 16px !important; padding-right: 16px !important; }
-[class^="gap-[24px]"], [class*=" gap-[24px]"] { gap: 16px !important; }
-[class^="gap-[20px]"], [class*=" gap-[20px]"] { gap: 16px !important; }
+[class^="p-[24px]"]:not([data-cs]), [class*=" p-[24px]"]:not([data-cs]) { padding: 16px !important; }
+[class^="p-[20px]"]:not([data-cs]), [class*=" p-[20px]"]:not([data-cs]) { padding: 16px !important; }
+[class^="px-[20px]"]:not([data-cs]), [class*=" px-[20px]"]:not([data-cs]) { padding-left: 16px !important; padding-right: 16px !important; }
+[class^="gap-[24px]"]:not([data-cs]), [class*=" gap-[24px]"]:not([data-cs]) { gap: 16px !important; }
+[class^="gap-[20px]"]:not([data-cs]), [class*=" gap-[20px]"]:not([data-cs]) { gap: 16px !important; }
 
 /* ---------------------------------------------------------------------------
    Shell / nav rail
@@ -894,8 +907,9 @@ html {
   padding: 12px 0 !important;
 }
 
-/* channels panel 260->224, calendar day-of-week header row 62->48 */
-.flex.relative.flex-col[class*="w-[260px]"] { width: 224px !important; min-width: 224px !important; }
+/* the channels panel's 260->224 narrowing now lives in side-panel.ts, where a
+   `phone:w-full` can actually beat it */
+/* calendar day-of-week header row 62->48 */
 [class*="grid-rows-[62px_auto]"] { grid-template-rows: 48px auto !important; }
 button { white-space: nowrap; }
 
@@ -963,85 +977,72 @@ button { white-space: nowrap; }
      offset) it stopped matching, so the tabs kept their natural width, the page
      grew wider than the device, the layout viewport expanded to match, and
      every position:fixed element — including the bar itself — anchored to that
-     wider viewport and landed off-screen. */
-  /* active tab: the desktop white pill becomes a full-height white slab at
-     56px — use a brand top indicator instead */
-  /* The active colour has to read on BOTH a white bar and a dark one. #fff
-     disappears in light mode; stock's dark text disappears in dark mode. Brand
-     violet is legible on both and matches the indicator. */
-  [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused {
-    background: transparent !important; color: rgb(139, 92, 246) !important;
-  }
-  [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused svg { color: rgb(139, 92, 246) !important; }
-  /* 7 tabs at 56px: stock px-[6px] leaves 44px, and "Integrations" is 44px at
-     10px — trim the label and the inset so nothing clips */
-  [class*="w-[64px]"][class*="fixed"] a { padding-left: 2px !important; padding-right: 2px !important; }
-  [class*="w-[64px]"][class*="fixed"] a [class*="leading-[1.1]"] {
-    font-size: 9px !important; max-width: 100%;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused::after {
-    content: ''; position: absolute;
-    top: 0; left: 14px; right: 14px; height: 3px;
-    border-radius: 0 0 3px 3px; background: rgb(120, 70, 235);
-  }
-  body { padding-bottom: 56px; }
+     wider viewport and landed off-screen.
 
-  /* content stacks full-width */
-  [class*='blurMe'] > .flex.flex-1 { flex-direction: column; }
-  .flex.relative.flex-col[class*="w-[260px]"] {
-    width: 100% !important; min-width: 100% !important; max-height: none !important;
-  }
-  /* panel inner is absolutely positioned against the fixed-width wrapper —
-     make it flow so the stacked layout gets a natural height */
-  .flex.relative.flex-col[class*="w-[260px]"] > div {
-    position: static !important; height: auto !important;
-    max-height: none !important; overflow: visible !important;
-  }
+     The tab sizing, the truncated 9px label, the brand-violet active colour and
+     the active indicator have all moved to menu-item.tsx too. The indicator in
+     particular HAD to move: as an ::after on the link it had no positioned
+     ancestor of its own, so `left:14px; right:14px` resolved against the fixed
+     bar and drew one violet line across all seven tabs. */
+  body { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+
+  /* the copilot launcher is `bottom: 14px`, which on a phone puts it inside the
+     56px tab bar — it covered the Settings tab, and the right-hand end of the
+     Create Post action bar */
+  .copilotKitPopup { bottom: calc(68px + env(safe-area-inset-bottom)) !important; }
+
   /* Channels: a 260px vertical rail makes no sense on a phone — it burned 30vh
      to show 1.5 rows. Becomes a horizontal, scrollable chip strip.
-     NOTE the `.flex.relative.flex-col` scope: `group/profile` is also used by
-     the Settings sub-nav rows, which must NOT become chips. */
-  .flex.relative.flex-col[class*="w-[260px]"] .flex.flex-col.relative[class*="gap-[12px]"] {
+
+     Keyed off [data-side-panel], set in side-panel.ts. It used to key off
+     `w-[260px]`, but collapsing the panel SWAPS that class for
+     `group sidebar w-[100px]` — so the moment the panel was collapsed none of
+     this matched, the inner pane stayed absolutely positioned, its parent
+     measured 0px tall, and the toolbar drew straight over the "Channels"
+     heading. The data attribute is on the element in every state.
+     `[data-side-panel]` scope matters for another reason too: `group/profile`
+     is also used by the Settings sub-nav rows, which must NOT become chips. */
+  [data-side-panel] .flex.flex-col.relative[class*="gap-[12px]"],
+  [data-side-panel] > .flex.flex-col:has(> [class*="group/profile"]) {
     flex-direction: row !important;
     overflow-x: auto; overflow-y: hidden;
     gap: 8px !important; padding: 2px 0 8px !important;
+    flex: 0 0 auto !important;
     scrollbar-width: none;
   }
-  .flex.relative.flex-col[class*="w-[260px]"] .flex.flex-col.relative[class*="gap-[12px]"]::-webkit-scrollbar { display: none; }
-  .flex.relative.flex-col[class*="w-[260px]"] [class*="group/profile"] {
+  [data-side-panel] .flex.flex-col.relative[class*="gap-[12px]"]::-webkit-scrollbar,
+  [data-side-panel] > .flex.flex-col:has(> [class*="group/profile"])::-webkit-scrollbar { display: none; }
+  [data-side-panel] [class*="group/profile"] {
     flex: 0 0 auto !important; width: auto !important;
     padding: 5px 10px !important; gap: 8px !important;
+    white-space: nowrap;
     border: 1px solid rgba(128, 128, 128, .32);
     border-radius: 999px !important;
     background: transparent !important;
   }
+  /* analytics keeps its "Channels" label + collapse chevron INSIDE that list, so
+     the row direction put them inline with the chips */
+  [data-side-panel] > .flex.flex-col:has(> [class*="group/profile"]) > .flex.items-center:not([class*="group/profile"]) {
+    display: none !important;
+  }
   /* the version string burned a full centered row */
   [class*="mt-[5px]"].text-center.flex.flex-col { display: none !important; }
 
-  /* Settings: the 260px sub-nav sat in a 370px column, leaving a dead gutter
-     and pushing the actual settings content far below the fold. Horizontal
-     tab strip instead, so the content is the first thing you see. */
-  .bg-newBgColorInner.flex.flex-col.transition-all {
+  /* Settings sub-nav: the 260px column sat in a 370px shell, leaving a dead
+     gutter and pushing the actual settings content far below the fold. It is
+     not a [data-side-panel] — it is its own component — so it keeps a class
+     hook, narrowed to exclude the panels above. */
+  .bg-newBgColorInner.flex.flex-col.transition-all:not([data-side-panel]) {
     width: 100% !important; min-width: 0 !important; padding: 8px !important;
   }
-  /* :has(> group/profile) so this hits exactly the row list and nothing else —
-     settings puts it on .flex-1.flex-col.gap-[15px], analytics on
-     .flex.gap-[12px].flex-col */
-  .bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"]) {
+  .bg-newBgColorInner.flex.flex-col.transition-all:not([data-side-panel]) > .flex.flex-col:has(> [class*="group/profile"]) {
     flex-direction: row !important;
     overflow-x: auto; overflow-y: hidden;
     gap: 6px !important; flex: 0 0 auto !important;
     scrollbar-width: none;
   }
-  .bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"])::-webkit-scrollbar { display: none; }
-  /* analytics keeps its "Channels" label + collapse chevron INSIDE that list, so
-     the row direction put them inline with the chips; the chevron is meaningless
-     once the panel is full-width anyway */
-  .bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"]) > .flex.items-center:not([class*="group/profile"]) {
-    display: none !important;
-  }
-  .bg-newBgColorInner.flex.flex-col.transition-all [class*="group/profile"] {
+  .bg-newBgColorInner.flex.flex-col.transition-all:not([data-side-panel]) > .flex.flex-col:has(> [class*="group/profile"])::-webkit-scrollbar { display: none; }
+  .bg-newBgColorInner.flex.flex-col.transition-all:not([data-side-panel]) [class*="group/profile"] {
     flex: 0 0 auto !important; width: auto !important;
     padding: 8px 12px !important;
     white-space: nowrap;
@@ -1138,18 +1139,9 @@ button { white-space: nowrap; }
   }
 }
 
-/* ===== Short viewports (landscape phone, short laptop window) =====
-   Width alone is the wrong test. At 915x412 the width is 915 so the DESKTOP
-   shell applies, but the rail needs ~7x54px + logo and simply does not fit —
-   Settings fell off the bottom with no way to scroll to it.
-   ========================================================================== */
-@media (max-height: 700px) {
-  [class*="w-[64px]"][class*="fixed"] {
-    overflow-y: auto !important;
-    overscroll-behavior: contain;
-  }
-  [class*="w-[64px]"][class*="fixed"] > div[class*="gap-[32px]"] { gap: 8px !important; }
-}
+/* Short viewports (landscape phone, short laptop window) are handled by the
+   `short:` breakpoint in layout.component.tsx — the rail scrolls, the gap
+   tightens, and the logo is dropped so all seven tabs fit above the fold. */
 
 /* ===== Narrow desktop shell (<=1100px) =====
    The launches toolbar is a 240px pager + 4 x 80px tabs + the view toggle,
@@ -1196,9 +1188,14 @@ select, label[for], input[type="checkbox"], input[type="radio"] { cursor: pointe
    above, plus removing the control itself here.
    ========================================================================== */
 @media (max-width: 767px) {
-  [class*="group-[.sidebar]:rotate-[180deg]"] { display: none !important; }
-  .group.sidebar { width: 100% !important; }
+  /* the width and the absolute->flow reset now come from side-panel.ts; what is
+     left is undoing the `group-[.sidebar]:*` variants baked into the children */
+  [data-side-panel] [class*="group-[.sidebar]:rotate-[180deg]"] { display: none !important; }
   .group.sidebar [class*="group-[.sidebar]:flex-col"] { flex-direction: row !important; }
+  /* stock stacks the Add Channel / shortlink pair when collapsed; full width
+     they belong side by side again */
+  .group.sidebar [class*="group-[.sidebar]:block"] { display: flex !important; }
+  .group.sidebar [class*="group-[.sidebar]:flex-none"] { flex: 1 1 0% !important; }
   .group.sidebar [class*="group-[.sidebar]:w-[44px]"],
   .group.sidebar [class*="group-[.sidebar]:w-[100%]"],
   .group.sidebar [class*="group-[.sidebar]:w-full"] { width: auto !important; }

@@ -26,6 +26,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
 import useCookie from 'react-use-cookie';
 import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
+import { sidePanelRoot, sidePanelPane } from '@gitroom/frontend/components/new-layout/side-panel';
 
 export const SVGLine = () => {
   return (
@@ -498,14 +499,16 @@ export const LaunchesComponent = () => {
       <Onboarding />
       <CalendarWeekProvider integrations={sortedIntegrations}>
         <div
+          data-side-panel="absolute"
           className={clsx(
             'flex relative flex-col',
-            collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
+            sidePanelRoot(collapseMenu === '1')
           )}
         >
           <div
             className={clsx(
-              'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all absolute start-0 top-0 w-full h-full overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor'
+              'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all absolute start-0 top-0 w-full h-full overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
+              sidePanelPane
             )}
           >
             <div className="flex items-center">

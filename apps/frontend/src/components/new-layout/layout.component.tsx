@@ -109,18 +109,23 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         viewport — and once that happens every position:fixed
                         element anchors to the wider viewport and the bar itself
                         lands off-screen. */}
-                    <div className="flex flex-col bg-newBgColorInner w-[80px] rounded-[12px] phone:fixed phone:inset-x-0 phone:bottom-0 phone:top-auto phone:z-50 phone:w-full phone:h-[56px] phone:flex-row phone:rounded-none phone:border-t phone:border-newBorder">
+                    <div className="flex flex-col bg-newBgColorInner w-[80px] rounded-[12px] phone:fixed phone:inset-x-0 phone:bottom-0 phone:top-auto phone:z-50 phone:w-full phone:h-auto phone:flex-row phone:rounded-none phone:border-t phone:border-newBorder phone:pb-[env(safe-area-inset-bottom)]">
                       <div
                         id="left-menu"
                         className={clsx(
                           'fixed h-full w-[64px] start-[17px] flex flex-1 top-0',
-                          'phone:static phone:w-full phone:h-[56px] phone:start-auto',
+                          // short viewports (landscape phone) can't fit the rail;
+                          // let it scroll rather than clipping the last tab
+                          'short:overflow-y-auto short:overscroll-contain',
+                          'phone:static phone:w-full phone:h-[56px] phone:start-auto phone:overflow-visible',
                           user?.admin &&
                             'pt-[60px] max-h-[1000px]:w-[500px] phone:pt-0'
                         )}
                       >
-                        <div className="flex flex-col h-full gap-[32px] flex-1 py-[12px] phone:flex-row phone:items-center phone:gap-0 phone:py-0">
-                          <div className="phone:hidden">
+                        <div className="flex flex-col h-full gap-[32px] short:gap-[8px] flex-1 py-[12px] phone:flex-row phone:items-center phone:gap-0 phone:py-0">
+                          {/* decorative — dropping it on a short viewport is what
+                              lets all seven tabs fit without scrolling */}
+                          <div className="phone:hidden short:hidden">
                             <Logo />
                           </div>
                           <TopMenu />
@@ -147,7 +152,11 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <NotificationComponent />
                         </div>
                       </div>
-                      <div className="flex flex-1 gap-[1px]">{children}</div>
+                      {/* stacks on a phone — a side panel plus content does not
+                          fit side by side at 390px */}
+                      <div className="flex flex-1 gap-[1px] phone:flex-col">
+                        {children}
+                      </div>
                     </div>
                   </div>
                 </>
