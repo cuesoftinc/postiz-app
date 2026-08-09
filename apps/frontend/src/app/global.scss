@@ -980,10 +980,20 @@ button { white-space: nowrap; }
   [class*="w-[64px]"][class*="fixed"] img[class*="min-w-[60px]"] { display: none !important; }
   /* active tab: the desktop white pill becomes a full-height white slab at
      56px — use a brand top indicator instead */
+  /* The active colour has to read on BOTH a white bar and a dark one. #fff
+     disappears in light mode; stock's dark text disappears in dark mode. Brand
+     violet is legible on both and matches the indicator. */
   [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused {
-    background: transparent !important; color: #fff !important;
+    background: transparent !important; color: rgb(139, 92, 246) !important;
   }
-  [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused svg { color: #fff !important; }
+  [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused svg { color: rgb(139, 92, 246) !important; }
+  /* 7 tabs at 56px: stock px-[6px] leaves 44px, and "Integrations" is 44px at
+     10px — trim the label and the inset so nothing clips */
+  [class*="w-[64px]"][class*="fixed"] a { padding-left: 2px !important; padding-right: 2px !important; }
+  [class*="w-[64px]"][class*="fixed"] a [class*="leading-[1.1]"] {
+    font-size: 9px !important; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused::after {
     content: ''; position: absolute;
     top: 0; left: 14px; right: 14px; height: 3px;
