@@ -1109,9 +1109,13 @@ button { white-space: nowrap; }
    screen and the page scrolled sideways. Stack the columns and let it shrink.
    ========================================================================== */
 @media (max-width: 767px) {
-  /* the modal root is correctly 390px, but its inner flex chain inherits
-     min-width:auto and refuses to shrink below the editor's content */
-  [class*="bg-popup"], [class*="bg-popup"] * { min-width: 0 !important; }
+  /* the modal root is correctly viewport-width, but its inner flex chain
+     inherits min-width:auto and refuses to shrink below the editor's content.
+     Reset ONLY that implicit auto: never touch an explicit min-w-*, and never
+     touch the overlay root. Add Channel's overlay is `min-w-full min-h-full`
+     (Create Post's is `w-full h-full`), so a blanket reset collapsed Add
+     Channel to width:0 — blur applied, modal invisible. */
+  [class*="bg-popup"] *:not([class*="min-w-"]) { min-width: 0 !important; }
 
   .w-full.h-full.flex-1[class*="p-[40px]"] { padding: 10px !important; }
   .flex.flex-1.bg-newBgColorInner[class*="rounded-[20px]"] > .flex-1.flex { flex-direction: column !important; }
@@ -1145,5 +1149,34 @@ button { white-space: nowrap; }
   [class*="bg-popup"] .select-none[class*="h-[84px]"] .flex.items-center.justify-end {
     flex-wrap: wrap !important; justify-content: flex-start !important;
     padding-inline-end: 0 !important; gap: 8px !important;
+  }
+}
+
+/* ===== Short viewports (landscape phone, short laptop window) =====
+   Width alone is the wrong test. At 915x412 the width is 915 so the DESKTOP
+   shell applies, but the rail needs ~7x54px + logo and simply does not fit —
+   Settings fell off the bottom with no way to scroll to it.
+   ========================================================================== */
+@media (max-height: 700px) {
+  [class*="w-[64px]"][class*="fixed"] {
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+  [class*="w-[64px]"][class*="fixed"] > div[class*="gap-[32px]"] { gap: 8px !important; }
+}
+
+/* ===== Narrow desktop shell (<=1100px) =====
+   The launches toolbar is a 240px pager + 4 x 80px tabs + the view toggle,
+   which needs ~650px of content width. Under a 80px rail + 224px panel that
+   runs off the right edge below ~1100px total — "Published" was clipped at
+   915px. Same wrap the mobile block uses, applied one breakpoint earlier.
+   ========================================================================== */
+@media (max-width: 1100px) {
+  .flex.flex-grow.flex-row.items-center[class*="gap-[10px]"] {
+    flex-wrap: wrap !important; gap: 8px !important;
+  }
+  [class^="min-w-[200px]"], [class*=" min-w-[200px]"] { min-width: 0 !important; }
+  [class^="min-w-[80px]"], [class*=" min-w-[80px]"] {
+    min-width: 0 !important; padding-left: 10px !important; padding-right: 10px !important;
   }
 }
