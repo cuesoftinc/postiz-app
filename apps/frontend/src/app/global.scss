@@ -938,7 +938,7 @@ button { white-space: nowrap; }
   text-align: start !important; font-size: 13px !important; opacity: .62;
   margin-top: 20px !important; margin-bottom: 10px !important;
   padding: 0 2px 8px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  border-bottom: 1px solid rgba(128, 128, 128, .28); /* grey-alpha: reads in both themes */
 }
 
 /* ===== Mobile (<768px) =====
@@ -956,7 +956,7 @@ button { white-space: nowrap; }
     width: 100% !important; height: 56px !important;
     flex-direction: row !important;
     border-radius: 0 !important;
-    border-top: 1px solid rgba(255, 255, 255, .10);
+    border-top: 1px solid rgba(128, 128, 128, .28);
     z-index: 50;
   }
   [class*="w-[64px]"][class*="fixed"] {
@@ -1016,7 +1016,7 @@ button { white-space: nowrap; }
   .flex.relative.flex-col[class*="w-[260px]"] [class*="group/profile"] {
     flex: 0 0 auto !important; width: auto !important;
     padding: 5px 10px !important; gap: 8px !important;
-    border: 1px solid rgba(255, 255, 255, .10);
+    border: 1px solid rgba(128, 128, 128, .32);
     border-radius: 999px !important;
     background: transparent !important;
   }
