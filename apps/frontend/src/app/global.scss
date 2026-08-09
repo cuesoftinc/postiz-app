@@ -858,11 +858,20 @@ html {
 [class*="gap-[24px]"] { gap: 16px !important; }
 [class*="gap-[20px]"] { gap: 16px !important; }
 
-/* shell: icon rail 80->66 (nav labels are hardcoded 10px and can't shrink
-   further without clipping "Integrations"), channels panel 260->224,
-   calendar day-of-week header row 62->48 */
-.flex.flex-col[class*="w-[80px]"] { width: 66px !important; }
-.flex.flex-col[class*="w-[80px]"] a { padding-left: 4px; padding-right: 4px; }
+/* Shell. The nav rail keeps its stock 80px width and stock item padding: its
+   labels are hardcoded px (they don't follow the root font), and the nav column
+   is a `fixed` 64px box whose ancestors default to `min-width: auto` — so
+   narrowing the rail didn't shrink the items, it pushed them OUT (the active
+   white pill visibly bled past the rail's right edge, and overriding the item
+   padding threw the pill's insets off). Only the structural guard below is ours. */
+[class*="w-[64px]"][class*="fixed"],
+[class*="w-[64px]"][class*="fixed"] * {
+  min-width: 0 !important;
+}
+.flex.flex-col[class*="w-[80px]"] a {
+  max-width: 100%;
+}
+/* channels panel 260->224, calendar day-of-week header row 62->48 */
 .flex.relative.flex-col[class*="w-[260px]"] { width: 224px !important; min-width: 224px !important; }
 [class*="grid-rows-[62px_auto]"] { grid-template-rows: 48px auto !important; }
 button { white-space: nowrap; }
