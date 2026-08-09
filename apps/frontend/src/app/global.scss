@@ -818,45 +818,60 @@ html[dir='rtl'] [dir='ltr'] {
 }
 
 /* ============================================================================
-   Cuesoft fork: UI density + mobile responsiveness
-   (validated live against postiz.cuesoft.io before baking — real size
-   adjustments, no zoom/scale)
-
-   Desktop: the stock UI's type/spacing is almost entirely rem-based, so the
-   root font-size is the honest densification lever: 16px -> 12px brings h1
-   24->18, buttons 44->33, nav 16->12 etc. The few hardcoded-px shell
-   dimensions (icon rail, channels panel, calendar header row) are adjusted
-   to match, scoped to the exact shell elements.
+   Cuesoft fork: UI density overhaul — Buffer-calibrated standard web sizes
+   (real size adjustments, no zoom/scale; validated live on postiz.cuesoft.io
+   before baking). Same layout/design, normalized sizing system:
+   - 14px body (root: the rem-based type/spacing scales from here)
+   - arbitrary-px display type stepped down to a standard ladder; small text
+     (16px and below) is already standard and stays as authored
+   - controls on the standard 32/36/40 ladder
+   - only the largest paddings/gaps tamed (4px grid)
    ========================================================================== */
 html {
-  font-size: 12px;
+  font-size: 14px;
 }
 
-/* icon rail (nav sidebar): 80 -> 60px */
-.flex.flex-col[class*="w-[80px]"] {
-  width: 60px !important;
-}
-/* channels panel: 260 -> 208px (narrower clips its header buttons) */
-.flex.relative.flex-col[class*="w-[260px]"] {
-  width: 208px !important;
-  min-width: 208px !important;
-}
-/* calendar day-of-week header row: 62 -> 44px */
-[class*="grid-rows-[62px_auto]"] {
-  grid-template-rows: 44px auto !important;
-}
-/* denser buttons must not wrap their labels ("Add Channel") */
-button {
-  white-space: nowrap;
-}
+/* display type -> standard ladder */
+[class*="text-[48px]"] { font-size: 32px !important; }
+[class*="text-[40px]"] { font-size: 28px !important; }
+[class*="text-[30px]"] { font-size: 24px !important; }
+[class*="text-[28px]"] { font-size: 22px !important; }
+[class*="text-[24px]"] { font-size: 20px !important; }
+[class*="text-[20px]"] { font-size: 16px !important; }
+[class*="text-[18px]"] { font-size: 16px !important; }
+
+/* controls: standard 32/36/40 heights */
+[class*="h-[52px]"] { height: 40px !important; }
+[class*="h-[48px]"]:not([class*="min-h-[48px]"]) { height: 36px !important; }
+[class*="h-[44px]"]:not([class*="min-h-[44px]"]) { height: 36px !important; }
+[class*="h-[40px]"]:not([class*="min-h-[40px]"]) { height: 32px !important; }
+[class*="min-h-[44px]"] { min-height: 36px !important; }
+[class*="min-h-[40px]"] { min-height: 32px !important; }
+[class*="min-w-[44px]"] { min-width: 36px !important; }
+/* primary CTAs (Create Post) clamp with max-h + custom padding */
+[class*="max-h-[44px]"] { max-height: 36px !important; padding-top: 8px !important; padding-bottom: 8px !important; }
+
+/* tame only the largest paddings/gaps */
+[class*="p-[24px]"] { padding: 16px !important; }
+[class*="p-[20px]"] { padding: 16px !important; }
+[class*="px-[20px]"] { padding-left: 16px !important; padding-right: 16px !important; }
+[class*="gap-[24px]"] { gap: 16px !important; }
+[class*="gap-[20px]"] { gap: 16px !important; }
+
+/* shell: icon rail 80->66 (nav labels are hardcoded 10px and can't shrink
+   further without clipping "Integrations"), channels panel 260->224,
+   calendar day-of-week header row 62->48 */
+.flex.flex-col[class*="w-[80px]"] { width: 66px !important; }
+.flex.flex-col[class*="w-[80px]"] a { padding-left: 4px; padding-right: 4px; }
+.flex.relative.flex-col[class*="w-[260px]"] { width: 224px !important; min-width: 224px !important; }
+[class*="grid-rows-[62px_auto]"] { grid-template-rows: 48px auto !important; }
+button { white-space: nowrap; }
 
 /* ===== Mobile (<768px): the shell was desktop-only — rail + panel consumed
    ~270px of a 390px viewport and the calendar grid crushed to slivers. ===== */
 @media (max-width: 767px) {
   /* stack: channels panel above the calendar instead of beside it */
-  [class*='blurMe'] > .flex.flex-1 {
-    flex-direction: column;
-  }
+  [class*='blurMe'] > .flex.flex-1 { flex-direction: column; }
   .flex.relative.flex-col[class*="w-[260px]"] {
     width: 100% !important;
     min-width: 100% !important;
@@ -871,12 +886,8 @@ button {
     overflow-y: auto;
   }
   /* icons-only rail */
-  .flex.flex-col[class*="w-[80px]"] {
-    width: 48px !important;
-  }
-  .flex.flex-col[class*="w-[80px]"] [class*="leading-[1.1]"] {
-    display: none;
-  }
+  .flex.flex-col[class*="w-[80px]"] { width: 48px !important; }
+  .flex.flex-col[class*="w-[80px]"] [class*="leading-[1.1]"] { display: none; }
   img[class*="min-w-[60px]"] {
     min-width: 36px !important;
     min-height: 36px !important;
@@ -884,14 +895,8 @@ button {
     height: 36px;
   }
   /* calendar keeps real (tappable) columns and scrolls horizontally */
-  .grid[class*="grid-cols-7"] {
-    grid-template-columns: repeat(7, minmax(88px, 1fr)) !important;
-  }
+  .grid[class*="grid-cols-7"] { grid-template-columns: repeat(7, minmax(88px, 1fr)) !important; }
   /* tighter page + container padding */
-  [class*="p-[12px]"] {
-    padding: 6px !important;
-  }
-  [class*="p-[20px]"] {
-    padding: 12px !important;
-  }
+  [class*="p-[12px]"] { padding: 6px !important; }
+  [class*="p-[20px]"] { padding: 12px !important; }
 }
