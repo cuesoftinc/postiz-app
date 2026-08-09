@@ -816,3 +816,82 @@ html[dir='rtl'] [dir='ltr'] {
   text-shadow: -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black,
     1px 1px 0 black;
 }
+
+/* ============================================================================
+   Cuesoft fork: UI density + mobile responsiveness
+   (validated live against postiz.cuesoft.io before baking — real size
+   adjustments, no zoom/scale)
+
+   Desktop: the stock UI's type/spacing is almost entirely rem-based, so the
+   root font-size is the honest densification lever: 16px -> 12px brings h1
+   24->18, buttons 44->33, nav 16->12 etc. The few hardcoded-px shell
+   dimensions (icon rail, channels panel, calendar header row) are adjusted
+   to match, scoped to the exact shell elements.
+   ========================================================================== */
+html {
+  font-size: 12px;
+}
+
+/* icon rail (nav sidebar): 80 -> 60px */
+.flex.flex-col[class*="w-[80px]"] {
+  width: 60px !important;
+}
+/* channels panel: 260 -> 208px (narrower clips its header buttons) */
+.flex.relative.flex-col[class*="w-[260px]"] {
+  width: 208px !important;
+  min-width: 208px !important;
+}
+/* calendar day-of-week header row: 62 -> 44px */
+[class*="grid-rows-[62px_auto]"] {
+  grid-template-rows: 44px auto !important;
+}
+/* denser buttons must not wrap their labels ("Add Channel") */
+button {
+  white-space: nowrap;
+}
+
+/* ===== Mobile (<768px): the shell was desktop-only — rail + panel consumed
+   ~270px of a 390px viewport and the calendar grid crushed to slivers. ===== */
+@media (max-width: 767px) {
+  /* stack: channels panel above the calendar instead of beside it */
+  [class*='blurMe'] > .flex.flex-1 {
+    flex-direction: column;
+  }
+  .flex.relative.flex-col[class*="w-[260px]"] {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-height: 34vh;
+  }
+  /* panel inner is absolutely positioned against the fixed-width wrapper —
+     make it flow so the stacked layout gets a natural height + own scroll */
+  .flex.relative.flex-col[class*="w-[260px]"] > div {
+    position: static !important;
+    height: auto !important;
+    max-height: 34vh;
+    overflow-y: auto;
+  }
+  /* icons-only rail */
+  .flex.flex-col[class*="w-[80px]"] {
+    width: 48px !important;
+  }
+  .flex.flex-col[class*="w-[80px]"] [class*="leading-[1.1]"] {
+    display: none;
+  }
+  img[class*="min-w-[60px]"] {
+    min-width: 36px !important;
+    min-height: 36px !important;
+    width: 36px;
+    height: 36px;
+  }
+  /* calendar keeps real (tappable) columns and scrolls horizontally */
+  .grid[class*="grid-cols-7"] {
+    grid-template-columns: repeat(7, minmax(88px, 1fr)) !important;
+  }
+  /* tighter page + container padding */
+  [class*="p-[12px]"] {
+    padding: 6px !important;
+  }
+  [class*="p-[20px]"] {
+    padding: 12px !important;
+  }
+}
