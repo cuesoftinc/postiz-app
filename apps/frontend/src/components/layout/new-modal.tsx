@@ -196,16 +196,21 @@ export const Component: FC<{
           >
             <div
               className={clsx(
-                !modal.removeLayout && 'gap-[40px] p-[32px]',
-                'bg-newBgColorInner mx-auto flex flex-col w-fit rounded-[24px] relative',
-                modal.size ? '' : 'min-w-[600px]',
+                !modal.removeLayout &&
+                  'gap-[20px] p-[16px] md:gap-[40px] md:p-[32px]',
+                'bg-newBgColorInner mx-auto flex flex-col w-fit max-w-[100vw] rounded-[16px] md:rounded-[24px] relative',
+                // min-w-[600px] is wider than a phone, so on mobile the modal
+                // body overran the viewport and pushed its own close button
+                // (and any second column) off-screen.
+                modal.size ? '' : 'min-w-0 md:min-w-[600px]',
                 modal.fullScreen && 'h-full'
               )}
               {...((!!modal.size || !!modal.height || !!modal.maxSize) && {
                 style: {
                   ...(modal.size ? { width: modal.size } : {}),
                   ...(modal.height ? { height: modal.height } : {}),
-                  ...(modal.maxSize ? { maxWidth: modal.maxSize } : {}),
+                  // an explicit size must still never exceed the viewport
+                  maxWidth: modal.maxSize ?? '100vw',
                 },
               })}
               onClick={(e) => e.stopPropagation()}
