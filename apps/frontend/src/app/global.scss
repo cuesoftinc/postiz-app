@@ -818,94 +818,252 @@ html[dir='rtl'] [dir='ltr'] {
 }
 
 /* ============================================================================
-   Cuesoft fork: UI density overhaul — Buffer-calibrated standard web sizes
-   (real size adjustments, no zoom/scale; validated live on postiz.cuesoft.io
-   before baking). Same layout/design, normalized sizing system:
-   - 14px body (root: the rem-based type/spacing scales from here)
-   - arbitrary-px display type stepped down to a standard ladder; small text
-     (16px and below) is already standard and stays as authored
-   - controls on the standard 32/36/40 ladder
-   - only the largest paddings/gaps tamed (4px grid)
+   Cuesoft fork: UI overhaul — Buffer-calibrated standard web sizes
+   (real size adjustments, no zoom/scale; every rule below was validated live
+   on postiz.cuesoft.io at 1280x800 and 390x844 before being baked in.)
+
+   SELECTOR ANCHORING — read before adding rules here.
+   Stock markup uses Tailwind arbitrary values, and many carry a breakpoint
+   prefix (`custom:h-[44px]`, `md:text-[20px]`). A bare [class*="h-[44px]"]
+   ALSO matches `custom:h-[44px]`, which silently applies a rule at every
+   breakpoint and defeats the responsive variant. That bug pinned all seven
+   nav-rail links to 36px when stock wanted 54px, leaving the active pill with
+   zero padding around its icon+label. So every token below is anchored with
+   the pair:  [class^="TOKEN"], [class*=" TOKEN"]
+   — start-of-attribute, or preceded by a space — which matches only the
+   unprefixed class. It also makes `min-h-`/`max-h-` non-matching for free.
    ========================================================================== */
 html {
   font-size: 14px;
 }
 
-/* display type -> standard ladder */
-[class*="text-[48px]"] { font-size: 32px !important; }
-[class*="text-[40px]"] { font-size: 28px !important; }
-[class*="text-[30px]"] { font-size: 24px !important; }
-[class*="text-[28px]"] { font-size: 22px !important; }
-[class*="text-[24px]"] { font-size: 20px !important; }
-[class*="text-[20px]"] { font-size: 16px !important; }
-[class*="text-[18px]"] { font-size: 16px !important; }
+/* display type -> standard ladder (small text, 16px and below, stays stock) */
+[class^="text-[48px]"], [class*=" text-[48px]"] { font-size: 32px !important; }
+[class^="text-[40px]"], [class*=" text-[40px]"] { font-size: 28px !important; }
+[class^="text-[30px]"], [class*=" text-[30px]"] { font-size: 24px !important; }
+[class^="text-[28px]"], [class*=" text-[28px]"] { font-size: 22px !important; }
+[class^="text-[24px]"], [class*=" text-[24px]"] { font-size: 20px !important; }
+[class^="text-[20px]"], [class*=" text-[20px]"] { font-size: 16px !important; }
+[class^="text-[18px]"], [class*=" text-[18px]"] { font-size: 16px !important; }
 
 /* controls: standard 32/36/40 heights */
-[class*="h-[52px]"] { height: 40px !important; }
-[class*="h-[48px]"]:not([class*="min-h-[48px]"]) { height: 36px !important; }
-[class*="h-[44px]"]:not([class*="min-h-[44px]"]) { height: 36px !important; }
-[class*="h-[40px]"]:not([class*="min-h-[40px]"]) { height: 32px !important; }
-[class*="min-h-[44px]"] { min-height: 36px !important; }
-[class*="min-h-[40px]"] { min-height: 32px !important; }
-[class*="min-w-[44px]"] { min-width: 36px !important; }
+[class^="h-[52px]"], [class*=" h-[52px]"] { height: 40px !important; }
+[class^="h-[48px]"], [class*=" h-[48px]"] { height: 36px !important; }
+[class^="h-[44px]"], [class*=" h-[44px]"] { height: 36px !important; }
+[class^="h-[40px]"], [class*=" h-[40px]"] { height: 32px !important; }
+[class^="min-h-[44px]"], [class*=" min-h-[44px]"] { min-height: 36px !important; }
+[class^="min-h-[40px]"], [class*=" min-h-[40px]"] { min-height: 32px !important; }
+[class^="min-w-[44px]"], [class*=" min-w-[44px]"] { min-width: 36px !important; }
 /* primary CTAs (Create Post) clamp with max-h + custom padding */
-[class*="max-h-[44px]"] { max-height: 36px !important; padding-top: 8px !important; padding-bottom: 8px !important; }
+[class^="max-h-[44px]"], [class*=" max-h-[44px]"] {
+  max-height: 36px !important; padding-top: 8px !important; padding-bottom: 8px !important;
+}
 
 /* tame only the largest paddings/gaps */
-[class*="p-[24px]"] { padding: 16px !important; }
-[class*="p-[20px]"] { padding: 16px !important; }
-[class*="px-[20px]"] { padding-left: 16px !important; padding-right: 16px !important; }
-[class*="gap-[24px]"] { gap: 16px !important; }
-[class*="gap-[20px]"] { gap: 16px !important; }
+[class^="p-[24px]"], [class*=" p-[24px]"] { padding: 16px !important; }
+[class^="p-[20px]"], [class*=" p-[20px]"] { padding: 16px !important; }
+[class^="px-[20px]"], [class*=" px-[20px]"] { padding-left: 16px !important; padding-right: 16px !important; }
+[class^="gap-[24px]"], [class*=" gap-[24px]"] { gap: 16px !important; }
+[class^="gap-[20px]"], [class*=" gap-[20px]"] { gap: 16px !important; }
 
-/* Shell. The nav rail keeps its stock 80px width and stock item padding: its
-   labels are hardcoded px (they don't follow the root font), and the nav column
-   is a `fixed` 64px box whose ancestors default to `min-width: auto` — so
-   narrowing the rail didn't shrink the items, it pushed them OUT (the active
-   white pill visibly bled past the rail's right edge, and overriding the item
-   padding threw the pill's insets off). Only the structural guard below is ours. */
+/* ---------------------------------------------------------------------------
+   Shell / nav rail
+   The rail keeps its stock 80px width, stock item padding AND stock heights
+   (54px tall viewports / 44px short ones). Narrowing it does not shrink the
+   items — the nav column is a `fixed` 64px box whose ancestors default to
+   `min-width: auto`, so the items get pushed OUT and the active white pill
+   bleeds past the rail's edge. Only the structural guard below is ours.
+   --------------------------------------------------------------------------- */
 [class*="w-[64px]"][class*="fixed"],
 [class*="w-[64px]"][class*="fixed"] * {
   min-width: 0 !important;
 }
-.flex.flex-col[class*="w-[80px]"] a {
-  max-width: 100%;
+.flex.flex-col[class*="w-[80px]"] a { max-width: 100%; }
+/* Stock gives the Settings section padding:16px while the nav list above it has
+   12px 0. That left the Settings link 32px wide inside a 64px rail, so its
+   active pill was a stub the "Settings" label overflowed. Match the list. */
+[class*="w-[64px]"][class*="fixed"] [class*="gap-[20px]"][class*="blurMe"] {
+  padding: 12px 0 !important;
 }
+
 /* channels panel 260->224, calendar day-of-week header row 62->48 */
 .flex.relative.flex-col[class*="w-[260px]"] { width: 224px !important; min-width: 224px !important; }
 [class*="grid-rows-[62px_auto]"] { grid-template-rows: 48px auto !important; }
 button { white-space: nowrap; }
 
-/* ===== Mobile (<768px): the shell was desktop-only — rail + panel consumed
-   ~270px of a 390px viewport and the calendar grid crushed to slivers. ===== */
+/* ---------------------------------------------------------------------------
+   Post card (calendar chip + list row)
+   Stock puts a solid 24px brand-purple bar across the top of every card just to
+   hold the hover actions. Stacked down a list that reads as a slab per row and
+   is the loudest thing on the page. Buffer's rows carry no such band: the bar
+   becomes a 3px accent, and the actions become a floating pill on hover.
+   --------------------------------------------------------------------------- */
+.group > [class*="rounded-tl-[10px]"][class*="h-[24px]"] {
+  position: absolute !important; top: 0; inset-inline-start: 0;
+  width: 100% !important;
+  height: 3px !important; min-height: 3px !important; max-height: 3px !important;
+  border-radius: 8px 8px 0 0 !important;
+  overflow: hidden; z-index: 4; padding: 0 !important;
+  transition: height .12s ease, background-color .12s ease;
+}
+.group > [class*="rounded-tl-[10px]"][class*="h-[24px]"] > * { opacity: 0; pointer-events: none; }
+.group:hover > [class*="rounded-tl-[10px]"][class*="h-[24px]"] {
+  top: 50%; transform: translateY(-50%);
+  inset-inline-start: auto; inset-inline-end: 10px;
+  width: auto !important;
+  height: 22px !important; min-height: 22px !important; max-height: 22px !important;
+  padding: 0 8px !important; gap: 10px !important;
+  border-radius: 6px !important; overflow: visible;
+  /* opaque enough to sit over the timestamp; dark reads in both themes since
+     the action icons are white */
+  background-color: rgba(20, 20, 22, .92) !important;
+  backdrop-filter: blur(2px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .12), 0 2px 8px rgba(0, 0, 0, .45);
+}
+.group:hover > [class*="rounded-tl-[10px]"][class*="h-[24px]"] > * { opacity: 1; pointer-events: auto; }
+
+/* card body: real padding + gap so the copy never touches the avatar, the
+   timestamp or the card edge */
+[class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] {
+  border-radius: 8px !important;
+  padding: 10px 12px !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+[class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] img { margin-inline-end: 4px; }
+
+/* list view day header: left-aligned + muted with a divider, like Buffer's day
+   groups (stock centres it with no separation from the first card) */
+[class*="text-center"][class*="min-h-[21px]"][class*="mt-[10px]"] {
+  text-align: start !important; font-size: 13px !important; opacity: .62;
+  margin-top: 20px !important; margin-bottom: 10px !important;
+  padding: 0 2px 8px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+/* ===== Mobile (<768px) =====
+   The shell is desktop-only: the nav column is `position: fixed` at a hardcoded
+   x=17px with a hardcoded 64px width, so on a 390px screen it OVERLAPPED the
+   channels panel and the calendar. Restructured to the standard mobile pattern:
+   the left rail becomes a bottom tab bar and the content stacks full-width.
+   ========================================================================== */
 @media (max-width: 767px) {
-  /* stack: channels panel above the calendar instead of beside it */
+  /* rail -> bottom tab bar */
+  .flex.flex-col[class*="w-[80px]"] {
+    position: fixed !important;
+    left: 0 !important; right: 0 !important;
+    bottom: 0 !important; top: auto !important;
+    width: 100% !important; height: 56px !important;
+    flex-direction: row !important;
+    border-radius: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, .10);
+    z-index: 50;
+  }
+  [class*="w-[64px]"][class*="fixed"] {
+    position: static !important;
+    width: 100% !important; height: 56px !important;
+    inset-inline-start: auto !important;
+    flex-direction: row !important;
+  }
+  /* collapse the wrapper boxes so every link is a direct flex child of the bar
+     (otherwise the nav-list and settings wrappers fight over the width) */
+  [class*="w-[64px]"][class*="fixed"] > div,
+  [class*="w-[64px]"][class*="fixed"] > div > div { display: contents !important; }
+  [class*="w-[64px]"][class*="fixed"] a {
+    flex: 1 1 0 !important;
+    width: auto !important; min-width: 0 !important;
+    height: 56px !important; max-height: 56px !important;
+    border-radius: 0 !important;
+    position: relative;
+  }
+  /* the sidebar logo has no place in a tab bar */
+  [class*="w-[64px]"][class*="fixed"] img[class*="min-w-[60px]"] { display: none !important; }
+  /* active tab: the desktop white pill becomes a full-height white slab at
+     56px — use a brand top indicator instead */
+  [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused {
+    background: transparent !important; color: #fff !important;
+  }
+  [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused svg { color: #fff !important; }
+  [class*="w-[64px]"][class*="fixed"] a.bg-boxFocused::after {
+    content: ''; position: absolute;
+    top: 0; left: 14px; right: 14px; height: 3px;
+    border-radius: 0 0 3px 3px; background: rgb(120, 70, 235);
+  }
+  body { padding-bottom: 56px; }
+
+  /* content stacks full-width */
   [class*='blurMe'] > .flex.flex-1 { flex-direction: column; }
   .flex.relative.flex-col[class*="w-[260px]"] {
-    width: 100% !important;
-    min-width: 100% !important;
-    max-height: 34vh;
+    width: 100% !important; min-width: 100% !important; max-height: none !important;
   }
   /* panel inner is absolutely positioned against the fixed-width wrapper —
-     make it flow so the stacked layout gets a natural height + own scroll */
+     make it flow so the stacked layout gets a natural height */
   .flex.relative.flex-col[class*="w-[260px]"] > div {
-    position: static !important;
-    height: auto !important;
-    max-height: 34vh;
-    overflow-y: auto;
+    position: static !important; height: auto !important;
+    max-height: none !important; overflow: visible !important;
   }
-  /* icons-only rail */
-  .flex.flex-col[class*="w-[80px]"] { width: 48px !important; }
-  .flex.flex-col[class*="w-[80px]"] [class*="leading-[1.1]"] { display: none; }
-  img[class*="min-w-[60px]"] {
-    min-width: 36px !important;
-    min-height: 36px !important;
-    width: 36px;
-    height: 36px;
+  /* Channels: a 260px vertical rail makes no sense on a phone — it burned 30vh
+     to show 1.5 rows. Becomes a horizontal, scrollable chip strip.
+     NOTE the `.flex.relative.flex-col` scope: `group/profile` is also used by
+     the Settings sub-nav rows, which must NOT become chips. */
+  .flex.relative.flex-col[class*="w-[260px]"] .flex.flex-col.relative[class*="gap-[12px]"] {
+    flex-direction: row !important;
+    overflow-x: auto; overflow-y: hidden;
+    gap: 8px !important; padding: 2px 0 8px !important;
+    scrollbar-width: none;
   }
+  .flex.relative.flex-col[class*="w-[260px]"] .flex.flex-col.relative[class*="gap-[12px]"]::-webkit-scrollbar { display: none; }
+  .flex.relative.flex-col[class*="w-[260px]"] [class*="group/profile"] {
+    flex: 0 0 auto !important; width: auto !important;
+    padding: 5px 10px !important; gap: 8px !important;
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 999px !important;
+    background: transparent !important;
+  }
+  /* the version string burned a full centered row */
+  [class*="mt-[5px]"].text-center.flex.flex-col { display: none !important; }
+
+  /* Settings: the 260px sub-nav sat in a 370px column, leaving a dead gutter
+     and pushing the actual settings content far below the fold. Horizontal
+     tab strip instead, so the content is the first thing you see. */
+  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all {
+    width: 100% !important; min-width: 0 !important; padding: 8px !important;
+  }
+  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-1.flex-col[class*="gap-[15px]"] {
+    flex-direction: row !important;
+    overflow-x: auto; overflow-y: hidden;
+    gap: 6px !important; flex: 0 0 auto !important;
+    scrollbar-width: none;
+  }
+  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-1.flex-col[class*="gap-[15px]"]::-webkit-scrollbar { display: none; }
+  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all [class*="group/profile"] {
+    flex: 0 0 auto !important; width: auto !important;
+    padding: 8px 12px !important;
+    white-space: nowrap;
+    border-radius: 8px !important;
+  }
+
+  /* the launches toolbar measured 633px wide inside a 390px viewport (a
+     min-w-[200px] pager + 4 x min-w-[80px] tabs) and spilled off BOTH edges */
+  .flex.flex-grow.flex-row.items-center[class*="gap-[10px]"] {
+    flex-wrap: wrap !important; gap: 10px !important; width: 100%;
+  }
+  .flex.flex-grow.flex-row.items-center[class*="gap-[10px]"] > * { flex: 1 1 auto; min-width: 0; }
+  [class^="min-w-[200px]"], [class*=" min-w-[200px]"] { min-width: 0 !important; flex: 1 1 auto; }
+  [class^="min-w-[80px]"], [class*=" min-w-[80px]"] {
+    min-width: 0 !important; padding-left: 10px !important; padding-right: 10px !important;
+  }
+  /* stock stacks the calendar/list toggle centred under the tabs */
+  .select-none.flex.flex-col[class*="gap-[8px]"] { align-items: stretch !important; width: 100%; }
+  .select-none.flex.flex-col[class*="gap-[8px]"] > *:last-child { align-self: flex-end; }
+
+  /* type steps down again for a 390px screen */
+  [class^="text-[24px]"], [class*=" text-[24px]"] { font-size: 18px !important; }
+  [class^="text-[20px]"], [class*=" text-[20px]"] { font-size: 15px !important; }
+  [class^="text-[18px]"], [class*=" text-[18px]"] { font-size: 15px !important; }
+  [class^="p-[12px]"], [class*=" p-[12px]"] { padding: 10px !important; }
+  [class^="p-[20px]"], [class*=" p-[20px]"] { padding: 12px !important; }
+
   /* calendar keeps real (tappable) columns and scrolls horizontally */
   .grid[class*="grid-cols-7"] { grid-template-columns: repeat(7, minmax(88px, 1fr)) !important; }
-  /* tighter page + container padding */
-  [class*="p-[12px]"] { padding: 6px !important; }
-  [class*="p-[20px]"] { padding: 12px !important; }
 }
