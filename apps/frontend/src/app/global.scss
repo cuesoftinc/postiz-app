@@ -1180,3 +1180,23 @@ button { white-space: nowrap; }
     min-width: 0 !important; padding-left: 10px !important; padding-right: 10px !important;
   }
 }
+
+/* ===== Affordance =====
+   Anything that opens something or performs an action should say so on hover.
+   Stock authors many of these as plain divs with a React onClick and no cursor,
+   so they read as inert text. Measured on the live app: post cards, channel
+   rows, pager arrows, future calendar days and media tiles were all
+   `cursor: auto` while being fully clickable.
+   ========================================================================== */
+button:not(:disabled), a[href], [role="button"], [role="tab"], summary,
+select, label[for], input[type="checkbox"], input[type="radio"] { cursor: pointer; }
+
+.group > [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"],          /* post card */
+[class*="group/profile"],                                                   /* channel + settings rows */
+[class*="rtl:rotate-180"]:not([class*="cursor-not-allowed"]),               /* pager arrows */
+[class*="grid-cols-7"] .flex.flex-col.w-full[class*="min-h-full"]:not([class*="cursor-not-allowed"]), /* future calendar day */
+.w-full.h-full[class*="rounded-[6px]"][class*="border-[4px]"]               /* media tile */
+{ cursor: pointer; }
+
+/* never override an explicit disabled affordance (past days, disabled pager) */
+[class*="cursor-not-allowed"], button:disabled { cursor: not-allowed !important; }
