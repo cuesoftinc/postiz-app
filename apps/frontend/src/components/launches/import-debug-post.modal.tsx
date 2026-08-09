@@ -126,7 +126,7 @@ export const ImportDebugPostModal: FC<{ close: () => void }> = ({ close }) => {
   }, [parsed, selectedIntegrationId, fetch, toaster, t, close, mutate]);
 
   return (
-    <div className="flex flex-col gap-[16px] min-w-[500px]">
+    <div className="flex flex-col gap-[16px] min-w-[500px] phone:min-w-0 phone:w-[calc(100vw-64px)]">
       <textarea
         className="w-full h-[200px] p-[12px] rounded-[8px] bg-input border border-tableBorder text-textColor font-mono text-[13px] resize-y"
         placeholder={t(

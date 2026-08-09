@@ -59,7 +59,7 @@ const ErrorDetailsModal: FC<{ row: ErrorRow }> = ({ row }) => {
   }, [parsedMessage, parsedBody, row, toaster]);
 
   return (
-    <div className="rounded-[4px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px] relative w-full max-h-[80vh] overflow-auto">
+    <div className="rounded-[4px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px] relative w-full phone:w-[calc(100vw-64px)] max-h-[80vh] overflow-auto">
       <div className="sticky top-0 bg-newBgColorInner py-[16px] flex items-center justify-between gap-[12px] z-10 border-b border-newTableBorder mb-[12px]">
         <div className="text-[16px] font-[600]">Error Details</div>
         <div className="flex gap-[8px] items-center">
@@ -328,7 +328,7 @@ export const AdminErrorsComponent: FC = () => {
         <div className="opacity-70">No errors found.</div>
       ) : (
         <div className="border border-newTableBorder rounded-[8px] overflow-hidden">
-          <div className="grid grid-cols-[170px_120px_220px_1fr_220px] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[12px] uppercase opacity-70 border-b border-newTableBorder">
+          <div className="grid grid-cols-[170px_120px_220px_1fr_220px] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[12px] uppercase opacity-70 border-b border-newTableBorder phone:hidden">
             <div>Created</div>
             <div>Platform</div>
             <div>User / Org</div>
@@ -349,7 +349,7 @@ export const AdminErrorsComponent: FC = () => {
             return (
               <div
                 key={row.id}
-                className="grid grid-cols-[170px_120px_220px_1fr_220px] gap-[12px] px-[12px] py-[10px] text-[13px] border-b border-newTableBorder last:border-b-0 items-start"
+                className="grid grid-cols-[170px_120px_220px_1fr_220px] phone:grid-cols-1 phone:gap-[6px] gap-[12px] px-[12px] py-[10px] text-[13px] border-b border-newTableBorder last:border-b-0 items-start"
               >
                 <div className="opacity-90">
                   {new Date(row.createdAt).toLocaleString()}
@@ -374,7 +374,7 @@ export const AdminErrorsComponent: FC = () => {
                 <div className="break-all whitespace-pre-wrap font-mono text-[12px] opacity-90">
                   {preview}
                 </div>
-                <div className="flex gap-[8px] justify-end">
+                <div className="flex gap-[8px] justify-end phone:justify-start">
                   <Button secondary onClick={() => openDetails(row)}>
                     View
                   </Button>

@@ -408,8 +408,8 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-[16px] min-w-[500px]">
-      <div className="max-h-[400px] overflow-y-auto">
+    <div className="flex flex-col gap-[16px] min-w-[500px] phone:min-w-0 phone:w-[calc(100vw-64px)]">
+      <div className="max-h-[400px] overflow-y-auto phone:overflow-x-auto">
         {!charges?.length ? (
           <div className="text-center py-[20px] text-newTextColor/60">
             {t('no_charges', 'No charges found')}
@@ -637,7 +637,7 @@ const AddAnnouncementModal: FC<{ close: () => void }> = ({ close }) => {
   }, [title, description, color]);
 
   return (
-    <div className="flex flex-col gap-[16px] min-w-[500px]">
+    <div className="flex flex-col gap-[16px] min-w-[500px] phone:min-w-0 phone:w-[calc(100vw-64px)]">
       <Input
         label={t('announcement_title', 'Title')}
         name="title"
@@ -758,7 +758,7 @@ const AddTeamMemberModal: FC<{ close: () => void }> = ({ close }) => {
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(submit)}>
-        <div className="flex flex-col gap-[10px] min-w-[400px]">
+        <div className="flex flex-col gap-[10px] min-w-[400px] phone:min-w-0 phone:w-[calc(100vw-64px)]">
           <Input
             label="Email"
             placeholder={t('enter_email', 'Enter email')}
@@ -946,8 +946,8 @@ const SwitchUser = () => {
   }, [selected]);
 
   return (
-    <div className="relative flex items-center gap-[10px]">
-      <div className="flex-1 min-w-[220px]">
+    <div className="relative flex items-center gap-[10px] phone:flex-wrap">
+      <div className="flex-1 min-w-[220px] phone:w-full phone:min-w-0">
         <Input
           autoComplete="off"
           placeholder={t('select_user_to_switch_to', 'Select user to switch to')}
@@ -1068,7 +1068,7 @@ export const Impersonate = () => {
         >
           <div className="relative z-[1]">
             {user?.impersonate ? (
-              <div className="text-center flex justify-center items-center gap-[10px]">
+              <div className="text-center flex justify-center items-center gap-[10px] phone:flex-wrap">
                 <div className="whitespace-nowrap">
                   {t('currently_impersonating', 'Currently Impersonating')}
                 </div>
