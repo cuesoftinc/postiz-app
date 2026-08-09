@@ -102,16 +102,27 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                   <AnnouncementBanner />
                   <div className="flex-1 flex gap-[8px]">
                     <Support />
-                    <div className="flex flex-col bg-newBgColorInner w-[80px] rounded-[12px]">
+                    {/* Below md the rail becomes a bottom tab bar. It has to be
+                        a real layout change, not a CSS override: the rail's
+                        items were laying out at their natural width, which made
+                        the page wider than the device, which expanded the layout
+                        viewport — and once that happens every position:fixed
+                        element anchors to the wider viewport and the bar itself
+                        lands off-screen. */}
+                    <div className="flex flex-col bg-newBgColorInner w-[80px] rounded-[12px] phone:fixed phone:inset-x-0 phone:bottom-0 phone:top-auto phone:z-50 phone:w-full phone:h-[56px] phone:flex-row phone:rounded-none phone:border-t phone:border-newBorder">
                       <div
                         id="left-menu"
                         className={clsx(
                           'fixed h-full w-[64px] start-[17px] flex flex-1 top-0',
-                          user?.admin && 'pt-[60px] max-h-[1000px]:w-[500px]'
+                          'phone:static phone:w-full phone:h-[56px] phone:start-auto',
+                          user?.admin &&
+                            'pt-[60px] max-h-[1000px]:w-[500px] phone:pt-0'
                         )}
                       >
-                        <div className="flex flex-col h-full gap-[32px] flex-1 py-[12px]">
-                          <Logo />
+                        <div className="flex flex-col h-full gap-[32px] flex-1 py-[12px] phone:flex-row phone:items-center phone:gap-0 phone:py-0">
+                          <div className="phone:hidden">
+                            <Logo />
+                          </div>
                           <TopMenu />
                         </div>
                       </div>

@@ -197,12 +197,12 @@ export const Component: FC<{
             <div
               className={clsx(
                 !modal.removeLayout &&
-                  'gap-[20px] p-[16px] md:gap-[40px] md:p-[32px]',
-                'bg-newBgColorInner mx-auto flex flex-col w-fit max-w-[100vw] rounded-[16px] md:rounded-[24px] relative',
+                  'gap-[40px] p-[32px] phone:gap-[20px] phone:p-[16px]',
+                'bg-newBgColorInner mx-auto flex flex-col w-fit max-w-[100vw] rounded-[24px] phone:rounded-[16px] relative',
                 // min-w-[600px] is wider than a phone, so on mobile the modal
                 // body overran the viewport and pushed its own close button
                 // (and any second column) off-screen.
-                modal.size ? '' : 'min-w-0 md:min-w-[600px]',
+                modal.size ? '' : 'min-w-[600px] phone:min-w-0',
                 modal.fullScreen && 'h-full'
               )}
               {...((!!modal.size || !!modal.height || !!modal.maxSize) && {

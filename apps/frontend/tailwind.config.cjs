@@ -249,6 +249,12 @@ module.exports = {
         },
       }),
       screens: {
+        // Real phones. `mobile` below is (max-width: 1025px), which is laptop
+        // territory, and Tailwind's default `md` emits no utilities in this
+        // project — so responsive work needs an explicit phone breakpoint.
+        phone: {
+          raw: '(max-width: 767px)',
+        },
         mobile: {
           raw: '(max-width: 1025px)',
         },

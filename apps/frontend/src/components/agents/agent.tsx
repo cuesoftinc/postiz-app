@@ -111,7 +111,7 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
         collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
       )}
     >
-      <div className="absolute top-0 start-0 w-full h-full p-[20px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+      <div className="absolute top-0 start-0 w-full h-full p-[20px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor phone:static phone:h-auto phone:p-[12px] phone:overflow-visible">
         <div className="flex items-center">
           <h2 className="group-[.sidebar]:hidden flex-1 text-[20px] font-[500] mb-[15px]">
             {t('select_channels', 'Select Channels')}
@@ -137,13 +137,20 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
             </svg>
           </div>
         </div>
-        <div className={clsx('flex flex-col gap-[15px]')}>
+        {/* a vertical channel list eats the whole screen on a phone; scroll it sideways instead */}
+        <div
+          className={clsx(
+            'flex flex-col gap-[15px]',
+            'phone:flex-row phone:gap-[8px] phone:overflow-x-auto phone:pb-[8px]'
+          )}
+        >
           {sortedIntegrations.map((integration, index) => (
             <div
               onClick={setIntegration(integration)}
               key={integration.id}
               className={clsx(
                 'flex gap-[12px] items-center group/profile justify-center hover:bg-boxHover rounded-e-[8px] hover:opacity-100 cursor-pointer',
+                'phone:flex-none phone:w-auto phone:px-[10px] phone:py-[6px] phone:rounded-[8px] phone:whitespace-nowrap phone:border phone:border-newBorder',
                 !selected.some((p) => p.id === integration.id) && 'opacity-20'
               )}
             >
@@ -228,7 +235,7 @@ const Threads: FC = () => {
         'w-[260px]'
       )}
     >
-      <div className="absolute top-0 start-0 w-full h-full p-[20px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+      <div className="absolute top-0 start-0 w-full h-full p-[20px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor phone:static phone:h-auto phone:p-[12px] phone:overflow-visible">
         <div className="mb-[15px] justify-center flex group-[.sidebar]:pb-[15px]">
           <Link
             href={`/agents`}

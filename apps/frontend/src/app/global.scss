@@ -948,36 +948,14 @@ button { white-space: nowrap; }
    the left rail becomes a bottom tab bar and the content stacks full-width.
    ========================================================================== */
 @media (max-width: 767px) {
-  /* rail -> bottom tab bar */
-  .flex.flex-col[class*="w-[80px]"] {
-    position: fixed !important;
-    left: 0 !important; right: 0 !important;
-    bottom: 0 !important; top: auto !important;
-    width: 100% !important; height: 56px !important;
-    flex-direction: row !important;
-    border-radius: 0 !important;
-    border-top: 1px solid rgba(128, 128, 128, .28);
-    z-index: 50;
-  }
-  [class*="w-[64px]"][class*="fixed"] {
-    position: static !important;
-    width: 100% !important; height: 56px !important;
-    inset-inline-start: auto !important;
-    flex-direction: row !important;
-  }
-  /* collapse the wrapper boxes so every link is a direct flex child of the bar
-     (otherwise the nav-list and settings wrappers fight over the width) */
-  [class*="w-[64px]"][class*="fixed"] > div,
-  [class*="w-[64px]"][class*="fixed"] > div > div { display: contents !important; }
-  [class*="w-[64px]"][class*="fixed"] a {
-    flex: 1 1 0 !important;
-    width: auto !important; min-width: 0 !important;
-    height: 56px !important; max-height: 56px !important;
-    border-radius: 0 !important;
-    position: relative;
-  }
-  /* the sidebar logo has no place in a tab bar */
-  [class*="w-[64px]"][class*="fixed"] img[class*="min-w-[60px]"] { display: none !important; }
+  /* The rail -> bottom-tab-bar restructure now lives in layout.component.tsx,
+     top.menu.tsx and menu-item.tsx as real max-md: classes. Doing it from here
+     was actively harmful: the `display: contents` flattening depended on the
+     exact wrapper nesting, and on the super-admin layout (which adds a banner
+     offset) it stopped matching, so the tabs kept their natural width, the page
+     grew wider than the device, the layout viewport expanded to match, and
+     every position:fixed element — including the bar itself — anchored to that
+     wider viewport and landed off-screen. */
   /* active tab: the desktop white pill becomes a full-height white slab at
      56px — use a brand top indicator instead */
   /* The active colour has to read on BOTH a white bar and a dark one. #fff

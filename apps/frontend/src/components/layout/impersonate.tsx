@@ -1060,10 +1060,10 @@ export const Impersonate = () => {
   }, [data]);
   return (
     <div>
-      <div className="bg-forth h-[52px] flex justify-center items-center border-input border rounded-[8px] text-white">
+      <div className="bg-forth min-h-[52px] py-[8px] flex justify-center items-center border-input border rounded-[8px] text-white">
         <div
           className={`relative flex flex-col ${
-            user?.impersonate ? 'w-full px-[20px]' : 'w-[600px]'
+            user?.impersonate ? 'w-full px-[20px]' : 'w-[600px] phone:w-full phone:px-[12px]'
           }`}
         >
           <div className="relative z-[1]">
@@ -1086,7 +1086,7 @@ export const Impersonate = () => {
                 <SwitchUser />
               </div>
             ) : (
-              <div className="flex items-center gap-[10px]">
+              <div className="flex items-center gap-[10px] phone:flex-wrap phone:justify-center">
                 <div className="flex-1">
                   <Input
                     autoComplete="off"

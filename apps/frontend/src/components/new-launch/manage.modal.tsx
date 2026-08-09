@@ -552,8 +552,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         {/* Fixed 84px + nowrap packed tags, repeat, the datetime picker, draft
             and submit into one row; on a phone they collided and the submit
             button ran past the viewport. Wrap instead and let the bar grow. */}
-        <div className="select-none min-h-[84px] py-[12px] md:py-[20px] border-t border-newBorder flex flex-wrap items-center gap-[8px]">
-          <div className="flex-1 flex flex-wrap ps-[12px] md:ps-[20px] gap-[8px]">
+        <div className="select-none min-h-[84px] py-[20px] phone:py-[12px] border-t border-newBorder flex flex-wrap items-center gap-[8px]">
+          <div className="flex-1 flex flex-wrap ps-[20px] phone:ps-[12px] gap-[8px]">
             {!dummy && (
               <TagsComponent
                 name="tags"
@@ -569,7 +569,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               <RepeatComponent repeat={repeater} onChange={setRepeater} />
             )}
           </div>
-          <div className="pe-[12px] md:pe-[20px] ps-[12px] md:ps-0 flex flex-wrap items-center justify-start md:justify-end gap-[8px]">
+          <div className="pe-[20px] phone:pe-[12px] phone:ps-[12px] flex flex-wrap items-center justify-end phone:justify-start gap-[8px]">
             {existingData?.integration && (
               <button
                 onClick={deletePost}

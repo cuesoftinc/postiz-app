@@ -63,7 +63,9 @@ export const NotificationOpenComponent = () => {
   return (
     <div
       id="notification-popup"
-      className="opacity-0 animate-normalFadeDown mt-[10px] absolute w-[420px] min-h-[200px] top-[100%] end-0 bg-third text-textColor rounded-[16px] flex flex-col border border-tableBorder z-[600]"
+      // 420px is wider than a phone and this is anchored end-0 to the bell, so
+      // on mobile it hung off the left edge with its text cut off
+      className="opacity-0 animate-normalFadeDown mt-[10px] absolute w-[420px] max-w-[calc(100vw-24px)] min-h-[200px] top-[100%] end-0 bg-third text-textColor rounded-[16px] flex flex-col border border-tableBorder z-[600]"
     >
       <div
         className={`p-[16px] border-b border-tableBorder font-bold`}
