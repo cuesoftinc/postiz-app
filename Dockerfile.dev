@@ -19,36 +19,10 @@ RUN npm --no-update-notifier --no-fund --global install pnpm@10.6.1 pm2
 
 WORKDIR /app
 
-# ---------------------------------------------------------------------------
-# Dependencies, in their own layer.
-#
-# This used to be `COPY . /app` followed by `pnpm install` and `pnpm build`,
-# which meant every single source change invalidated the install layer as well.
-# node_modules for this workspace is the better part of a gigabyte, so each
-# deploy pulled it again even though the lockfile had not moved. Copy only the
-# manifests first, install, and only then copy the source: the dependency layer
-# is then keyed on the lockfile and stays cached across ordinary code pushes.
-#
-# `postinstall` at the root runs `prisma generate`, and apps/frontend's runs
-# scripts/fetch-gtm.mjs, so both of those inputs have to be present at install
-# time too.
-# ---------------------------------------------------------------------------
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
-COPY apps/backend/package.json /app/apps/backend/
-COPY apps/commands/package.json /app/apps/commands/
-COPY apps/extension/package.json /app/apps/extension/
-COPY apps/frontend/package.json /app/apps/frontend/
-COPY apps/orchestrator/package.json /app/apps/orchestrator/
-COPY apps/sdk/package.json /app/apps/sdk/
-COPY apps/frontend/scripts /app/apps/frontend/scripts
-COPY libraries/nestjs-libraries/src/database/prisma /app/libraries/nestjs-libraries/src/database/prisma
-
-RUN pnpm install
-
-# Source last — this is the layer that actually changes on every push.
 COPY . /app
 COPY var/docker/nginx.conf /etc/nginx/nginx.conf
 
+RUN pnpm install
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
 CMD ["sh", "-c", "nginx && pnpm run pm2"]

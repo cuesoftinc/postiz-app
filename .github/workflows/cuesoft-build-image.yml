@@ -53,15 +53,6 @@ jobs:
           provenance: false
           build-args: |
             NEXT_PUBLIC_VERSION=v2.23.0
-          # Registry-backed layer cache. Without it the runner starts cold every
-          # time, so `pnpm install` re-runs and produces a byte-different
-          # node_modules layer — a new digest, which the deploy host then has to
-          # pull in full even though nothing about the dependencies changed.
-          # That is the ~900MB-per-deploy pull. With the cache, an unchanged
-          # lockfile reuses the exact same layer and the host pulls only the
-          # app-build layer on top.
-          cache-from: type=registry,ref=ghcr.io/cuesoftinc/postiz-app:buildcache
-          cache-to: type=registry,ref=ghcr.io/cuesoftinc/postiz-app:buildcache,mode=max
           # sha- tag = immutable rollback point; the mutable tags move with every push
           tags: |
             ghcr.io/cuesoftinc/postiz-app:v2.23.0-sso
