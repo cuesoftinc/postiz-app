@@ -1082,6 +1082,15 @@ button { white-space: nowrap; }
   [class*="grid-template-columns:136px"] {
     grid-template-columns: 72px repeat(7, minmax(92px, 1fr)) !important;
   }
+
+  /* content grids are authored for desktop: grid-cols-3 gave 95px plug cards at
+     390px, wrapping one word per line. grid-cols-7 is the calendar and is
+     handled above with real columns + scroll, so it is deliberately excluded. */
+  .grid[class*="grid-cols-3"] { grid-template-columns: minmax(0, 1fr) !important; }
+  .grid[class*="grid-cols-4"],
+  .grid[class*="grid-cols-5"],
+  .grid[class*="grid-cols-6"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .grid[class*="gap-[30px]"] { gap: 12px !important; }
 }
 
 /* ===== Create Post editor (mobile) =====
