@@ -1036,26 +1036,26 @@ button { white-space: nowrap; }
   /* Settings: the 260px sub-nav sat in a 370px column, leaving a dead gutter
      and pushing the actual settings content far below the fold. Horizontal
      tab strip instead, so the content is the first thing you see. */
-  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all {
+  .bg-newBgColorInner.flex.flex-col.transition-all {
     width: 100% !important; min-width: 0 !important; padding: 8px !important;
   }
   /* :has(> group/profile) so this hits exactly the row list and nothing else —
      settings puts it on .flex-1.flex-col.gap-[15px], analytics on
      .flex.gap-[12px].flex-col */
-  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"]) {
+  .bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"]) {
     flex-direction: row !important;
     overflow-x: auto; overflow-y: hidden;
     gap: 6px !important; flex: 0 0 auto !important;
     scrollbar-width: none;
   }
-  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"])::-webkit-scrollbar { display: none; }
+  .bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"])::-webkit-scrollbar { display: none; }
   /* analytics keeps its "Channels" label + collapse chevron INSIDE that list, so
      the row direction put them inline with the chips; the chevron is meaningless
      once the panel is full-width anyway */
-  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"]) > .flex.items-center:not([class*="group/profile"]) {
+  .bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"]) > .flex.items-center:not([class*="group/profile"]) {
     display: none !important;
   }
-  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all [class*="group/profile"] {
+  .bg-newBgColorInner.flex.flex-col.transition-all [class*="group/profile"] {
     flex: 0 0 auto !important; width: auto !important;
     padding: 8px 12px !important;
     white-space: nowrap;
@@ -1200,3 +1200,50 @@ select, label[for], input[type="checkbox"], input[type="radio"] { cursor: pointe
 
 /* never override an explicit disabled affordance (past days, disabled pager) */
 [class*="cursor-not-allowed"], button:disabled { cursor: not-allowed !important; }
+
+/* ===== Collapsed side panel (mobile) =====
+   The collapse control reclaims horizontal space on desktop. Once the panel is
+   a full-width horizontal strip there is nothing to reclaim, and the collapsed
+   state rendered as a ~110px avatar column with a dead gutter beside it —
+   because collapsing DROPS the w-[260px] class, so any rule keyed off it
+   silently fell back to the stock vertical column. Hence the selector rewrite
+   above, plus removing the control itself here.
+   ========================================================================== */
+@media (max-width: 767px) {
+  [class*="group-[.sidebar]:rotate-[180deg]"] { display: none !important; }
+  .group.sidebar { width: 100% !important; }
+  .group.sidebar [class*="group-[.sidebar]:flex-col"] { flex-direction: row !important; }
+  .group.sidebar [class*="group-[.sidebar]:w-[44px]"],
+  .group.sidebar [class*="group-[.sidebar]:w-[100%]"],
+  .group.sidebar [class*="group-[.sidebar]:w-full"] { width: auto !important; }
+  .group.sidebar [class*="group-[.sidebar]:hidden"] { display: block !important; }
+  .group.sidebar [class*="group-[.sidebar]:mx-auto"] { margin-left: 0 !important; margin-right: 0 !important; }
+}
+
+/* ===== Modals must live inside the viewport (mobile) =====
+   Every stock modal is sized for desktop. The body is `w-fit` so it takes its
+   content width (600px for Add Channel) and its wrapper is content-driven too,
+   which makes a percentage width circular — the second column and the close
+   button ended up off-screen. Clamp against the viewport instead.
+   ========================================================================== */
+@media (max-width: 767px) {
+  [class*="bg-popup"] { max-width: 100vw !important; overflow-x: hidden !important; }
+  [class*="bg-popup"] [class*="w-fit"],
+  [class*="bg-popup"] .absolute[class*="min-w-full"] { min-width: 0 !important; }
+  [class*="bg-popup"] [class*="w-fit"] {
+    width: auto !important; max-width: calc(100vw - 16px) !important;
+  }
+  [class*="bg-popup"] [class*="p-[32px]"] { padding: 16px !important; }
+  [class*="bg-popup"] [class*="gap-[40px]"] { gap: 20px !important; }
+  [class*="bg-popup"] [class*="pt-[100px]"] { padding-top: 24px !important; padding-bottom: 24px !important; }
+  [class*="bg-popup"] [class*="rounded-[24px]"] { border-radius: 16px !important; }
+
+  /* Create Post action bar: "Add New Tag" / "Repeat Post Every..." were
+     wrapping to two lines inside their own controls */
+  [class*="bg-popup"] .select-none[class*="h-[84px]"] {
+    padding: 12px !important; gap: 8px !important; font-size: 13px !important;
+  }
+  [class*="bg-popup"] .select-none[class*="h-[84px]"] * { white-space: nowrap !important; }
+  [class*="bg-popup"] .select-none[class*="h-[84px]"] > * { flex: 1 1 45% !important; }
+  [class*="bg-popup"] .select-none[class*="h-[84px]"] .flex.items-center.justify-end > * { flex: 1 1 auto; }
+}
