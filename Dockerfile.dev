@@ -22,7 +22,15 @@ WORKDIR /app
 COPY . /app
 COPY var/docker/nginx.conf /etc/nginx/nginx.conf
 
-RUN pnpm install
+# The pnpm store persists in a BuildKit cache mount, so a source-only rebuild
+# resolves everything store-first (~4 min warm) instead of re-downloading the
+# full dependency set. Chosen over the layer-split (`pnpm fetch`) pattern,
+# which was proven to work but costs +2.6GB per image: the store layer and
+# node_modules cannot share hardlinks across overlayfs layers, so deps ship
+# twice. A cache mount adds nothing to the image.
+# NOTE for reclaiming disk: `docker builder prune -af` flushes this store and
+# the next build runs cold — prefer `--keep-storage 5GB` when pruning.
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm install
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
 CMD ["sh", "-c", "nginx && pnpm run pm2"]
