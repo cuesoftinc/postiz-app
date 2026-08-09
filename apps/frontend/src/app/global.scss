@@ -1029,13 +1029,22 @@ button { white-space: nowrap; }
   [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all {
     width: 100% !important; min-width: 0 !important; padding: 8px !important;
   }
-  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-1.flex-col[class*="gap-[15px]"] {
+  /* :has(> group/profile) so this hits exactly the row list and nothing else —
+     settings puts it on .flex-1.flex-col.gap-[15px], analytics on
+     .flex.gap-[12px].flex-col */
+  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"]) {
     flex-direction: row !important;
     overflow-x: auto; overflow-y: hidden;
     gap: 6px !important; flex: 0 0 auto !important;
     scrollbar-width: none;
   }
-  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-1.flex-col[class*="gap-[15px]"]::-webkit-scrollbar { display: none; }
+  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"])::-webkit-scrollbar { display: none; }
+  /* analytics keeps its "Channels" label + collapse chevron INSIDE that list, so
+     the row direction put them inline with the chips; the chevron is meaningless
+     once the panel is full-width anyway */
+  [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all > .flex.flex-col:has(> [class*="group/profile"]) > .flex.items-center:not([class*="group/profile"]) {
+    display: none !important;
+  }
   [class*="w-[260px]"].bg-newBgColorInner.flex.flex-col.transition-all [class*="group/profile"] {
     flex: 0 0 auto !important; width: auto !important;
     padding: 8px 12px !important;
@@ -1064,6 +1073,58 @@ button { white-space: nowrap; }
   [class^="p-[12px]"], [class*=" p-[12px]"] { padding: 10px !important; }
   [class^="p-[20px]"], [class*=" p-[20px]"] { padding: 12px !important; }
 
-  /* calendar keeps real (tappable) columns and scrolls horizontally */
+  /* month grid keeps real (tappable) columns and scrolls horizontally */
   .grid[class*="grid-cols-7"] { grid-template-columns: repeat(7, minmax(88px, 1fr)) !important; }
+  /* week/day grid is a separate arbitrary template: [136px gutter + 7 x
+     minmax(0,1fr)], which at 390px leaves ~30px per day and the weekday
+     headers overlap into mush. It already has overflow:auto, so give it real
+     columns and let it scroll. */
+  [class*="grid-template-columns:136px"] {
+    grid-template-columns: 72px repeat(7, minmax(92px, 1fr)) !important;
+  }
+}
+
+/* ===== Create Post editor (mobile) =====
+   Stock is a fixed two-column modal (editor | preview). At 390px it measured
+   901px wide: the preview, the close button and the entire action bar were off
+   screen and the page scrolled sideways. Stack the columns and let it shrink.
+   ========================================================================== */
+@media (max-width: 767px) {
+  /* the modal root is correctly 390px, but its inner flex chain inherits
+     min-width:auto and refuses to shrink below the editor's content */
+  [class*="bg-popup"], [class*="bg-popup"] * { min-width: 0 !important; }
+
+  .w-full.h-full.flex-1[class*="p-[40px]"] { padding: 10px !important; }
+  .flex.flex-1.bg-newBgColorInner[class*="rounded-[20px]"] > .flex-1.flex { flex-direction: column !important; }
+  .flex.flex-1.bg-newBgColorInner[class*="rounded-[20px]"] > .flex-1.flex > * {
+    width: 100% !important; border-inline-end: 0 !important;
+  }
+  /* side-only radii are meant for a 2-up layout */
+  [class*="rounded-s-[20px]"], [class*="rounded-e-[20px]"] { border-radius: 0 !important; }
+
+  /* preview column is a hard 580px whose scroll pane is absolute top/left/full,
+     so once stacked the column contributed no height and the action bar drew
+     straight over "Start writing your post for a preview" */
+  [class*="bg-popup"] [class*="w-[580px]"] { width: 100% !important; }
+  [class*="bg-popup"] .absolute.top-0.left-0[class*="overflow-y-scroll"] {
+    position: static !important; height: auto !important;
+    overflow-y: visible !important; padding: 16px !important;
+  }
+  [class*="bg-popup"] .flex-1.relative { min-height: 0 !important; }
+
+  /* the action bar is absolutely positioned for the 2-up layout and packs
+     tag + repeat + datetime + draft + submit into one nowrap row */
+  [class*="bg-popup"] .select-none.absolute.w-full[class*="z-[100]"] {
+    position: static !important; width: 100% !important;
+  }
+  [class*="bg-popup"] .select-none[class*="h-[84px]"] {
+    height: auto !important; min-height: 0 !important;
+    flex-wrap: wrap !important; gap: 10px !important;
+    padding: 12px !important; justify-content: flex-start;
+  }
+  [class*="bg-popup"] .select-none[class*="h-[84px]"] > * { flex: 1 1 auto; min-width: 0; }
+  [class*="bg-popup"] .select-none[class*="h-[84px]"] .flex.items-center.justify-end {
+    flex-wrap: wrap !important; justify-content: flex-start !important;
+    padding-inline-end: 0 !important; gap: 8px !important;
+  }
 }
