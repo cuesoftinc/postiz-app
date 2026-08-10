@@ -7,13 +7,14 @@ import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-a
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useClickAway } from '@uidotdev/usehooks';
 import dayjs from 'dayjs';
-import { useCallback , useState, FC, useMemo, ReactNode } from 'react';
+import { useCallback , useState, FC, useMemo, ReactNode, useEffect } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import { expandPostsList } from '@gitroom/helpers/utils/posts.list.minify';
 
 // Helper function to get start and end dates based on display type
 function getDateRange(
@@ -29,9 +30,10 @@ function getDateRange(
         endDate: date.format('YYYY-MM-DD'),
       };
     case 'week':
+      // Buffer is Sunday-first — 'week' (locale) not 'isoWeek'
       return {
-        startDate: date.startOf('isoWeek').format('YYYY-MM-DD'),
-        endDate: date.endOf('isoWeek').format('YYYY-MM-DD'),
+        startDate: date.startOf('week').format('YYYY-MM-DD'),
+        endDate: date.endOf('week').format('YYYY-MM-DD'),
       };
     case 'month':
       return {
@@ -485,7 +487,7 @@ const TimezoneFilter: FC = () => {
 // The fill is the lime var washed to 15% so it mirrors per theme; the ink
 // token is #bfff72 in dark / #3f6c0e in light. Presentation only.
 const segActive =
-  'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_15%,transparent)] text-newTableTextFocused';
+  'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_32%,transparent)] text-newTableTextFocused';
 const segInactive = 'text-newTextColor/60 hover:text-newTextColor';
 
 /** Buffer's phone filter surface: the funnel button opens a BOTTOM SHEET
@@ -826,6 +828,96 @@ const ViewFilter: FC = () => {
   );
 };
 
+/** Buffer's month-view "No Date" toggle — opens the Undated-drafts side panel
+ *  (URL-derived state so the force-dynamic remount can't close it). */
+const NoDateToggle: FC = () => {
+  const t = useT();
+  const searchParams = useSearchParams();
+  const on = !!searchParams.get('noDate');
+
+  const toggle = useCallback(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('noDate')) url.searchParams.delete('noDate');
+    else url.searchParams.set('noDate', '1');
+    window.history.replaceState(null, '', url.pathname + url.search);
+  }, []);
+
+  return (
+    <button
+      type="button"
+      aria-label={t('show_no_date_drafts', 'Show No Date drafts')}
+      onClick={toggle}
+      className={clsx(ddTriggerCls, on && 'bg-boxHover text-newTextColor')}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2" />
+        <path d="M15 3v18" />
+        <path d="m10 15-3-3 3-3" />
+      </svg>
+      {t('no_date', 'No Date')}
+    </button>
+  );
+};
+
+/** Buffer's Undated-drafts panel: in-content right sibling of the calendar
+ *  grid (the grid shrinks beside it). Postiz drafts always carry a date, so
+ *  the Buffer empty state is the steady state. */
+export const UndatedDraftsPanel: FC = () => {
+  const t = useT();
+  const searchParams = useSearchParams();
+  if (!searchParams.get('noDate')) return null;
+
+  const close = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('noDate');
+    window.history.replaceState(null, '', url.pathname + url.search);
+  };
+
+  return (
+    <div className="w-[300px] shrink-0 ms-[16px] flex flex-col gap-[6px] phone:hidden select-none">
+      <div className="flex items-center justify-between">
+        <div className="text-[16px] font-[600] text-newTextColor" data-cs>
+          {t('undated_drafts', 'Undated drafts')}
+        </div>
+        <button
+          type="button"
+          aria-label={t('close', 'Close')}
+          onClick={close}
+          className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center hover:bg-boxHover text-newTextColor/70"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="text-[13px] text-newTextColor/60">
+        {t(
+          'undated_drafts_sub',
+          'Drafts and approvals without a scheduled date.'
+        )}
+      </div>
+      <div className="flex flex-col items-center gap-[10px] mt-[56px] px-[16px] text-center">
+        <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+            <path d="M10 9H8" />
+            <path d="M16 13H8" />
+            <path d="M16 17H8" />
+          </svg>
+        </div>
+        <div className="text-[16px] font-[600] text-newTextColor" data-cs>
+          {t('no_undated_drafts', 'No Undated Drafts')}
+        </div>
+        <div className="text-[13px] text-newTextColor/60">
+          {t('undated_drafts_empty', 'Drafts without a date will appear here.')}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /** Buffer's page header row: [icon chip] All Channels … [List|Calendar
  *  segmented] [+ New Post]. Rendered by the launches page above the toolbar,
  *  inside the CalendarWeekProvider. */
@@ -951,6 +1043,7 @@ export const PageHeader: FC = () => {
 export const Filters = () => {
   const calendar = useCalendar();
   const t = useT();
+  const fetch = useFetch();
 
   // Set dayjs locale based on current language
   const currentLanguage = i18next.resolvedLanguage || 'en';
@@ -1091,12 +1184,46 @@ export const Filters = () => {
     [calendar]
   );
 
+  // Buffer's list tabs: Queue · Drafts · Approvals · Sent — no 'All', Queue is
+  // the default landing state.
   const listStateOptions: { value: ListStateFilter; label: string }[] = [
-    { value: 'all', label: t('all', 'All') },
-    { value: 'scheduled', label: t('scheduled', 'Queue') },
+    { value: 'scheduled', label: t('queue', 'Queue') },
     { value: 'draft', label: t('drafts', 'Drafts') },
-    { value: 'published', label: t('published', 'Sent') },
+    { value: 'published', label: t('sent', 'Sent') },
   ];
+
+  useEffect(() => {
+    if (isListView && (calendar.listState as string) === 'all') {
+      calendar.setListState('scheduled');
+    }
+  }, [isListView, calendar.listState]);
+
+  // Per-tab count pills (Buffer): three feather-light list queries, 1 row each,
+  // sharing the active customer/channel/tag filters. Read-path only.
+  const countsKey = `tab-counts-${calendar.customer || ''}-${
+    (calendar as any).integration || ''
+  }-${(calendar as any).tags || ''}-${calendar.listTotal}`;
+  const loadTabCounts = useCallback(async () => {
+    const entries = await Promise.all(
+      (['scheduled', 'draft', 'published'] as const).map(async (state) => {
+        const search = new URLSearchParams({
+          page: '1',
+          limit: '1',
+          customer: calendar.customer?.toString() || '',
+          integration: ((calendar as any).integration || '').toString(),
+          state,
+        });
+        const tags = (calendar as any).tags;
+        if (tags) search.set('tags', tags);
+        const raw = expandPostsList(
+          await (await fetch(`/posts/list?${search.toString()}`)).json()
+        );
+        return [state, (raw as any)?.total ?? 0] as const;
+      })
+    );
+    return Object.fromEntries(entries) as Record<string, number>;
+  }, [calendar.customer, (calendar as any).integration, (calendar as any).tags]);
+  const { data: tabCounts } = useSWR(isListView ? countsKey : null, loadTabCounts);
 
   const previousPage = useCallback(() => {
     if (calendar.listPage > 0) {
@@ -1111,7 +1238,13 @@ export const Filters = () => {
   }, [calendar]);
 
   return (
-    <div className="text-textColor flex flex-col !flex-row flex-wrap gap-[8px] items-center select-none">
+    <div
+      className={clsx(
+        'text-textColor flex flex-col !flex-row flex-wrap gap-[8px] items-center select-none',
+        // Buffer's list tabs sit on a full-width hairline track
+        isListView && 'border-b border-newTableBorder pb-[0px]'
+      )}
+    >
       {!isListView && (
         <div className="flex flex-grow flex-row items-center">
           {/* Buffer: the two chevrons sit ADJACENT, before the title */}
@@ -1147,8 +1280,9 @@ export const Filters = () => {
       )}
       {isListView && (
         <div className="flex flex-grow flex-row items-center gap-[10px]">
-          {/* Buffer shows no pager at all on a single page */}
-          <div className={clsx('h-[36px] gap-[2px] flex items-center', calendar.listTotalPages <= 1 && 'hidden')}>
+          {/* Buffer shows no pager at all on a single page; when it must
+              exist (>100 posts) it trails the tabs */}
+          <div className={clsx('order-3 h-[36px] gap-[2px] flex items-center', calendar.listTotalPages <= 1 && 'hidden')}>
             <div
               onClick={previousPage}
               className={clsx(
@@ -1201,25 +1335,46 @@ export const Filters = () => {
               </svg>
             </div>
           </div>
-          <div className="flex flex-row h-[36px] gap-[4px] text-[15px] font-[500] phone:hidden">
+          <div className="order-1 flex flex-row h-[36px] gap-[28px] text-[14px] font-[500] phone:hidden">
             {listStateOptions.map((option) => (
               <div
                 key={option.value}
                 onClick={setListStateFilter(option.value)}
                 className={clsx(
-                  'cursor-pointer min-w-[80px] px-[12px] text-center flex items-center justify-center border-b-[2px] transition-colors',
+                  'relative cursor-pointer flex items-center gap-[6px] transition-colors duration-150',
                   calendar.listState === option.value
-                    ? 'text-newTextColor border-btnPrimary'
-                    : 'text-newTextColor/60 border-transparent hover:text-newTextColor'
+                    ? 'text-newTextColor'
+                    : 'text-newTextColor/60 hover:text-newTextColor'
                 )}
               >
                 {option.label}
+                {tabCounts?.[option.value] !== undefined && (
+                  <span className="rounded-full bg-newTextColor/10 px-[7px] h-[18px] flex items-center text-[12px] text-newTextColor" data-cs>
+                    {tabCounts[option.value]}
+                  </span>
+                )}
+                {calendar.listState === option.value && (
+                  <div className="absolute -bottom-[1px] inset-x-0 h-[2px] bg-newTextColor" />
+                )}
               </div>
             ))}
+            {/* Buffer shows an Approvals tab (lavender ⚡ pill). The approval
+                workflow isn't wired in this fork yet — visual anatomy only. */}
+            <div
+              className="relative flex items-center gap-[6px] text-newTextColor/60 cursor-default"
+              title={t('approvals_soon', 'Approvals — coming soon')}
+            >
+              {t('approvals', 'Approvals')}
+              <span className="rounded-full bg-[#EDE9FE] px-[6px] h-[18px] flex items-center" data-cs>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="#7C3AED" stroke="none">
+                  <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
+                </svg>
+              </span>
+            </div>
           </div>
           {/* Buffer mobile compresses the state tabs into a "Queue 12 ▾"
               dropdown — same setter, same options */}
-          <div className="hidden phone:block relative" ref={stateDdRef}>
+          <div className="order-2 hidden phone:block relative" ref={stateDdRef}>
             <button
               type="button"
               onClick={() => setStateDdOpen((v) => !v)}
@@ -1260,7 +1415,7 @@ export const Filters = () => {
               </DropdownPanel>
             )}
           </div>
-          <div className="flex-1" />
+          <div className="order-4 flex-1" />
         </div>
       )}
       {/* Buffer's toolbar filter order: Channels · All Posts · Tags · timezone
@@ -1272,6 +1427,7 @@ export const Filters = () => {
         <ChannelsFilter />
         {!isListView && <StateFilter />}
         <TagsFilter />
+        {calendar.display === 'month' && <NoDateToggle />}
         <SelectCustomer
           customer={calendar.customer as string}
           onChange={(customer: string) => setCustomer(customer)}

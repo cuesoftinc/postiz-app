@@ -5,7 +5,7 @@ import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { groupBy, orderBy } from 'lodash';
 import { CalendarWeekProvider } from '@gitroom/frontend/components/launches/calendar.context';
-import { Filters, PageHeader } from '@gitroom/frontend/components/launches/filters';
+import { Filters, PageHeader, UndatedDraftsPanel } from '@gitroom/frontend/components/launches/filters';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import clsx from 'clsx';
@@ -650,6 +650,7 @@ export const LaunchesComponent = () => {
           <Filters />
           <div className="flex-1 flex">
             <Calendar />
+            <UndatedDraftsPanel />
           </div>
         </div>
       </CalendarWeekProvider>
