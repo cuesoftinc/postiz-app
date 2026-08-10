@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 import { AnalyticsDataItem } from '@gitroom/frontend/components/platform-analytics/render.analytics';
 
 interface SummaryIntegration {
@@ -120,7 +121,7 @@ const ChannelRowCells: FC<{ integration: SummaryIntegration; date: number }> =
         <>
           {COLUMNS.map((column) => (
             <td key={column.key} className="px-[12px] py-[10px]">
-              <div className="bg-newTextColor/5 rounded-[8px] animate-pulse h-[16px] w-[64px]" />
+              <Skeleton className="h-[16px] w-[64px]" />
             </td>
           ))}
         </>

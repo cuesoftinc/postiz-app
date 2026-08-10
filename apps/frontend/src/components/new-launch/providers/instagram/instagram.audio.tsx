@@ -7,6 +7,7 @@ import { Select } from '@gitroom/react/form/select';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import clsx from 'clsx';
 import { CloseIcon } from '@gitroom/frontend/components/ui/icons';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 
 interface AudioResult {
   id: string;
@@ -301,8 +302,18 @@ export const InstagramAudioSelector: FC<{
           </div>
           <div className="max-h-[250px] overflow-y-auto flex flex-col bg-newBgColorInner border-newTableBorder border rounded-[8px]">
             {loading ? (
-              <div className="p-[12px] text-[14px] text-newTextColor/60">
-                {t('loading', 'Loading...')}
+              // skeleton rows shaped like the audio results below (36px art
+              // tile + title/artist bars) — never a loading text/spinner
+              <div className="flex flex-col">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-[12px] p-[8px]">
+                    <Skeleton className="w-[36px] h-[36px] shrink-0" />
+                    <div className="flex-1 flex flex-col gap-[6px]">
+                      <Skeleton className="h-[12px] w-[45%]" />
+                      <Skeleton className="h-[10px] w-[30%]" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : !results.length ? (
               <div className="p-[12px] text-[14px] text-newTextColor/60">

@@ -8,10 +8,8 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { expandPostsList } from '@gitroom/helpers/utils/posts.list.minify';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { AnalyticsDataItem } from '@gitroom/frontend/components/platform-analytics/render.analytics';
-import {
-  PostRowsSkeleton,
-  SkeletonBlock,
-} from '@gitroom/frontend/components/platform-analytics/analytics.skeletons';
+import { PostRowsSkeleton } from '@gitroom/frontend/components/platform-analytics/analytics.skeletons';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 
 interface RecentPost {
   id: string;
@@ -73,9 +71,9 @@ const PostStats: FC<{ post: RecentPost; date: number }> = ({ post, date }) => {
   if (isLoading) {
     return (
       <div className="flex gap-[8px]">
-        <SkeletonBlock className="h-[16px] w-[72px]" />
-        <SkeletonBlock className="h-[16px] w-[72px]" />
-        <SkeletonBlock className="h-[16px] w-[72px]" />
+        <Skeleton className="h-[16px] w-[72px]" />
+        <Skeleton className="h-[16px] w-[72px]" />
+        <Skeleton className="h-[16px] w-[72px]" />
       </div>
     );
   }

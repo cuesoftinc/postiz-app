@@ -91,8 +91,15 @@ export default function OAuthAuthorizePage() {
           <div className="text-[16px] text-gray-400">
             Please wait...
           </div>
-          <div className="mt-[32px] flex justify-center">
-            <div className="w-[48px] h-[48px] border-[3px] border-forth border-t-transparent rounded-full animate-spin" />
+          <div className="mt-[32px] flex justify-center gap-[8px]">
+            {/* pulsing dots, not a spinner (Buffer loading language) */}
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-[10px] h-[10px] rounded-full bg-forth animate-pulse"
+                style={{ animationDelay: `${i * 200}ms` }}
+              />
+            ))}
           </div>
         </div>
       </div>

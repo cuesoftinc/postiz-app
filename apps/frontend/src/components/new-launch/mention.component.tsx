@@ -85,8 +85,16 @@ const MentionList: FC = (props: any) => {
           We don't have autocomplete for this social media
         </div>
       ) : props?.loading ? (
-        <div className="flex items-center justify-center p-2 text-gray-500">
-          Loading...
+        // skeleton rows shaped like the mention items below (30px round
+        // avatar + label bar) — never a loading text/spinner. bg-black/5,
+        // not the token: this dropdown surface is hardcoded bg-white.
+        <div className="flex flex-col gap-[4px]">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex gap-[10px] items-center w-full p-2">
+              <div className="w-[30px] h-[30px] rounded-full bg-black/5 animate-pulse shrink-0" />
+              <div className="h-[12px] w-[120px] rounded-[8px] bg-black/5 animate-pulse" />
+            </div>
+          ))}
         </div>
       ) : props?.items ? (
         props.items.length === 0 ? (
@@ -110,7 +118,15 @@ const MentionList: FC = (props: any) => {
           ))
         )
       ) : (
-        <div className="p-2 text-gray-500 text-center">Loading...</div>
+        // same avatar+bar skeleton for the no-items-yet state
+        <div className="flex flex-col gap-[4px]">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex gap-[10px] items-center w-full p-2">
+              <div className="w-[30px] h-[30px] rounded-full bg-black/5 animate-pulse shrink-0" />
+              <div className="h-[12px] w-[120px] rounded-[8px] bg-black/5 animate-pulse" />
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

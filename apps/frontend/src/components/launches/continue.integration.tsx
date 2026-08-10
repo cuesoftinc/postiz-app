@@ -418,9 +418,15 @@ export const ContinueIntegration: FC<{
         <div className="text-[16px] text-gray-400">
           {t('please_wait', 'Please wait while we connect your account...')}
         </div>
-        {/* Loading spinner */}
-        <div className="mt-[32px] flex justify-center">
-          <div className="w-[48px] h-[48px] border-[3px] border-forth border-t-transparent rounded-full animate-spin" />
+        {/* pulsing dots, not a spinner (Buffer loading language) */}
+        <div className="mt-[32px] flex justify-center gap-[8px]">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-[10px] h-[10px] rounded-full bg-forth animate-pulse"
+              style={{ animationDelay: `${i * 200}ms` }}
+            />
+          ))}
         </div>
       </div>
     </div>

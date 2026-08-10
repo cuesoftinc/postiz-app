@@ -8,6 +8,7 @@ import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { setCookie } from '@gitroom/frontend/components/layout/layout.context';
+import { SkeletonText } from '@gitroom/frontend/components/layout/skeleton';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
@@ -209,8 +210,10 @@ const ApplyCouponModal: FC<{ close: () => void }> = ({ close }) => {
         )}
       </div>
       {!info ? (
-        <div className="text-center py-[20px] text-newTextColor/60">
-          {t('loading', 'Loading...')}
+        // skeleton rows shaped like the plan-detail lines below — never a
+        // loading text/spinner
+        <div className="py-[20px]">
+          <SkeletonText rows={4} />
         </div>
       ) : (
         <>

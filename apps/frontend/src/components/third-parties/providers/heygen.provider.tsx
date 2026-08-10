@@ -14,7 +14,6 @@ import clsx from 'clsx';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { object, string } from 'zod';
 import { Select } from '@gitroom/react/form/select';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 
 const aspectRatio = [
   { key: 'portrait', value: 'Portrait' },
@@ -163,7 +162,17 @@ const HeygenProviderComponent = () => {
             <br />
             Do not close this window.
           </div>
-          <LoadingComponent width={200} height={200} />
+          {/* pulsing dots, not a spinner — skeleton greys would vanish on
+              the black/90 overlay */}
+          <div className="flex gap-[8px] mt-[8px]">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-[10px] h-[10px] rounded-full bg-white/50 animate-pulse"
+                style={{ animationDelay: `${i * 200}ms` }}
+              />
+            ))}
+          </div>
         </div>
       )}
 

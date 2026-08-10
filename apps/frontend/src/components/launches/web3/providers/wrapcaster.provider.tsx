@@ -6,7 +6,10 @@ import { Web3ProviderInterface } from '@gitroom/frontend/components/launches/web
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
-import { LoadingPane } from '@gitroom/frontend/components/cuesoft/loader';
+import {
+  Skeleton,
+  SkeletonText,
+} from '@gitroom/frontend/components/layout/skeleton';
 import {
   NeynarAuthButton,
   NeynarContextProvider,
@@ -29,7 +32,12 @@ export const WrapcasterProvider: FC<Web3ProviderInterface> = (props) => {
   return (
     <div className="justify-center items-center flex">
       {hide ? (
-        <LoadingPane size={100} />
+        // skeleton pane in the same 500px column the button pane used —
+        // never a spinner
+        <div className="py-[20px] flex flex-col gap-[12px] w-[500px]">
+          <Skeleton className="h-[16px] w-[55%]" />
+          <SkeletonText rows={3} />
+        </div>
       ) : (
         <div className="justify-center items-center py-[20px] flex-col w-[500px]">
           <div>Click on the bottom below to start the process</div>
