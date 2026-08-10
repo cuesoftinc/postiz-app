@@ -23,7 +23,7 @@ import {
   SidePanelHeader,
   useSidePanelCollapse,
 } from '@gitroom/frontend/components/new-layout/side-panel-header';
-import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
+import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
 
 export const MediaPortal: FC<{
   media: { path: string; id: string }[];
@@ -73,8 +73,6 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
     return (await (await fetch('/integrations/list')).json()).integrations;
   }, []);
 
-  const { collapsed, toggle } = useSidePanelCollapse();
-
   const { data } = useSWR('integrations', load, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
@@ -107,43 +105,33 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
   }, [data]);
 
   return (
-    <div
-      data-side-panel="absolute"
-      className={clsx(
-        'trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative',
-        sidePanelRoot(collapsed)
-      )}
-    >
-      <div
-        className={clsx(
-          'absolute top-0 start-0 w-full h-full p-[20px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
-          sidePanelPane
-        )}
-      >
-        <SidePanelHeader
-          title={t('select_channels', 'Select Channels')}
-          onToggle={toggle}
-          className="mb-[15px]"
-        />
-        {/* a vertical channel list eats the whole screen on a phone; scroll it sideways instead */}
+    <div className="flex items-center gap-[10px] px-[20px] py-[10px] bg-newBgColorInner border-b border-newTableBorder overflow-x-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+      <div className="text-[13px] text-newTextColor/60 whitespace-nowrap">
+        {t('select_channels', 'Select Channels')}
+      </div>
+      {sortedIntegrations.map((integration) => (
         <div
+          key={integration.id}
+          title={integration.name}
+          onClick={setIntegration(integration)}
           className={clsx(
-            'flex flex-col gap-[15px]',
-            'phone:flex-row phone:gap-[8px] phone:overflow-x-auto phone:pb-[8px]'
+            'cursor-pointer rounded-full transition-all shrink-0',
+            selected.some((p) => p.id === integration.id)
+              ? 'ring-2 ring-btnPrimary'
+              : 'opacity-40 hover:opacity-80'
           )}
         >
-          {sortedIntegrations.map((integration) => (
-            <ChannelRow
-              key={integration.id}
-              integration={integration}
-              onClick={setIntegration(integration)}
-              dimmed={!selected.some((p) => p.id === integration.id)}
-              className="cursor-pointer"
-              phoneChip
-            />
-          ))}
+          <ChannelAvatar
+            picture={integration.picture}
+            identifier={integration.identifier}
+            name={integration.name}
+            size={34}
+            badgeSize={14}
+            badgeOffset="-bottom-[2px] -end-[2px]"
+            fallback="placeholder"
+          />
         </div>
-      </div>
+      ))}
     </div>
   );
 };
@@ -154,9 +142,15 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
 
   return (
     <PropertiesContext.Provider value={{ properties }}>
-      <AgentList onChange={setProperties} />
-      <div className="bg-newBgColorInner flex flex-1">{children}</div>
-      <Threads />
+      {/* Buffer composer pattern: the channel toggles are a bar above the
+          chat, not a side column */}
+      <div className="flex flex-col flex-1 min-w-0">
+        <AgentList onChange={setProperties} />
+        <div className="flex flex-1 gap-[1px] min-h-0">
+          <div className="bg-newBgColorInner flex flex-1">{children}</div>
+          <Threads />
+        </div>
+      </div>
     </PropertiesContext.Provider>
   );
 };
