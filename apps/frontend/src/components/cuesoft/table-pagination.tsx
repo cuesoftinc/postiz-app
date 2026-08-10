@@ -29,7 +29,7 @@ export const TablePagination: FC<{
   className?: string;
 }> = ({ page, totalPages, hasMore, onPrev, onNext, className }) => (
   <div className={clsx('flex items-center justify-between', className)}>
-    <div className="text-[13px] opacity-70">
+    <div className="text-[13px] text-newTextColor/60">
       Page {page + 1} of {totalPages}
     </div>
     <div className="flex gap-[8px]">

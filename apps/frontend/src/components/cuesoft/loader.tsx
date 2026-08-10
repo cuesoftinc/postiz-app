@@ -31,10 +31,11 @@ import clsx from 'clsx';
 export const Loader: FC<{
   /** Diameter in px. Ring width derives as clamp(2, size / 10, 6). */
   size?: number;
-  /** Ring color. Defaults to the brand purple used everywhere (#612bd3). */
+  /** Ring color. Defaults to brand blue (#325ea6) — the contract's
+   *  informational accent, legible on both themes. */
   color?: string;
   className?: string;
-}> = ({ size = 24, color = '#612bd3', className }) => {
+}> = ({ size = 24, color = '#325ea6', className }) => {
   const borderWidth = Math.min(6, Math.max(2, Math.round(size / 10)));
 
   return (
@@ -69,7 +70,7 @@ export const LoadingPane: FC<{
   minHeight?: number | string;
   /** Spinner diameter; 100 matches the LoadingComponent default it replaces. */
   size?: number;
-  /** Forwarded to Loader; defaults to brand purple. */
+  /** Forwarded to Loader; defaults to brand blue (#325ea6). */
   color?: string;
   className?: string;
 }> = ({ minHeight, size = 100, color, className }) => {

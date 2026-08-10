@@ -8,8 +8,9 @@ import clsx from 'clsx';
  * clickable divs (plan row 11): the super-admin banner chips and the
  * announcement color-picker radio group in layout/impersonate.tsx.
  *
- * Pixel parity contract: the class strings are verbatim from the divs they
- * replace; per-action colors (bg-red-700, bg-green-700, bg-teal-700,
+ * Class strings follow the divs they replace, restyled to the Cuesoft brand
+ * contract (control radius 6px, brand-blue focus-visible ring);
+ * per-action colors (bg-red-700, bg-green-700, bg-teal-700,
  * bg-blue-700, bg-purple-700, bg-yellow-600, bg-red-500, bg-blue-600,
  * bg-amber-600, bg-red-600) stay at the call sites via `className` — they are
  * intentional color coding, not drift. Tailwind's preflight makes the
@@ -37,7 +38,7 @@ export interface ChipProps {
 }
 
 const CHIP_CLASSES =
-  'px-[10px] rounded-[4px] text-white cursor-pointer whitespace-nowrap';
+  'px-[10px] rounded-[6px] text-white cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]';
 
 export const Chip: FC<ChipProps> = ({
   href,
@@ -81,10 +82,12 @@ export interface ChoiceChipGroupProps {
 }
 
 /**
- * Single-choice swatch/chip row (the AddAnnouncement color picker). Verbatim
- * geometry from the source: `flex gap-[8px]` row, `flex-1 text-center
- * py-[8px] rounded-[8px] text-[13px]` items, selected = `opacity-100 ring-2
- * ring-white`, unselected = `opacity-40`.
+ * Single-choice swatch/chip row (the AddAnnouncement color picker). Geometry
+ * from the source (`flex gap-[8px]` row, `flex-1 text-center py-[8px]
+ * text-[13px]` items, selected = `opacity-100 ring-2 ring-white`, unselected
+ * = `opacity-40`) with the contract control radius (rounded-[6px]) and a
+ * brand-blue focus-visible ring. The selected indicator stays ring-white —
+ * a neutral marker that reads on every swatch color.
  */
 export const ChoiceChipGroup: FC<ChoiceChipGroupProps> = ({
   options,
@@ -102,7 +105,7 @@ export const ChoiceChipGroup: FC<ChoiceChipGroupProps> = ({
           aria-checked={value === opt.value}
           onClick={() => onChange(opt.value)}
           className={clsx(
-            'flex-1 text-center py-[8px] rounded-[8px] text-white text-[13px] cursor-pointer transition-opacity',
+            'flex-1 text-center py-[8px] rounded-[6px] text-white text-[13px] cursor-pointer transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
             opt.className,
             value === opt.value
               ? 'opacity-100 ring-2 ring-white'
@@ -169,7 +172,7 @@ export const PagerButton: FC<PagerButtonProps> = ({
       }
       aria-current={active ? 'page' : undefined}
       className={clsx(
-        'cursor-pointer disabled:opacity-50 disabled:pointer-events-none',
+        'cursor-pointer disabled:opacity-50 disabled:pointer-events-none outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
         className
       )}
     >

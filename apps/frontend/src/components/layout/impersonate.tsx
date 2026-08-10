@@ -561,7 +561,7 @@ const ManageBilling = () => {
   }, []);
 
   return (
-    <Chip className="bg-red-700" onClick={handleClick}>
+    <Chip className="bg-red-700 !rounded-[6px]" onClick={handleClick}>
       {t('manage_billing', 'Manage Billing')}
     </Chip>
   );
@@ -703,7 +703,7 @@ const AddAnnouncement = () => {
   }, []);
 
   return (
-    <Chip className="bg-green-700" onClick={handleClick}>
+    <Chip className="bg-emerald-600 !rounded-[6px]" onClick={handleClick}>
       {t('add_announcement', 'Add Announcement')}
     </Chip>
   );
@@ -786,7 +786,7 @@ const AddTeamMember = () => {
   }, []);
 
   return (
-    <Chip className="bg-teal-700" onClick={handleClick}>
+    <Chip className="bg-teal-700 !rounded-[6px]" onClick={handleClick}>
       {t('add_team_member', 'Add Team Member')}
     </Chip>
   );
@@ -795,7 +795,10 @@ const AddTeamMember = () => {
 const ViewErrors = () => {
   const t = useT();
   return (
-    <Chip href="/admin/errors" className="bg-blue-700">
+    <Chip
+      href="/admin/errors"
+      className="bg-white/15 border border-white/40 !rounded-[6px]"
+    >
       {t('view_errors', 'View Errors')}
     </Chip>
   );
@@ -804,7 +807,7 @@ const ViewErrors = () => {
 const ViewStats = () => {
   const t = useT();
   return (
-    <Chip href="/admin/stats" className="bg-purple-700">
+    <Chip href="/admin/stats" className="bg-black/30 !rounded-[6px]">
       {t('view_stats', 'View Stats')}
     </Chip>
   );
@@ -823,7 +826,10 @@ const ImportDebugPost = () => {
   }, []);
 
   return (
-    <Chip className="bg-yellow-600" onClick={handleClick}>
+    <Chip
+      className="bg-amber-500 !text-black !rounded-[6px]"
+      onClick={handleClick}
+    >
       {t('import_debug_post', 'Import Debug Post')}
     </Chip>
   );
@@ -1030,7 +1036,7 @@ export const Impersonate = () => {
                 </div>
                 <div>
                   <Chip
-                    className="bg-red-500"
+                    className="bg-red-500 !rounded-[6px]"
                     onClick={stopImpersonating}
                     aria-label={t(
                       'stop_impersonating',

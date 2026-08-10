@@ -50,10 +50,12 @@ export const Checkbox = forwardRef<
         {...disableForm ? {} : form.register(props.name!)}
         onClick={changeStatus}
         className={clsx(
-          'cursor-pointer rounded-[4px] select-none w-[24px] h-[24px] justify-center items-center flex text-white',
-          variant === 'default' || !variant
-            ? 'bg-forth'
-            : 'border-customColor1 border-2 bg-customColor2',
+          'cursor-pointer rounded-[4px] select-none w-[24px] h-[24px] justify-center items-center flex',
+          val
+            ? 'bg-btnPrimary'
+            : variant === 'default' || !variant
+            ? 'bg-transparent border border-newTableBorder'
+            : 'border-newTableBorder border-2 bg-transparent',
           className
         )}
       >

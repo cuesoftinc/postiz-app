@@ -2,7 +2,6 @@
 
 import React, { ReactNode, useCallback } from 'react';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
-import { Plus_Jakarta_Sans } from 'next/font/google';
 const ModeComponent = dynamic(
   () => import('@gitroom/frontend/components/layout/mode.component'),
   {
@@ -42,12 +41,6 @@ import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-c
 import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
-
-const jakartaSans = Plus_Jakarta_Sans({
-  weight: ['600', '500', '700'],
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
-});
 
 export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   const fetch = useFetch();
@@ -90,8 +83,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <ContinueProvider />
             <div
               className={clsx(
-                'flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px]',
-                jakartaSans.className
+                'flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] font-sans'
               )}
             >
               <div>{user?.admin ? <Impersonate /> : <div />}</div>
@@ -133,7 +125,10 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       </div>
                     </div>
                     <div className="flex-1 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
-                      <div className="flex bg-newBgColorInner h-[80px] px-[20px] items-center">
+                      {/* 64px Buffer-height top bar; items-center keeps the
+                          icon cluster (fixed-height icons + 20px separators)
+                          vertically centered without per-item tweaks */}
+                      <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center">
                         <div className="text-[24px] font-[600] flex flex-1">
                           <Title />
                         </div>

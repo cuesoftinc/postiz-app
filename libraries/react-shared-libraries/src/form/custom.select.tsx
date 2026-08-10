@@ -82,7 +82,7 @@ export const CustomSelect: FC<{
   return (
     <div className={clsx('flex flex-col gap-[6px] relative', className)}>
       {!!label && (
-        <div className={`text-[14px]`}>
+        <div className={`text-[13px] text-newTextColor/60`}>
           <TranslatedLabel
             label={label}
             translationKey={translationKey}
@@ -92,7 +92,7 @@ export const CustomSelect: FC<{
       )}
       <div
         className={clsx(
-          'bg-input h-[44px] border-fifth border rounded-[4px] text-inputText placeholder-inputText items-center justify-center flex'
+          'bg-newBgColorInner h-[36px] border-newTableBorder border rounded-[6px] text-textColor placeholder-textColor items-center justify-center flex'
         )}
         onClick={changeOpen}
       >
@@ -142,14 +142,14 @@ export const CustomSelect: FC<{
         <div
           className={clsx(
             label && !removeError && '-mt-[23px]',
-            'z-[100] absolute w-full top-[100%] start-0 flex items-center rounded-bl-[4px] rounded-br-[4px] flex-col bg-fifth gap-[1px] border-l border-r border-b border-fifth overflow-hidden'
+            'z-[100] absolute w-full top-[100%] start-0 flex items-center rounded-bl-[6px] rounded-br-[6px] flex-col bg-newTableBorder gap-[1px] border-l border-r border-b border-newTableBorder overflow-hidden'
           )}
         >
           {options.map((option) => (
             <div
               key={option.value}
               onClick={setOption(option)}
-              className="px-[16px] py-[8px] bg-input w-full flex gap-[8px] hover:bg-customColor3 select-none cursor-pointer"
+              className="px-[16px] py-[8px] bg-newBgColorInner w-full flex gap-[8px] hover:bg-boxHover select-none cursor-pointer"
             >
               {!!option.icon && (
                 <div className="flex justify-center items-center">

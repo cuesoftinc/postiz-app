@@ -290,7 +290,7 @@ export const Filters = () => {
     <div className="text-textColor flex flex-col md:flex-row gap-[8px] items-center select-none">
       {!isListView && (
         <div className="flex flex-grow flex-row items-center gap-[10px]">
-          <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden">
+          <div className="border h-[36px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[6px] overflow-hidden">
             <div
               onClick={previous}
               className="cursor-pointer text-textColor rtl:rotate-180 px-[9px] bg-newBgColorInner h-full flex items-center justify-center hover:text-textItemFocused hover:bg-boxFocused"
@@ -338,10 +338,10 @@ export const Filters = () => {
             </div>
           </div>
           <div className="flex-1 text-[14px] font-[500]">
-            <div className="text-center flex h-[42px]">
+            <div className="text-center flex h-[36px]">
               <div
                 onClick={setToday}
-                className="hover:text-textItemFocused hover:bg-boxFocused py-[3px] px-[9px] flex justify-center items-center rounded-[8px] transition-all cursor-pointer text-[14px] bg-newBgColorInner border border-newTableBorder"
+                className="hover:text-textItemFocused hover:bg-boxFocused py-[3px] px-[9px] flex justify-center items-center rounded-[6px] transition-all cursor-pointer text-[14px] bg-newBgColorInner border border-newTableBorder"
               >
                 {t('today', 'Today')}
               </div>
@@ -351,7 +351,7 @@ export const Filters = () => {
       )}
       {isListView && (
         <div className="flex flex-grow flex-row items-center gap-[10px]">
-          <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden">
+          <div className="border h-[36px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[6px] overflow-hidden">
             <div
               onClick={previousPage}
               className={clsx(
@@ -408,15 +408,16 @@ export const Filters = () => {
               </svg>
             </div>
           </div>
-          <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]">
+          <div className="flex flex-row h-[36px] gap-[4px] text-[14px] font-[500]">
             {listStateOptions.map((option) => (
               <div
                 key={option.value}
                 onClick={setListStateFilter(option.value)}
                 className={clsx(
-                  'pt-[6px] pb-[5px] cursor-pointer min-w-[80px] px-[12px] text-center rounded-[6px]',
-                  calendar.listState === option.value &&
-                    'text-textItemFocused bg-boxFocused'
+                  'cursor-pointer min-w-[80px] px-[12px] text-center flex items-center justify-center border-b-[2px] transition-colors',
+                  calendar.listState === option.value
+                    ? 'text-newTextColor border-btnPrimary'
+                    : 'text-newTextColor/60 border-transparent hover:text-newTextColor'
                 )}
               >
                 {option.label}
@@ -432,10 +433,10 @@ export const Filters = () => {
         integrations={calendar.integrations}
       />
       {!isListView && (
-        <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]">
+        <div className="flex flex-row h-[36px] p-[2px] border border-newTableBorder rounded-[6px] text-[14px] font-[500]">
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer w-[74px] text-center rounded-[6px]',
+              'cursor-pointer w-[74px] text-center flex items-center justify-center rounded-[4px]',
               calendar.display === 'day' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setDay}
@@ -444,7 +445,7 @@ export const Filters = () => {
           </div>
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer w-[74px] text-center rounded-[6px]',
+              'cursor-pointer w-[74px] text-center flex items-center justify-center rounded-[4px]',
               calendar.display === 'week' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setWeek}
@@ -453,7 +454,7 @@ export const Filters = () => {
           </div>
           <div
             className={clsx(
-              'pt-[6px] pb-[5px] cursor-pointer w-[74px] text-center rounded-[6px]',
+              'cursor-pointer w-[74px] text-center flex items-center justify-center rounded-[4px]',
               calendar.display === 'month' && 'text-textItemFocused bg-boxFocused'
             )}
             onClick={setMonth}
@@ -462,11 +463,11 @@ export const Filters = () => {
           </div>
         </div>
       )}
-      <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]">
+      <div className="flex flex-row h-[36px] p-[2px] border border-newTableBorder rounded-[6px] text-[14px] font-[500]">
         <div
           onClick={setCalendarView}
           className={clsx(
-            'pt-[6px] pb-[5px] cursor-pointer flex justify-center items-center w-[34px] text-center rounded-[6px]',
+            'cursor-pointer flex justify-center items-center w-[34px] text-center rounded-[4px]',
             !isListView && 'text-textItemFocused bg-boxFocused'
           )}
         >
@@ -490,7 +491,7 @@ export const Filters = () => {
         <div
           onClick={setList}
           className={clsx(
-            'pt-[6px] pb-[5px] flex justify-center items-center cursor-pointer w-[34px] text-center rounded-[6px]',
+            'flex justify-center items-center cursor-pointer w-[34px] text-center rounded-[4px]',
             isListView && 'text-textItemFocused bg-boxFocused'
           )}
         >

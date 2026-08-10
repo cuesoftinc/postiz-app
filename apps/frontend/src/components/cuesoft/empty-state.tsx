@@ -17,10 +17,10 @@
  * is alpha-capable, so `text-newTextColor/60` is the working spelling of
  * "textColor at 60%".
  *
- * Size-ladder note: `text-[20px]` (hero title) is a ladder token —
- * global.scss rescales it to 16px, exactly as it already does to the
- * hand-rolled heroes in launches/media, so using it unprefixed here is
- * pixel parity. `text-[16px]` and below stay stock. No `data-cs` needed.
+ * Size-ladder note: the hero title is written as `text-[16px]` directly —
+ * the brand-contract hero ramp (16/600). This matches what the ladder
+ * already rescaled the old `text-[20px]` heroes to, but without depending
+ * on global.scss. `text-[16px]` and below stay stock. No `data-cs` needed.
  *
  * Variants (normalized from the best existing implementations):
  *  - `hero`   — illustration + 20px/600 title + 14px muted sub + optional
@@ -64,7 +64,7 @@ export const EmptyState: FC<{
    * src, `min-w-[100%]`, ...), e.g. launches' no-channels.svg.
    */
   image?: ReactNode;
-  /** Pre-translated. Hero: 20px/600 full-strength. Pane/inline: muted. */
+  /** Pre-translated. Hero: 16px/600 full-strength. Pane/inline: muted. */
   title: ReactNode;
   /** Pre-translated secondary line; 14px muted (hero/pane only). */
   description?: ReactNode;
@@ -114,7 +114,7 @@ export const EmptyState: FC<{
           {icon}
           <div
             className={clsx(
-              'text-[20px] font-[600]',
+              'text-[16px] font-[600]',
               tone === 'error' && ERROR_TEXT_CLASS
             )}
           >

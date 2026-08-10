@@ -14,13 +14,19 @@ export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClic
   const isActive = currentPath.indexOf(path) === 0;
 
   const className = clsx(
-    'group w-full minCustom:h-[54px] custom:h-[44px] py-[8px] px-[6px] minCustom:gap-[4px] custom:gap-[2px] flex flex-col font-[600] items-center justify-center rounded-[12px] hover:text-textItemFocused hover:bg-boxFocused transition-colors',
+    'group w-full minCustom:h-[54px] custom:h-[44px] py-[8px] px-[6px] minCustom:gap-[4px] custom:gap-[2px] flex flex-col font-[600] items-center justify-center rounded-[12px] transition-colors',
     // as a bottom tab: share the row evenly and be allowed to shrink, so the
     // bar can never end up wider than the device. `relative` is what anchors
     // the active indicator below — without it the absolute pseudo-ish marker
     // resolves against the fixed bar and draws across all seven tabs.
     'phone:relative phone:flex-1 phone:w-auto phone:min-w-0 phone:h-[56px] phone:px-[2px] phone:py-[6px] phone:gap-[3px] phone:rounded-none',
-    isActive ? 'text-textItemFocused bg-boxFocused' : 'text-textItemBlur',
+    // Lime (boxFocused) is reserved for the ACTIVE pill. Hover used to paint
+    // boxFocused too, which in dark mode is the same full-lime fill — every
+    // hovered item read as active. Hover is the quiet wash instead, and it
+    // lives on the inactive branch so it can never repaint the active pill.
+    isActive
+      ? 'text-textItemFocused bg-boxFocused'
+      : 'text-textItemBlur hover:text-newTextColor hover:bg-boxHover',
     // The desktop active treatment is a filled white pill. At 56px tall and
     // full tab width that reads as a white slab across the bar, and the label
     // colour has to work on BOTH a white bar (light mode) and a dark one, so

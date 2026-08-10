@@ -57,7 +57,7 @@ export const MultiSelect: FC<{
 
   return (
     <div className="flex flex-col gap-[6px]">
-      <div className="text-[14px]">
+      <div className="text-[13px] text-newTextColor/60">
         <TranslatedLabel
           label={label}
           translationKey={translationKey}
@@ -66,7 +66,7 @@ export const MultiSelect: FC<{
       </div>
       <div
         className={clsx(
-          'bg-newBgColorInner border border-newTableBorder rounded-[8px] max-h-[160px] overflow-auto p-[12px] flex flex-col gap-[8px]',
+          'bg-newBgColorInner border border-newTableBorder rounded-[6px] max-h-[160px] overflow-auto p-[12px] flex flex-col gap-[8px]',
           className
         )}
       >
@@ -77,6 +77,7 @@ export const MultiSelect: FC<{
           >
             <input
               type="checkbox"
+              className="accent-btnPrimary focus-visible:outline-forth"
               checked={isSelected(option.value)}
               onChange={() => toggle(option.value)}
             />

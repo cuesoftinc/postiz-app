@@ -536,10 +536,10 @@ export const ListView = () => {
       <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
         {groupedPosts.map(([dateKey, datePosts]) => (
           <Fragment key={dateKey}>
-            <div className="text-center text-[14px] min-h-[21px] text-textColor font-[500] mt-[10px]">
+            <div className="text-start text-[12px] uppercase tracking-[0.08em] text-newTextColor/60 font-[500] mt-[16px] mb-[8px] pb-[6px] px-[10px] border-b border-newTableBorder">
               {newDayjs(dateKey).format(isUSCitizen() ? 'dddd, MMMM D, YYYY' : 'dddd, D MMMM YYYY')}
             </div>
-            <div className="flex flex-col gap-[10px] mb-[20px] px-[10px]">
+            <div className="flex flex-col gap-[8px] mb-[16px] px-[10px]">
               {datePosts.map((post) => (
                 <CalendarItem
                   key={post.id}
@@ -829,7 +829,7 @@ export const CalendarColumn: FC<{
         loading && 'animate-pulse',
         isBeforeNow
           ? 'cursor-not-allowed'
-          : 'border border-newTextColor/5 rounded-[8px]'
+          : 'border border-newTableBorder rounded-[8px]'
       )}
       ref={drop as any}
     >
@@ -839,7 +839,7 @@ export const CalendarColumn: FC<{
       <div
         className={clsx(
           'relative flex flex-col flex-1 text-white rounded-[8px] min-h-[70px]',
-          canDrop && 'border border-[#612BD3]'
+          canDrop && 'border border-forth'
         )}
       >
         <div
@@ -881,7 +881,7 @@ export const CalendarColumn: FC<{
           ))}
           {!showAll && postList.length > 3 && (
             <div
-              className="text-center hover:underline py-[5px] text-textColor"
+              className="text-center hover:underline py-[5px] text-forth"
               onClick={showAllFunc}
             >
               {t('show_more', '+ Show more')} ({postList.length - 3})
@@ -889,7 +889,7 @@ export const CalendarColumn: FC<{
           )}
           {showAll && postList.length > 3 && (
             <div
-              className="text-center hover:underline py-[5px]"
+              className="text-center hover:underline py-[5px] text-forth"
               onClick={showLessFunc}
             >
               {t('show_less', '- Show less')}
@@ -1037,7 +1037,7 @@ const CalendarItem: FC<{
       className={clsx(
         'w-full flex h-full flex-1 flex-col group',
         'relative',
-        state === 'ERROR' && 'rounded-[10px] ring-2 ring-red-500'
+        state === 'ERROR' && 'rounded-[8px] ring-2 ring-red-500'
       )}
       style={{
         opacity,
@@ -1143,7 +1143,7 @@ const CalendarItem: FC<{
       <div
         onClick={editPost}
         className={clsx(
-          'gap-[5px] w-full flex h-full flex-1 rounded-br-[10px] rounded-bl-[10px] p-[8px] text-[14px] bg-newColColor',
+          'gap-[5px] w-full flex h-full flex-1 rounded-br-[10px] rounded-bl-[10px] p-[8px] text-[14px] bg-newColColor border border-newTableBorder',
           'relative',
           isBeforeNow && '!grayscale'
         )}
@@ -1170,7 +1170,7 @@ const CalendarItem: FC<{
             </div>
         </div>
         {showTime && (
-          <div className="text-textColor/50 text-[12px] whitespace-nowrap flex items-center">
+          <div className="text-newTextColor/60 text-[13px] whitespace-nowrap flex items-center justify-end text-end">
             {newDayjs(post.publishDate).local().format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
           </div>
         )}

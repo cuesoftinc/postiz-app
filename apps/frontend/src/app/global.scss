@@ -7,6 +7,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Cuesoft brand typeface — Fustat (variable, 200-800). Replaces Plus Jakarta
+   Sans; the fallback stack keeps metrics sane while the font loads. */
+@font-face {
+  font-family: 'Fustat';
+  src: url('/fonts/Fustat-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Lime carries the primary action; lime is a LIGHT field, so anything painted
+   with it takes black ink — exactly the tiles' CTA treatment. Components
+   hardcode text-white next to bg-btnPrimary all over upstream, hence global. */
+[class*="bg-btnPrimary"], [class*="bg-btnPrimary"] svg {
+  color: #000 !important;
+}
+[class*="bg-boxFocused"] svg { color: inherit; }
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -595,7 +613,9 @@ html[dir='rtl'] [dir='ltr'] {
 
 .ProseMirror .mention {
   font-weight: bold;
-  color: #ae8afc;
+  /* was violet #ae8afc — violet is dead; a mention is informational -> brand
+     blue (dark mode lifts it one palette step, see the .dark rule by .tiptap) */
+  color: var(--color-forth, #325ea6);
 }
 
 .ProseMirror ul,
@@ -695,14 +715,23 @@ html[dir='rtl'] [dir='ltr'] {
   }
 
   .mention {
-    background-color: var(--purple-light);
+    /* was violet (--purple-light — defined nowhere, so effectively
+       transparent — plus #ae8afc ink). Violet is dead: informational token ->
+       blue wash + brand-blue ink. */
+    background-color: var(--color-seventh, #e9f1fc);
     border-radius: 0.4rem;
     box-decoration-break: clone;
-    color: #ae8afc;
+    color: var(--color-forth, #325ea6);
     &::after {
       content: '\200B';
     }
   }
+}
+/* forth on the dark theme's seventh wash is ~2.4:1 — lift the mention ink one
+   palette step (custom4 is the light brand blue) so it reads in dark mode */
+.dark .tiptap .mention,
+.dark .ProseMirror .mention {
+  color: var(--color-custom4, #4a79c4);
 }
 .blur-xs {
   filter: blur(4px);
@@ -817,7 +846,7 @@ html[dir='rtl'] [dir='ltr'] {
 
 .forceChange .changeColor {
   background: var(--new-btn-primary) !important;
-  color: #fff !important;
+  color: #000 !important;
 }
 
 .text-shadow-tags {
@@ -886,6 +915,17 @@ html {
 [class^="px-[20px]"]:not([data-cs]), [class*=" px-[20px]"]:not([data-cs]) { padding-left: 16px !important; padding-right: 16px !important; }
 [class^="gap-[24px]"]:not([data-cs]), [class*=" gap-[24px]"]:not([data-cs]) { gap: 16px !important; }
 [class^="gap-[20px]"]:not([data-cs]), [class*=" gap-[20px]"]:not([data-cs]) { gap: 16px !important; }
+
+/* radius -> the 6/8/16 scale (controls 6, cards/rows 8, floating panels 16).
+   Every token below was grepped before being added; corner-prefixed variants
+   (rounded-tl-[10px], rounded-s-[20px]) and !-important utilities
+   (!rounded-[10px]) do not match the anchored pair, which is intended.
+   rounded-[4px] is deliberately ABSENT: its hit list includes 14-16px platform
+   icons and 16-20px checkbox squares, and 6px of radius on a box that small
+   turns a square affordance into a near-circle. Those keep their shape. */
+[class^="rounded-[24px]"]:not([data-cs]), [class*=" rounded-[24px]"]:not([data-cs]) { border-radius: 16px !important; }
+[class^="rounded-[20px]"]:not([data-cs]), [class*=" rounded-[20px]"]:not([data-cs]) { border-radius: 12px !important; }
+[class^="rounded-[10px]"]:not([data-cs]), [class*=" rounded-[10px]"]:not([data-cs]) { border-radius: 8px !important; }
 
 /* ---------------------------------------------------------------------------
    Shell / nav rail
@@ -990,6 +1030,15 @@ button { white-space: nowrap; }
      56px tab bar — it covered the Settings tab, and the right-hand end of the
      Create Post action bar */
   .copilotKitPopup { bottom: calc(68px + env(safe-area-inset-bottom)) !important; }
+
+  /* Active tab ink: the bottom bar is bg-newBgColorInner, which in LIGHT mode
+     is white — lime (#bfff72) on white is ~1.1:1, i.e. invisible. The theme
+     class lives on <body>, so a .light-scoped override swaps the active label
+     + icon to dark lime; dark mode and the 3px indicator keep brand lime.
+     The class is unique to menu-item.tsx's active tab (grepped). */
+  .light [class*="phone:text-btnPrimary"] {
+    color: #3f6c0e;
+  }
 
   /* Channels: a 260px vertical rail makes no sense on a phone — it burned 30vh
      to show 1.5 rows. Becomes a horizontal, scrollable chip strip.
@@ -1178,6 +1227,22 @@ select, label[for], input[type="checkbox"], input[type="radio"] { cursor: pointe
 
 /* never override an explicit disabled affordance (past days, disabled pager) */
 [class*="cursor-not-allowed"], button:disabled { cursor: not-allowed !important; }
+
+/* ===== Focus =====
+   Keyboard focus gets a 1px brand-blue ring — blue reads on both themes and
+   never fights a lime primary the way a lime ring would. Two deliberate
+   choices: (1) `body *` above kills every outline with !important, so this
+   must also be !important (it wins on specificity); (2) it is an OUTLINE, not
+   a box-shadow, so any component that already carries its own focus
+   box-shadow keeps it — this adds a ring, it replaces nothing. */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+[role='button']:focus-visible {
+  outline: 1px solid var(--color-forth, #325ea6) !important;
+  outline-offset: 1px;
+}
 
 /* ===== Collapsed side panel (mobile) =====
    The collapse control reclaims horizontal space on desktop. Once the panel is

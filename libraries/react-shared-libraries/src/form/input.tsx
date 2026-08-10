@@ -52,7 +52,7 @@ export const Input: FC<
   return (
     <div className="flex flex-col gap-[6px]">
       {!!label && (
-        <div className={`text-[14px]`}>
+        <div className={`text-[13px] text-newTextColor/60`}>
           <TranslatedLabel
             label={label}
             translationKey={translationKey}
@@ -62,7 +62,7 @@ export const Input: FC<
       )}
       <div
         className={clsx(
-          'bg-newBgColorInner h-[42px] border-newTableBorder border rounded-[8px] text-textColor placeholder-textColor flex items-center justify-center',
+          'bg-newBgColorInner h-[36px] border-newTableBorder border rounded-[6px] text-textColor placeholder-textColor flex items-center justify-center focus-within:border-forth',
           className
         )}
       >

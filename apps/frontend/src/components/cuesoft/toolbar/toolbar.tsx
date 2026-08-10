@@ -21,22 +21,24 @@ import clsx from 'clsx';
  *    (bg-forth "applied filter" chips — a variant, not drift, per plan §3).
  *
  * Deliberate changes the plan calls out for this kit:
- *  - ONE control height (38px) and ONE border token (border-newTableBorder),
- *    fixing the 38/40/42/44 scatter and the newColColor/newTableBorder split.
+ *  - ONE control height (36px, the brand-contract control height) and ONE
+ *    border token (border-newTableBorder), fixing the 38/40/42/44 scatter and
+ *    the newColColor/newTableBorder split.
  *  - A visible focus state on the controls: outline-none +
- *    focus:border-[#612BD3] (the sanctioned purple; admin's native controls
- *    currently have no focus styling at all, media hardcodes the same hex).
+ *    focus:border-[#325ea6] (brand blue per the Cuesoft contract — works on
+ *    both themes and never fights the lime primaries; admin's native controls
+ *    had no focus styling at all).
  *
  * Card chrome is a prop, not forced: admin bars sit on the page background
  * and get the card; filters/media rows sit inside bg-newBgColorInner panels
  * and must not (plan §3).
  *
- * Size-ladder note (global.scss): h-[38px], text-[12px]/[13px]/[14px],
+ * Size-ladder note (global.scss): h-[36px], text-[12px]/[13px]/[14px],
  * p-[12px]/px-[10px] and gap-[12px] are all outside the ladder's thresholds
  * (it starts at h-[40px], text-[18px], p-[20px], gap-[20px]) — these render
  * exactly as written, same as the hand-rolled originals. Note the shared
  * Button (h-[40px]) IS laddered to 32px, so when a Button sits in a
- * ToolbarRow next to 38px controls, that mismatch is the pre-existing state,
+ * ToolbarRow next to 36px controls, that mismatch is the pre-existing state,
  * not something this kit introduces.
  */
 
@@ -75,17 +77,18 @@ export const ToolbarField: FC<{
   children: ReactNode;
 }> = ({ label, className, children }) => (
   <div className={clsx('flex flex-col gap-[6px]', className)}>
-    <div className="text-[12px] opacity-70">{label}</div>
+    <div className="text-[12px] text-newTextColor/60">{label}</div>
     {children}
   </div>
 );
 
 /**
  * The ONE control chrome: the admin-errors select/input recipe plus the
- * kit's deliberate focus state. 38px tall, newTableBorder, rounded-[8px].
+ * kit's deliberate focus state. 36px tall, newTableBorder, rounded-[6px]
+ * (contract control radius), brand-blue focus border.
  */
 const controlClassName =
-  'bg-newBgColorInner h-[38px] border border-newTableBorder rounded-[8px] px-[10px] text-[14px] text-textColor outline-none focus:border-[#612BD3]';
+  'bg-newBgColorInner h-[36px] border border-newTableBorder rounded-[6px] px-[10px] text-[14px] text-textColor outline-none focus:border-[#325ea6]';
 
 /** ToolbarSelect — a styled native <select>; pass min-width etc. via className. */
 export const ToolbarSelect: FC<
@@ -118,10 +121,11 @@ export interface SegmentedOption {
  * (min-w-[80px] px-[12px]); pass itemWidth for the fixed-width groups
  * (74 = Day/Week/Month, 34 = calendar/list icon toggle).
  *
- * variant='chips': admin-stats presets recipe — free-standing h-[32px]
- * bordered chips, active bg-forth text-white border-forth, inactive
- * hover:bg-tableBorder (the "applied filter" affordance, kept distinct from
- * the boxFocused pills per plan §3).
+ * variant='chips': admin-stats presets recipe — free-standing h-[36px]
+ * bordered chips (contract control height/radius), active bg-forth text-white
+ * border-forth (forth = brand blue), inactive hover:bg-tableBorder (the
+ * "applied filter" affordance, kept distinct from the boxFocused pills per
+ * plan §3).
  *
  * Items are real <button type="button"> elements (chips already are in the
  * source; pills were divs — same pixels under Tailwind preflight, better
@@ -155,7 +159,7 @@ export const SegmentedControl: FC<{
             type="button"
             onClick={() => onChange(option.value)}
             className={clsx(
-              'h-[32px] px-[12px] rounded-[8px] text-[13px] border cursor-pointer whitespace-nowrap',
+              'h-[36px] px-[12px] rounded-[6px] text-[13px] border cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
               value === option.value
                 ? 'bg-forth text-white border-forth'
                 : 'bg-newBgColorInner text-textColor border-newTableBorder hover:bg-tableBorder',
@@ -172,7 +176,7 @@ export const SegmentedControl: FC<{
   return (
     <div
       className={clsx(
-        'flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]',
+        'flex flex-row p-[4px] border border-newTableBorder rounded-[6px] text-[14px] font-[500]',
         className
       )}
     >
@@ -182,7 +186,7 @@ export const SegmentedControl: FC<{
           type="button"
           onClick={() => onChange(option.value)}
           className={clsx(
-            'pt-[6px] pb-[5px] cursor-pointer text-center rounded-[6px]',
+            'pt-[6px] pb-[5px] cursor-pointer text-center rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
             typeof itemWidth === 'undefined' && 'min-w-[80px] px-[12px]',
             value === option.value && 'text-textItemFocused bg-boxFocused',
             itemClassName
