@@ -477,10 +477,13 @@ export const WeekView = () => {
     return localizedDays.slice(start, start + 3);
   }, [localizedDays, isPhone]);
 
-  // Buffer opens the hour grid scrolled to "now" (one row of context above)
+  // Buffer opens the hour grid scrolled to "now" (one row of context above).
+  // Guard: only from the untouched top position — the force-dynamic page
+  // remounts seconds after navigation, and re-jumping a grid the user already
+  // scrolled reads as glitching.
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) {
+    if (!el || el.scrollTop !== 0) {
       return;
     }
     const now = newDayjs();
@@ -498,7 +501,7 @@ export const WeekView = () => {
       <div className="flex-1 relative">
         <div
           ref={scrollRef}
-          className="grid gap-[1px] bg-newTableBorder border border-newTableBorder absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
+          className="grid gap-[1px] bg-newTableBorder border border-newTableBorder rounded-[12px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
           style={{
             gridTemplateColumns: isPhone
               ? `48px repeat(${visibleDays.length}, minmax(0, 1fr))`
@@ -621,7 +624,9 @@ export const MonthView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
-        <div className="grid grid-cols-7 grid-rows-[36px] [grid-auto-rows:minmax(205px,auto)] gap-[1px] bg-newTableBorder border border-newTableBorder absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+        {/* Buffer rounds the grid corners at 12px (border-separate table w/
+            per-corner cell radii — measured 12px 0 0 on the first cell) */}
+        <div className="grid grid-cols-7 grid-rows-[36px] [grid-auto-rows:minmax(205px,auto)] gap-[1px] bg-newTableBorder border border-newTableBorder rounded-[12px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
           {localizedDays.map((day) => (
             <div
               key={day}

@@ -946,7 +946,13 @@ export const PageHeader: FC = () => {
   const toView = useCallback(
     (target: 'calendar' | 'list') => {
       if ((target === 'list') === isListView) return;
-      const display = target === 'list' ? 'list' : 'week';
+      // Calendar restores the last calendar view (Buffer), month by default
+      const display =
+        target === 'list'
+          ? 'list'
+          : ((calendar.lastCalendarDisplay === 'week'
+              ? 'week'
+              : 'month') as 'week' | 'month');
       const range = getDateRange(display);
       calendar.setFilters({
         startDate: range.startDate,
@@ -1188,7 +1194,13 @@ export const Filters = () => {
   const toView = useCallback(
     (target: 'calendar' | 'list') => {
       if ((target === 'list') === isListView) return;
-      const display = target === 'list' ? 'list' : 'week';
+      // Calendar restores the last calendar view (Buffer), month by default
+      const display =
+        target === 'list'
+          ? 'list'
+          : ((calendar.lastCalendarDisplay === 'week'
+              ? 'week'
+              : 'month') as 'week' | 'month');
       const range = getDateRange(display);
       calendar.setFilters({
         startDate: range.startDate,
