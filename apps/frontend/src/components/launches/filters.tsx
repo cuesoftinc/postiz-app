@@ -7,7 +7,7 @@ import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-a
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useClickAway } from '@uidotdev/usehooks';
 import dayjs from 'dayjs';
-import { useCallback , useState, FC, useMemo } from 'react';
+import { useCallback , useState, FC, useMemo, ReactNode } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
@@ -488,6 +488,281 @@ const segActive =
   'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_15%,transparent)] text-newTableTextFocused';
 const segInactive = 'text-newTextColor/60 hover:text-newTextColor';
 
+/** Buffer's phone filter surface: the funnel button opens a BOTTOM SHEET
+ *  (white, rounded top, drag handle, scrim) listing the filters as drill-in
+ *  rows — Filter by channel / All Posts / Filter by tag / timezone. Same URL
+ *  and context wiring as the desktop dropdowns. */
+const PhoneFilterSheet: FC<{ open: boolean; onClose: () => void }> = ({
+  open,
+  onClose,
+}) => {
+  const t = useT();
+  const calendar = useCalendar();
+  const fetch = useFetch();
+  const searchParams = useSearchParams();
+  const [stage, setStage] = useState<
+    'root' | 'channels' | 'state' | 'tags' | 'tz'
+  >('root');
+  const [q, setQ] = useState('');
+
+  const loadTags = useCallback(async () => {
+    return (await fetch('/posts/tags')).json();
+  }, []);
+  const { data: tagsData } = useSWR('load-tags', loadTags);
+  const tags: { id: string; name: string; color: string }[] =
+    tagsData?.tags || [];
+
+  const writeListParam = useCallback((key: string, ids: string[]) => {
+    const url = new URL(window.location.href);
+    if (ids.length) url.searchParams.set(key, ids.join(','));
+    else url.searchParams.delete(key);
+    window.history.replaceState(null, '', url.pathname + url.search);
+  }, []);
+
+  const selectedChannels = new Set<string>(
+    (searchParams.get('integration') || '').split(',').filter(Boolean)
+  );
+  const selectedTags = new Set<string>(
+    (searchParams.get('tags') || '').split(',').filter(Boolean)
+  );
+  const urlState = searchParams.get('state') || 'all';
+
+  const stateOptions: { value: ListStateFilter; label: string }[] = [
+    { value: 'all', label: t('all_posts', 'All Posts') },
+    { value: 'draft', label: t('drafts', 'Drafts') },
+    { value: 'scheduled', label: t('scheduled', 'Scheduled') },
+    { value: 'published', label: t('sent', 'Sent') },
+  ];
+
+  const timezones = useMemo<string[]>(() => {
+    const supported = (Intl as any).supportedValuesOf;
+    return typeof supported === 'function' ? supported('timeZone') : [];
+  }, []);
+  const city = (tz: string) => (tz.split('/').pop() || tz).replace(/_/g, ' ');
+
+  if (!open) return null;
+
+  const rootRow = (
+    icon: ReactNode,
+    label: string,
+    onClick: () => void
+  ) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-[12px] w-full h-[44px] px-[12px] rounded-[8px] text-[15px] text-newTextColor hover:bg-boxHover text-start"
+    >
+      {icon}
+      <span className="flex-1">{label}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-newTextColor/50">
+        <path d="m9 18 6-6-6-6" />
+      </svg>
+    </button>
+  );
+
+  const backRow = (title: string) => (
+    <button
+      type="button"
+      onClick={() => setStage('root')}
+      className="flex items-center gap-[8px] w-full h-[40px] px-[8px] text-[15px] font-[500] text-newTextColor"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m15 18-6-6 6-6" />
+      </svg>
+      {title}
+    </button>
+  );
+
+  return (
+    <div
+      // h-[100dvh]: in this stack a fixed inset-0 box refuses to stretch
+      // between insets (verified live) — explicit viewport height is what
+      // actually pins the scrim over the whole page
+      className="hidden phone:flex fixed inset-0 h-[100dvh] w-full z-[650] bg-black/50 items-end"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full bg-newBgColorInner rounded-t-[16px] px-[8px] pb-[20px] max-h-[70vh] overflow-y-auto">
+        <div className="w-[36px] h-[4px] rounded-full bg-newTextColor/20 mx-auto my-[10px]" />
+        {stage === 'root' && (
+          <div className="flex flex-col gap-[2px]">
+            {rootRow(
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 6.5C10 8.433 8.433 10 6.5 10C4.567 10 3 8.433 3 6.5C3 4.567 4.567 3 6.5 3C8.433 3 10 4.567 10 6.5Z" />
+                <path d="M21 6.5C21 8.433 19.433 10 17.5 10C15.567 10 14 8.433 14 6.5C14 4.567 15.567 3 17.5 3C19.433 3 21 4.567 21 6.5Z" />
+                <path d="M10 17.5C10 19.433 8.433 21 6.5 21C4.567 21 3 19.433 3 17.5C3 15.567 4.567 14 6.5 14C8.433 14 10 15.567 10 17.5Z" />
+                <path d="M21 17.5C21 19.433 19.433 21 17.5 21C15.567 21 14 19.433 14 17.5C14 15.567 15.567 14 17.5 14C19.433 14 21 15.567 21 17.5Z" />
+              </svg>,
+              t('filter_by_channel', 'Filter by channel'),
+              () => setStage('channels')
+            )}
+            {calendar.display !== 'list' &&
+              rootRow(
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <path d="M3 5C3 3.89543 3.89543 3 5 3H16C17.1046 3 18 3.89543 18 5V16C18 17.1046 17.1046 18 16 18H5C3.89543 18 3 17.1046 3 16V5ZM5 5H16V16H5L5 5Z" />
+                  <path d="M20 9.60001C20 9.04772 20.4477 8.60001 21 8.60001C21.5523 8.60001 22 9.04772 22 9.60001V19.4C22 20.0896 21.7261 20.7509 21.2385 21.2385C20.7509 21.7261 20.0896 22 19.4 22H9.6C9.04771 22 8.6 21.5523 8.6 21C8.6 20.4477 9.04771 20 9.6 20H19.4C19.5591 20 19.7117 19.9368 19.8243 19.8243C19.9368 19.7117 20 19.5591 20 19.4V9.60001Z" />
+                </svg>,
+                stateOptions.find((o) => o.value === urlState)?.label ||
+                  t('all_posts', 'All Posts'),
+                () => setStage('state')
+              )}
+            {rootRow(
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+                <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+              </svg>,
+              t('filter_by_tag', 'Filter by tag'),
+              () => setStage('tags')
+            )}
+            <div className="h-[1px] bg-newTableBorder my-[6px]" />
+            {rootRow(
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                <path d="M2 12h20" />
+              </svg>,
+              city(calendar.displayTimezone),
+              () => setStage('tz')
+            )}
+          </div>
+        )}
+        {stage === 'channels' && (
+          <div className="flex flex-col gap-[2px]">
+            {backRow(t('filter_by_channel', 'Filter by channel'))}
+            {(calendar.integrations || []).map((integration: any) => (
+              <label
+                key={integration.id}
+                className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-[8px] hover:bg-boxHover cursor-pointer"
+              >
+                <ChannelAvatar
+                  picture={integration.picture}
+                  identifier={integration.identifier}
+                  name={integration.name}
+                  size={28}
+                  badgeSize={12}
+                  fallback="placeholder"
+                />
+                <span className="flex-1 truncate text-[15px]">
+                  {integration.name}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={selectedChannels.has(integration.id)}
+                  onChange={() => {
+                    const next = new Set(selectedChannels);
+                    if (next.has(integration.id)) next.delete(integration.id);
+                    else next.add(integration.id);
+                    writeListParam('integration', [...next]);
+                  }}
+                  className="accent-btnPrimary w-[16px] h-[16px]"
+                />
+              </label>
+            ))}
+          </div>
+        )}
+        {stage === 'state' && (
+          <div className="flex flex-col gap-[2px]">
+            {backRow(t('all_posts', 'All Posts'))}
+            {stateOptions.map((option) => (
+              <SelectRow
+                key={option.value}
+                selected={urlState === option.value}
+                label={option.label}
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  if (option.value === 'all') url.searchParams.delete('state');
+                  else url.searchParams.set('state', option.value);
+                  window.history.replaceState(
+                    null,
+                    '',
+                    url.pathname + url.search
+                  );
+                  setStage('root');
+                }}
+              />
+            ))}
+          </div>
+        )}
+        {stage === 'tags' && (
+          <div className="flex flex-col gap-[2px]">
+            {backRow(t('filter_by_tag', 'Filter by tag'))}
+            {tags.length === 0 && (
+              <div className="px-[12px] py-[8px] text-[14px] text-newTextColor/60">
+                {t('no_tags_yet', 'No tags yet')}
+              </div>
+            )}
+            {tags.map((tag) => (
+              <label
+                key={tag.id}
+                className="flex items-center gap-[10px] px-[12px] py-[10px] rounded-[8px] hover:bg-boxHover cursor-pointer"
+              >
+                <span
+                  className="w-[10px] h-[10px] rounded-full shrink-0"
+                  style={{ backgroundColor: tag.color }}
+                />
+                <span className="flex-1 truncate text-[15px]">{tag.name}</span>
+                <input
+                  type="checkbox"
+                  checked={selectedTags.has(tag.id)}
+                  onChange={() => {
+                    const next = new Set(selectedTags);
+                    if (next.has(tag.id)) next.delete(tag.id);
+                    else next.add(tag.id);
+                    writeListParam('tags', [...next]);
+                  }}
+                  className="accent-btnPrimary w-[16px] h-[16px]"
+                />
+              </label>
+            ))}
+          </div>
+        )}
+        {stage === 'tz' && (
+          <div className="flex flex-col gap-[2px]">
+            {backRow(city(calendar.displayTimezone))}
+            <div className="flex items-center gap-[8px] h-[36px] px-[10px] mx-[4px] rounded-[8px] border border-newTableBorder">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-newTextColor/60">
+                <path d="m21 21-4.34-4.34" />
+                <circle cx="11" cy="11" r="8" />
+              </svg>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t('search_cities_or_timezones', 'Search cities or timezones')}
+                className="flex-1 bg-transparent outline-none text-[15px] text-newTextColor placeholder:text-newTextColor/50"
+              />
+            </div>
+            <div className="flex flex-col max-h-[40vh] overflow-y-auto">
+              {timezones
+                .filter((tz) =>
+                  tz.toLowerCase().replace(/_/g, ' ').includes(q.toLowerCase())
+                )
+                .map((tz) => (
+                  <div
+                    key={tz}
+                    onClick={() => {
+                      calendar.setDisplayTimezone(tz);
+                      setStage('root');
+                      setQ('');
+                    }}
+                    className={clsx(
+                      'px-[12px] py-[9px] rounded-[8px] text-[15px] cursor-pointer hover:bg-boxHover',
+                      tz === calendar.displayTimezone
+                        ? 'text-newTextColor font-[600]'
+                        : 'text-newTextColor/80'
+                    )}
+                  >
+                    {city(tz)}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 /** Buffer's view combobox: 24px borderless trigger, no leading icon, and only
  *  Week/Month options — Buffer offers no Day view at desktop (phones get the
  *  rolling three-day grid instead). display=day stays URL-reachable. */
@@ -606,7 +881,8 @@ export const PageHeader: FC = () => {
         {single ? single.name : t('all_channels', 'All Channels')}
       </h1>
       <div className="flex-1" />
-      <div className="flex h-[32px] p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]" data-cs>
+      {/* phone puts the segmented in the toolbar row (Buffer) — hidden here */}
+      <div className="phone:hidden flex h-[32px] p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]" data-cs>
         <button
           type="button"
           onClick={() => toView('list')}
@@ -646,7 +922,7 @@ export const PageHeader: FC = () => {
       <button
         type="button"
         onClick={newPost}
-        className="flex items-center gap-[6px] h-[32px] px-[12px] rounded-[8px] border border-newTableBorder text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+        className="phone:hidden flex items-center gap-[6px] h-[32px] px-[12px] rounded-[8px] border border-newTableBorder text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
         data-cs
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -654,6 +930,19 @@ export const PageHeader: FC = () => {
           <path d="M12 5v14" />
         </svg>
         {t('new_post', 'New Post')}
+      </button>
+      {/* Buffer phone: New Post is an icon-only primary square (lime here —
+          the bg-btnPrimary global rule paints black ink) */}
+      <button
+        type="button"
+        aria-label={t('new_post', 'New Post')}
+        onClick={newPost}
+        className="hidden phone:flex w-[40px] h-[40px] rounded-[8px] bg-btnPrimary items-center justify-center"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14" />
+          <path d="M12 5v14" />
+        </svg>
       </button>
     </div>
   );
@@ -774,6 +1063,23 @@ export const Filters = () => {
 
   const isListView = calendar.display === 'list';
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const toView = useCallback(
+    (target: 'calendar' | 'list') => {
+      if ((target === 'list') === isListView) return;
+      const display = target === 'list' ? 'list' : 'week';
+      const range = getDateRange(display);
+      calendar.setFilters({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        display,
+        customer: calendar.customer,
+      });
+    },
+    [calendar, isListView]
+  );
+
   const [stateDdOpen, setStateDdOpen] = useState(false);
   const stateDdRef = useClickAway<HTMLDivElement>(() => setStateDdOpen(false));
 
@@ -805,7 +1111,7 @@ export const Filters = () => {
   }, [calendar]);
 
   return (
-    <div className="text-textColor flex flex-col !flex-row flex-wrap phone:!flex-col gap-[8px] items-center select-none">
+    <div className="text-textColor flex flex-col !flex-row flex-wrap gap-[8px] items-center select-none">
       {!isListView && (
         <div className="flex flex-grow flex-row items-center">
           {/* Buffer: the two chevrons sit ADJACENT, before the title */}
@@ -830,11 +1136,11 @@ export const Filters = () => {
           </h2>
           <div
             onClick={setToday}
-            className="ms-[16px] h-[24px] px-[10px] flex justify-center items-center rounded-[6px] border border-newTableBorder text-[14px] font-[500] cursor-pointer hover:bg-boxHover transition-colors duration-150"
+            className="ms-[16px] h-[24px] px-[10px] flex justify-center items-center rounded-[6px] border border-newTableBorder text-[14px] font-[500] cursor-pointer hover:bg-boxHover transition-colors duration-150 phone:hidden"
           >
             {t('today', 'Today')}
           </div>
-          <div className="ms-[8px]">
+          <div className="ms-[8px] phone:hidden">
             <ViewFilter />
           </div>
         </div>
@@ -960,16 +1266,72 @@ export const Filters = () => {
       {/* Buffer's toolbar filter order: Channels · All Posts · Tags · timezone
           (All Posts is calendar-only — the list view has its own state tabs;
           the customer selector is a Postiz capability kept before timezone).
-          The List|Calendar view segmented moved up into PageHeader. */}
-      <ChannelsFilter />
-      {!isListView && <StateFilter />}
-      <TagsFilter />
-      <SelectCustomer
-        customer={calendar.customer as string}
-        onChange={(customer: string) => setCustomer(customer)}
-        integrations={calendar.integrations}
-      />
-      <TimezoneFilter />
+          The List|Calendar view segmented moved up into PageHeader. On phone
+          the whole group collapses behind Buffer's funnel → bottom sheet. */}
+      <div className="contents phone:hidden">
+        <ChannelsFilter />
+        {!isListView && <StateFilter />}
+        <TagsFilter />
+        <SelectCustomer
+          customer={calendar.customer as string}
+          onChange={(customer: string) => setCustomer(customer)}
+          integrations={calendar.integrations}
+        />
+        <TimezoneFilter />
+      </div>
+      <div className="hidden phone:flex items-center gap-[8px] ms-auto">
+        <button
+          type="button"
+          aria-label={t('more_actions', 'More actions')}
+          onClick={() => setSheetOpen(true)}
+          className="w-[40px] h-[40px] flex items-center justify-center rounded-[8px] hover:bg-boxHover text-newTextColor"
+        >
+          {/* Buffer's phone funnel: three shrinking filter lines */}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 5h20" />
+            <path d="M6 12h12" />
+            <path d="M9 19h6" />
+          </svg>
+        </button>
+        {/* icon-only List|Calendar segmented (Buffer phone toolbar) */}
+        <div className="flex h-[32px] p-[4px] border border-newTableBorder rounded-[8px]">
+          <button
+            type="button"
+            aria-label={t('list', 'List')}
+            onClick={() => toView('list')}
+            className={clsx(
+              'flex items-center px-[8px] rounded-[6px] transition-colors duration-150',
+              isListView ? segActive : segInactive
+            )}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 5h.01" />
+              <path d="M3 12h.01" />
+              <path d="M3 19h.01" />
+              <path d="M8 5h13" />
+              <path d="M8 12h13" />
+              <path d="M8 19h13" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            aria-label={t('calendar_view', 'Calendar')}
+            onClick={() => toView('calendar')}
+            className={clsx(
+              'flex items-center px-[8px] rounded-[6px] transition-colors duration-150',
+              !isListView ? segActive : segInactive
+            )}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 2v4" />
+              <path d="M16 2v4" />
+              <rect width="18" height="18" x="3" y="4" rx="2" />
+              <path d="M3 10h18" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <PhoneFilterSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
     </div>
   );
 };
