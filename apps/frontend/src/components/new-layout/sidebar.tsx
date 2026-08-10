@@ -3,6 +3,7 @@
 import React, { FC, ReactNode, useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
+import dynamic from 'next/dynamic';
 import useCookie from 'react-use-cookie';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
@@ -17,6 +18,18 @@ import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-a
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
+import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
+import { LanguageComponent } from '@gitroom/frontend/components/layout/language.component';
+import { ChromeExtensionComponent } from '@gitroom/frontend/components/layout/chrome.extension.component';
+import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
+import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
+
+// Same ssr:false pattern the top bar used: the toggle reads the 'mode' cookie
+// on mount, so server-rendering it would hydrate the wrong glyph.
+const ModeComponent = dynamic(
+  () => import('@gitroom/frontend/components/layout/mode.component'),
+  { ssr: false }
+);
 
 /**
  * Buffer-replica desktop sidebar (spec §Sidebar): 240px, flat on the page bg,
@@ -666,10 +679,105 @@ const ChannelsLimitCard: FC = () => {
   );
 };
 
+/** Utility cluster relocated from the desktop top bar into the sidebar footer,
+ *  directly above the org card row (user-critical: theme + language MUST stay
+ *  reachable on desktop AND phone — the sidebar renders inside the phone
+ *  drawer, so the row travels with it). Buffer's footer is org card + collapse
+ *  only; this extra row is a sanctioned functional deviation, kept visually
+ *  quiet: 32px icon buttons, 8px gap, muted ink with hover, hairline above.
+ *
+ *  Display-only wrappers — none of the six components changed:
+ *  - `empty:hidden` collapses a wrapper whose component rendered null
+ *    (OrganizationSelector with one org, ChromeExtension without billing,
+ *    AttachToFeedbackIcon without a Sentry DSN, ModeComponent pre-mount), so
+ *    no phantom 32px hover squares appear.
+ *  - UTIL_FLIP retargets the subtree's two class-positioned popovers (the
+ *    bell's DropdownPanel and the org selector's hover menu, both
+ *    `absolute top-[100%] end-0`): in the DESKTOP footer they must open
+ *    UPWARD (the row sits ~90px above the viewport bottom) and hug `start`
+ *    (end-anchoring at the screen's start edge would push the 420px
+ *    notifications panel off-screen). The language flag's inline-style
+ *    absolute img is untouched (class selector only). In the phone drawer
+ *    the row is high in the page with room below, so stock anchoring stays.
+ *  - The org selector's trailing 1px block separator (a top-bar artifact) is
+ *    hidden; the row gap provides the rhythm.
+ *
+ *  Collapsed 52px rail (judgment, flagged in the handoff notes): a vertical
+ *  stack of just bell + theme + language — the three highest-value utilities,
+ *  and the two user-critical ones stay reachable in EVERY sidebar state —
+ *  above the expand control. Extension/feedback/org-switch return on expand.
+ *  With all six live (multi-org + billing + Sentry), the expanded 208px row
+ *  wraps to a quiet second line (6×32 + 5×8 = 232px); typical deployments
+ *  render 3-4 icons on one line. */
+const UTIL_FLIP =
+  '[&_.absolute]:!top-auto [&_.absolute]:!bottom-[calc(100%+8px)] [&_.absolute]:!start-0 [&_.absolute]:!end-auto';
+
+const SidebarUtilities: FC<{ inDrawer?: boolean; collapsed?: boolean }> = ({
+  inDrawer,
+  collapsed,
+}) => {
+  const t = useT();
+  const box =
+    'empty:hidden w-[32px] h-[32px] shrink-0 flex items-center justify-center rounded-[8px] text-textItemBlur hover:bg-boxHover hover:text-newTextColor transition-colors duration-150';
+
+  if (collapsed) {
+    return (
+      <div className={clsx('flex flex-col items-center gap-[4px]', UTIL_FLIP)}>
+        <div className="h-[1px] w-[24px] shrink-0 bg-newTableBorder mb-[4px]" />
+        <div className={box} title={t('notifications', 'Notifications')}>
+          <NotificationComponent />
+        </div>
+        <div className={box} title={t('toggle_theme', 'Toggle theme')}>
+          <ModeComponent />
+        </div>
+        <div className={box} title={t('change_language', 'Change Language')}>
+          <LanguageComponent />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="h-[1px] bg-newTableBorder" />
+      {/* px-[8px] lines the first button up with the org mark below */}
+      <div
+        className={clsx(
+          'flex items-center flex-wrap gap-[8px] px-[8px] py-[8px]',
+          !inDrawer && UTIL_FLIP
+        )}
+      >
+        <div
+          className={clsx(box, '[&_.bg-blockSeparator]:hidden')}
+          title={t('change_organization', 'Change organization')}
+        >
+          <OrganizationSelector />
+        </div>
+        <div className={box} title={t('toggle_theme', 'Toggle theme')}>
+          <ModeComponent />
+        </div>
+        <div className={box} title={t('change_language', 'Change Language')}>
+          <LanguageComponent />
+        </div>
+        <div className={box} title={t('chrome_extension', 'Chrome extension')}>
+          <ChromeExtensionComponent />
+        </div>
+        <div className={box} title={t('feedback', 'Feedback')}>
+          <AttachToFeedbackIcon />
+        </div>
+        <div className={box} title={t('notifications', 'Notifications')}>
+          <NotificationComponent />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /** Org footer row: mark 32 + org name 14 + tier 12 muted. OrganizationSelector
  *  is a header-shaped hover dropdown (and renders null for single-org users),
- *  so it does not drop in here; org switching stays in the top bar. The name
- *  reuses OrganizationSelector's own SWR key, so no new request is made.
+ *  so it does not drop in here; org SWITCHING lives in the SidebarUtilities
+ *  row above. The name reuses OrganizationSelector's own SWR key, so no new
+ *  request is made.
  *  `onCollapse` (desktop only — the drawer never collapses) appends the
  *  panel-left collapse control to the row, Buffer-style. */
 const SidebarOrganization: FC<{ onCollapse?: () => void }> = ({
@@ -912,8 +1020,16 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
           52px rail keeps a slimmer inset so its 32px squares still fit. */}
       <div
         className={clsx(
-          'sticky top-[12px] h-[calc(100dvh-24px)] flex flex-col',
-          collapsed ? 'px-[10px]' : 'px-[16px]'
+          'flex flex-col',
+          // In the drawer the sidebar is in-flow content: natural height, the
+          // PAGE scrolls (Buffer's push-down menu). The desktop shell keeps
+          // the sticky viewport-height column with its own inner scroll.
+          inDrawer
+            ? 'px-[16px]'
+            : clsx(
+                'sticky top-[12px] h-[calc(100dvh-24px)]',
+                collapsed ? 'px-[10px]' : 'px-[16px]'
+              )
         )}
       >
         {/* logo row — the ONLY logo on desktop; the content column's top bar
@@ -963,7 +1079,9 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
             4px row gap = Buffer's 36px nav pitch on 32px rows. */}
         <div
           className={clsx(
-            'flex-1 min-h-0 overflow-y-auto flex flex-col gap-[4px] pt-[16px] pb-[8px]',
+            'flex flex-col gap-[4px] pt-[16px] pb-[8px]',
+            // drawer: natural height (page scrolls); desktop: inner scroll
+            !inDrawer && 'flex-1 min-h-0 overflow-y-auto',
             collapsed && 'items-center'
           )}
         >
@@ -1019,8 +1137,10 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
           )}
         </div>
         {collapsed ? (
-          /* rail footer: expand control (panel-left) over the org mark */
+          /* rail footer: bell/theme/language stack, then the expand control
+             (panel-left) over the org mark */
           <div className="shrink-0 pb-[8px] flex flex-col items-center gap-[8px]">
+            <SidebarUtilities collapsed />
             <button
               type="button"
               onClick={toggleCollapsed}
@@ -1047,6 +1167,8 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
         ) : (
           <div className="shrink-0 pb-[4px]">
             <ChannelsLimitCard />
+            {/* utility icon row sits directly above the org card row */}
+            <SidebarUtilities inDrawer={inDrawer} />
             <SidebarOrganization
               onCollapse={inDrawer ? undefined : toggleCollapsed}
             />

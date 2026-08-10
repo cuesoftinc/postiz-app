@@ -143,3 +143,69 @@ Top → bottom:
   White pill, hairline border.
 - Drop from our cells anything Buffer doesn't show unless it carries real
   function; hide the list pager entirely when totalPages <= 1.
+
+## Addendum — round-1 live measurements (2026-08-10, applied in waves aa2ce4bc…beb4c215)
+
+### Calendar toolbar (desktop, month & week identical)
+- Left group: ‹ › ADJACENT 32×32 r8 chevrons → "August 2026" 16/500 →
+  Today 63×24 r6 1px hairline transparent 14/500 → view combobox 24px
+  borderless, NO leading icon, options **Week/Month only** (no Day at desktop).
+- Right group (right-aligned): Channels ▾ · All Posts ▾ · Tags ▾ · No Date
+  (month only, toggle w/ grey active) · Lagos ▾ — 32px r8 transparent 14/500,
+  [16px icon][label][16px chevron]. Channels icon = four circles; All Posts =
+  overlapping squares (filled); Tags = lucide tag + dot; timezone = globe.
+- Select menus: 200px white r6 p8, 32px r6 rows 14/500, check `M20 6 9 17l-5-5`
+  LEFT of the selected row, subtle tint bg. All Posts options order/terms:
+  All Posts / Drafts / **Scheduled** / Sent.
+- Channels dialog 380 r12 p12: 32px search input, "Select all" link, 48px rows
+  [avatar 32 r8 + platform badge · name · checkbox 16 r4 RIGHT].
+- Tags dialog 256 r12: "Untagged" row, 40px colored-pill tag rows,
+  footer Clear all + Settings.
+- Timezone dialog 315 r12: "Search cities or timezones", rows
+  **"City (GMT+1:00)"** 33px 14/400, current pinned top w/ channel avatars.
+- No Date opens an in-content right panel (~300px): "Undated drafts" + X,
+  sub-copy, empty state = doc icon in 64px grey circle + "No Undated Drafts".
+
+### Month grid
+Sunday-first; weekday header white 36px; weekend/other-month/past cells washed
+(#F3F2F0-family → bg-newTableHeader); today = day number in 24px green circle
+(ours: lime + black ink); three-tone day numbers (current/past/other); uniform
+~205px rows; outer hairline border, square corners; pills 33px r8 white
+hairline [brand chip 16 · h:mm A 13-14 full ink · thumbnail right]; "N More"
+16px chevron + 14/500 neutral, left-aligned; pills NEVER grayscale when past.
+
+### Week grid
+No rail column — labels overlay col 1 every 2 hours, "h A" 12/500 grey;
+~106px/hr rows; headers "Sunday 9" one line 36px white, today green ink +
+2px green underline; past hours flat grey wash; auto-scroll to now; cards
+white r8 hairline [chip 16 + h:mm A 14/500][2-line 13px snippet][36px thumb
+bottom-right].
+
+### List view
+Tabs Queue·Drafts·Approvals(lavender ⚡ pill)·Sent w/ grey count pills, active
+2px INK underline on a full-row hairline track, no 'All', Queue default; time
+rail OUTSIDE cards (h:mm A 14/500 + ⚓ Custom 12 muted); cards ≤700px, comment
+bubble floats outside top-right; groups "Tomorrow, August 11" 16px two-tone;
+page-level scroll.
+
+### Phone (390)
+Cream 56px app bar ON canvas (☰ 40 w/ green dot at its corner + logo/wordmark
++ streak only); header [chip 40 · title 20 · bookmark · GREEN icon-only "+"
+40 r8]; toolbar single row [‹ › title | funnel `M2 5h20/M6 12h12/M9 19h6` |
+icon-only List|Calendar segmented]; filters open a BOTTOM SHEET (drag handle,
+scrim, drill-in rows w/ chevrons); calendar = rolling 3-DAY hour grid starting
+today (~80px rows, 48px gutter, "Mon 10" headers); full-bleed card.
+
+### Chrome
+Warm-cream light canvas #f7f6f3, hairlines/active-fills #eae8e5 (dark mode
+untouched); desktop card 8px margins + hairline border, flush to sidebar; NO
+top strip of any kind — admin/impersonation lives in a fixed bottom-center
+pill w/ popover; support = 36px #def0ff "?" bubble bottom-right; sidebar 208px
+rows, wordmark lockup, count badges, unconnected-only quick icons, FREE-tier
+upsell card, org footer + panel-left-close collapse.
+
+### Known blocked-on-deploy
+Month/week/list media thumbnails render only when the backend ships the
+`image` field (added in aa2ce4bc, live :4007 predates it — appears after the
+next deploy). URL aliases: /schedule, /schedule/list,
+/schedule/calendar/{month,week,day,three-day} → /launches.

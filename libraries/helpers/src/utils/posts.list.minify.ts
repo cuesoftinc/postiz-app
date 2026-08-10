@@ -27,6 +27,7 @@ const POST_ITEM_KEYS: Record<string, string> = {
   actualDate: 'ad',
   creationMethod: 'cm',
   image: 'im',
+  createdAt: 'ca',
 };
 
 const INTEGRATION_KEYS: Record<string, string> = {

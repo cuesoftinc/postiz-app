@@ -2,18 +2,11 @@
 
 import React, { ReactNode, useCallback } from 'react';
 import { Sidebar } from '@gitroom/frontend/components/new-layout/sidebar';
-const ModeComponent = dynamic(
-  () => import('@gitroom/frontend/components/layout/mode.component'),
-  {
-    ssr: false,
-  }
-);
 
 import clsx from 'clsx';
-import dynamic from 'next/dynamic';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CheckPayment } from '@gitroom/frontend/components/layout/check.payment';
 import { ToolTip } from '@gitroom/frontend/components/layout/top.tip';
@@ -31,12 +24,7 @@ import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 import { Impersonate } from '@gitroom/frontend/components/layout/impersonate';
 import { AnnouncementBanner } from '@gitroom/frontend/components/layout/announcement.banner';
 import { Title } from '@gitroom/frontend/components/layout/title';
-import { LanguageComponent } from '@gitroom/frontend/components/layout/language.component';
-import { ChromeExtensionComponent } from '@gitroom/frontend/components/layout/chrome.extension.component';
-import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
-import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
-import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
@@ -46,8 +34,8 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
 
   const { backendUrl, billingEnabled, isGeneral } = useVariables();
 
-  // Feedback icon component attaches Sentry feedback to a top-bar icon when DSN is present
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const load = useCallback(async (path: string) => {
     return await (await fetch(path)).json();
   }, []);
@@ -125,9 +113,14 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <path d="M4 19h16" />
                         </svg>
                       )}
-                      {/* presence dot (Buffer: green dot pinned to the
-                          hamburger's top-left corner, canvas-colored ring) */}
-                      <span className="absolute top-[4px] start-[4px] w-[8px] h-[8px] rounded-full bg-btnPrimary border-[1.5px] border-primary" />
+                      {/* presence dot. Buffer pins it riding the hamburger
+                          GLYPH's top-end line — measured (32..39, 16..23) at
+                          390 = an 8px inset from the 40px button's top/end
+                          edges — not floating at the button's top-left (the
+                          old 4px top/start inset landed in the button's empty
+                          padding and read as a stray dot at the viewport
+                          corner). Canvas-colored ring lifts it off the glyph. */}
+                      <span className="absolute top-[8px] end-[8px] w-[8px] h-[8px] rounded-full bg-btnPrimary border-[1.5px] border-primary" />
                     </button>
                     <img
                       src="/cuesoft-mark-white.png"
@@ -177,29 +170,22 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         against the sidebar (no gap). Phone: full-bleed — edge
                         hairlines only, small top radius, runs to the bottom. */}
                     <div className="flex-1 bg-newBgLineColor rounded-[12px] border border-newTableBorder overflow-hidden flex flex-col gap-[1px] blurMe phone:rounded-none phone:rounded-t-[8px] phone:border-t-0">
-                      {/* 64px desktop-only top bar: the page title plus the
-                          utility cluster (theme + language must stay reachable
-                          — their relocation into the sidebar footer area is
-                          the next wave; Buffer itself has no top bar) */}
-                      <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center phone:hidden">
-                        {/* page title: display face 20px/400 (spec §Page
-                            header) — the ladder rescales text-[24px] to 20px */}
-                        <div className="text-[24px] font-display font-[400] flex flex-1">
-                          <Title />
-                        </div>
-                        <div className="flex gap-[20px] text-textItemBlur">
-                          <OrganizationSelector />
-                          <div className="hover:text-newTextColor">
-                            <ModeComponent />
+                      {/* 64px desktop-only top bar — now just the page Title.
+                          The utility cluster (bell, theme, language, extension,
+                          feedback, org switch) moved into the sidebar footer so
+                          it stays reachable on phone too (the sidebar renders
+                          inside the drawer). /launches carries its own page
+                          header, so the bar would be an empty strip there —
+                          hidden; every other route keeps it for the Title. */}
+                      {!(pathname || '').startsWith('/launches') && (
+                        <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center phone:hidden">
+                          {/* page title: display face 20px/400 (spec §Page
+                              header) — the ladder rescales text-[24px] to 20px */}
+                          <div className="text-[24px] font-display font-[400] flex flex-1">
+                            <Title />
                           </div>
-                          <div className="w-[1px] h-[20px] bg-blockSeparator" />
-                          <LanguageComponent />
-                          <ChromeExtensionComponent />
-                          <div className="w-[1px] h-[20px] bg-blockSeparator" />
-                          <AttachToFeedbackIcon />
-                          <NotificationComponent />
                         </div>
-                      </div>
+                      )}
                       {/* stacks on a phone — a side panel plus content does not
                           fit side by side at 390px */}
                       <div className="flex flex-1 gap-[1px] phone:flex-col">

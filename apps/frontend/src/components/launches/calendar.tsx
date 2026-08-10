@@ -58,6 +58,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
 import { Button } from '@gitroom/react/form/button';
 import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
 import { CommentComponent } from '@gitroom/frontend/components/launches/comments/comment.component';
@@ -1349,6 +1350,8 @@ const CalendarItem: FC<{
   } = props;
   const { disableXAnalytics } = useVariables();
   const user = useUser();
+  const fetch = useFetch();
+  const { reloadCalendarView } = useCalendar();
   const displayTimezone = useDisplayTimezone();
   // First attached image of the post's media field (backend now selects it
   // through the minified payload); undefined when absent/broken/video-only
@@ -1379,6 +1382,39 @@ const CalendarItem: FC<{
   const [menuOpen, setMenuOpen] = useState(false);
   const menuItemCls =
     'flex items-center gap-[10px] px-[10px] py-[7px] rounded-[6px] hover:bg-boxHover cursor-pointer text-[13px] whitespace-nowrap text-newTextColor';
+  // Buffer §Queue 'Publish Now': reuses the EXISTING reschedule endpoint —
+  // PUT /posts/:id/date with action 'schedule' and date=now sets the post to
+  // QUEUE and re-arms the publish workflow immediately (the same semantics
+  // the composer's `type: 'now'` path uses in posts.service.ts). No new
+  // backend surface.
+  const publishNow = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (
+        !(
+          await deleteDialog(
+            t(
+              'publish_now_description',
+              'This post will be published immediately. Continue?'
+            ),
+            t('yes_publish_now', 'Yes, publish now!'),
+            t('publish_now', 'Publish Now')
+          )
+        )
+      ) {
+        return;
+      }
+      await fetch(`/posts/${post.id}/date`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          date: dayjs.utc().format('YYYY-MM-DDTHH:mm:ss'),
+          action: 'schedule',
+        }),
+      });
+      reloadCalendarView();
+    },
+    [fetch, post.id, reloadCalendarView, t]
+  );
   const [{ opacity }, dragRef] = useDrag(
     () => ({
       type: 'post',
@@ -1392,6 +1428,82 @@ const CalendarItem: FC<{
       }),
     }),
     []
+  );
+  // One menu, two anchors: the hover pill on week/month chips and the footer
+  // kebab on the list card render the same labeled items.
+  const actionMenuItems = (
+    <>
+      <div
+        className={menuItemCls}
+        onClick={() => {
+          setMenuOpen(false);
+          preview();
+        }}
+      >
+        <Preview />
+        {t('post_details', 'Post Details')}
+      </div>
+      <div
+        className={menuItemCls}
+        onClick={() => {
+          setMenuOpen(false);
+          duplicatePost();
+        }}
+      >
+        <Duplicate />
+        {t('duplicate', 'Duplicate')}
+      </div>
+      {!(
+        (post.integration.providerIdentifier === 'x' && disableXAnalytics) ||
+        !post.releaseId
+      ) &&
+        (post.releaseId === 'missing' && missingRelease ? (
+          <div
+            className={menuItemCls}
+            onClick={() => {
+              setMenuOpen(false);
+              missingRelease();
+            }}
+          >
+            <Statistics />
+            {t('statistics', 'Statistics')}
+          </div>
+        ) : post.releaseId !== 'missing' ? (
+          <div
+            className={menuItemCls}
+            onClick={() => {
+              setMenuOpen(false);
+              statistics();
+            }}
+          >
+            <Statistics />
+            {t('statistics', 'Statistics')}
+          </div>
+        ) : null)}
+      {copyDebugJson && (
+        <div
+          className={menuItemCls}
+          onClick={() => {
+            setMenuOpen(false);
+            copyDebugJson();
+          }}
+        >
+          <CopyDebug />
+          {t('copy_debug_json', 'Copy Debug JSON')}
+        </div>
+      )}
+      <div className="h-[1px] bg-tableBorder my-[4px]" />
+      <div
+        className={clsx(menuItemCls, '!text-red-400')}
+        onClick={() => {
+          setMenuOpen(false);
+          deletePost();
+        }}
+      >
+        <DeletePost />
+        {t('delete', 'Delete')}
+      </div>
+    </>
   );
   return (
     <div
@@ -1423,132 +1535,254 @@ const CalendarItem: FC<{
           />
         </div>
       )}
-      <div
-        className={clsx(
-          'text-[11px] max-h-[24px] h-[24px] min-h-[24px] w-full rounded-tr-[10px] rounded-tl-[10px] flex items-center justify-center gap-[10px] px-[5px] bg-btnPrimary'
-        )}
-        style={{
-          backgroundColor: post?.tags?.[0]?.tag?.color,
-        }}
-      >
-        <div
-          className={clsx(
-            post?.tags?.[0]?.tag?.color ? 'mix-blend-difference' : '',
-            'group-hover:hidden cursor-pointer'
-          )}
-        >
-          {post.tags.map((p) => p.tag.name).join(', ')}
-        </div>
-        <div
-          className={clsx(
-            'hidden group-hover:flex items-center cursor-pointer px-[4px]',
-            post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            setMenuOpen((v) => !v);
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="5" r="1" />
-            <circle cx="12" cy="12" r="1" />
-            <circle cx="12" cy="19" r="1" />
-          </svg>
-        </div>
-      </div>
-      {menuOpen && (
+      {display !== 'day' && (
         <>
           <div
-            className="fixed inset-0 z-[290]"
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen(false);
+            className={clsx(
+              'text-[11px] max-h-[24px] h-[24px] min-h-[24px] w-full rounded-tr-[10px] rounded-tl-[10px] flex items-center justify-center gap-[10px] px-[5px] bg-btnPrimary'
+            )}
+            style={{
+              backgroundColor: post?.tags?.[0]?.tag?.color,
             }}
-          />
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="absolute top-[26px] end-0 z-[300] min-w-[180px] p-[6px] bg-fifth rounded-[8px] border border-tableBorder flex flex-col"
           >
             <div
-              className={menuItemCls}
-              onClick={() => {
-                setMenuOpen(false);
-                preview();
-              }}
+              className={clsx(
+                post?.tags?.[0]?.tag?.color ? 'mix-blend-difference' : '',
+                'group-hover:hidden cursor-pointer'
+              )}
             >
-              <Preview />
-              {t('post_details', 'Post Details')}
+              {post.tags.map((p) => p.tag.name).join(', ')}
             </div>
             <div
-              className={menuItemCls}
-              onClick={() => {
-                setMenuOpen(false);
-                duplicatePost();
+              className={clsx(
+                'hidden group-hover:flex items-center cursor-pointer px-[4px]',
+                post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen((v) => !v);
               }}
             >
-              <Duplicate />
-              {t('duplicate', 'Duplicate')}
-            </div>
-            {!(
-              (post.integration.providerIdentifier === 'x' &&
-                disableXAnalytics) ||
-              !post.releaseId
-            ) &&
-              (post.releaseId === 'missing' && missingRelease ? (
-                <div
-                  className={menuItemCls}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    missingRelease();
-                  }}
-                >
-                  <Statistics />
-                  {t('statistics', 'Statistics')}
-                </div>
-              ) : post.releaseId !== 'missing' ? (
-                <div
-                  className={menuItemCls}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    statistics();
-                  }}
-                >
-                  <Statistics />
-                  {t('statistics', 'Statistics')}
-                </div>
-              ) : null)}
-            {copyDebugJson && (
-              <div
-                className={menuItemCls}
-                onClick={() => {
-                  setMenuOpen(false);
-                  copyDebugJson();
-                }}
-              >
-                <CopyDebug />
-                {t('copy_debug_json', 'Copy Debug JSON')}
-              </div>
-            )}
-            <div className="h-[1px] bg-tableBorder my-[4px]" />
-            <div
-              className={clsx(menuItemCls, '!text-red-400')}
-              onClick={() => {
-                setMenuOpen(false);
-                deletePost();
-              }}
-            >
-              <DeletePost />
-              {t('delete', 'Delete')}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="5" r="1" />
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="12" cy="19" r="1" />
+              </svg>
             </div>
           </div>
+          {menuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-[290]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                }}
+              />
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-[26px] end-0 z-[300] min-w-[180px] p-[6px] bg-fifth rounded-[8px] border border-tableBorder flex flex-col"
+              >
+                {actionMenuItems}
+              </div>
+            </>
+          )}
         </>
       )}
+      {display === 'day' ? (
+        // Buffer §Queue list-card anatomy: white surface, hairline border,
+        // r12; header = 32px channel avatar + name; body = 15px copy
+        // (clamp-3 + 'see more') with the media thumbnail as a right column;
+        // hairline divider; footer = 'You created this N ago' + actions.
+        // data-cs: the card owns its own metrics — the size ladder in
+        // global.scss must leave it alone.
+        <div
+          data-cs
+          className="w-full flex-1 flex flex-col text-[14px] bg-newBgColorInner border border-newTableBorder rounded-[12px] relative"
+        >
+          <div className="flex items-center gap-[10px] px-[16px] pt-[12px]">
+            <ChannelAvatar
+              picture={post.integration.picture || ''}
+              identifier={post.integration?.providerIdentifier || ''}
+              name={post.integration.name}
+              size={32}
+              badgeSize={14}
+              badgeOffset="-bottom-[3px] -end-[3px]"
+              fallback="placeholder"
+              className="min-w-[32px] min-h-[32px]"
+            />
+            <div className="text-[14px] font-[600] text-newTextColor truncate text-start">
+              {post.integration.name}
+            </div>
+            {post.tags.length > 0 && (
+              // the compact chips carry tags in the top strip; the card
+              // carries them as quiet pills so the info survives the redesign
+              <div className="ms-auto flex items-center gap-[4px] overflow-hidden">
+                {post.tags.map((p) => (
+                  <div
+                    key={p.tag.name}
+                    className="text-[12px] px-[8px] py-[2px] rounded-full border border-newTableBorder whitespace-nowrap"
+                    style={{ backgroundColor: p.tag.color }}
+                  >
+                    <span className={clsx(p.tag.color && 'mix-blend-difference')}>
+                      {p.tag.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div
+            className="flex items-start gap-[16px] px-[16px] py-[12px] cursor-pointer"
+            onClick={editPost}
+          >
+            <div className="flex-1 min-w-0 flex flex-col">
+              {state === 'DRAFT' && (
+                <div className="text-start text-[14px] text-newTextColor/60">
+                  {t('draft', 'Draft')}
+                </div>
+              )}
+              <div
+                ref={contentRef}
+                className={clsx(
+                  'w-full text-[15px] text-start break-words',
+                  !expanded && 'line-clamp-3'
+                )}
+              >
+                {stripHtmlValidation('none', post.content, false, true, false)}
+              </div>
+              {overflowing && !expanded && (
+                <div
+                  className="mt-[4px] text-[14px] text-newTextColor/60 text-start cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded(true);
+                  }}
+                >
+                  {t('see_more', 'see more')}
+                </div>
+              )}
+            </div>
+            {/* media slot — renders only once the backend ships the image
+                field on this payload (getFirstImageUrl); invisible until
+                then */}
+            {mediaUrl && (
+              <img
+                src={mediaUrl}
+                alt=""
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+                className="w-[180px] h-[180px] min-w-[180px] rounded-[8px] object-cover border border-newTableBorder phone:w-[96px] phone:h-[96px] phone:min-w-[96px]"
+              />
+            )}
+          </div>
+          <div className="h-[1px] bg-newTableBorder" />
+          <div className="flex items-center gap-[8px] px-[16px] py-[8px]">
+            <div className="flex-1 min-w-0 text-[14px] text-start truncate">
+              <span className="font-[600] text-newTextColor">
+                {t('you_created_this', 'You created this')}
+              </span>{' '}
+              <span className="text-newTextColor/60">
+                {dayjs.utc(post.createdAt || post.publishDate).fromNow()}
+              </span>
+            </div>
+            {state === 'QUEUE' && (
+              <button
+                type="button"
+                onClick={publishNow}
+                className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 3 14 9-14 9z" />
+                </svg>
+                {t('publish_now', 'Publish Now')}
+              </button>
+            )}
+            <button
+              type="button"
+              aria-label={t('edit_post', 'Edit Post')}
+              onClick={(e) => {
+                e.stopPropagation();
+                editPost();
+              }}
+              className="w-[32px] h-[32px] min-w-[32px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                <path d="m15 5 4 4" />
+              </svg>
+            </button>
+            <div className="relative">
+              <button
+                type="button"
+                aria-label={t('more_actions', 'More actions')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen((v) => !v);
+                }}
+                className="w-[32px] h-[32px] min-w-[32px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="5" r="1" />
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="12" cy="19" r="1" />
+                </svg>
+              </button>
+              {menuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-[290]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                    }}
+                  />
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute top-[36px] end-0 z-[300] min-w-[180px] p-[6px] bg-fifth rounded-[8px] border border-tableBorder flex flex-col"
+                  >
+                    {actionMenuItems}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
       <div
         onClick={editPost}
         // data-cs: month pills and week cards own their compact Buffer
-        // metrics — the global size ladder and the list-card override in
-        // global.scss (scoped to .cs-queue) must leave them alone
-        data-cs={display !== 'day' ? true : undefined}
+        // metrics — the global size ladder in global.scss must leave them
+        // alone
+        data-cs
         className={clsx(
           'w-full flex text-[14px] bg-newColColor border border-newTableBorder relative cursor-pointer',
           // Buffer month pill: 33px tall, r8, hairline border, chip + time
@@ -1556,25 +1790,11 @@ const CalendarItem: FC<{
             'h-[33px] min-h-[33px] rounded-[8px] px-[6px] py-[4px] items-center gap-[6px]',
           // Buffer week card: white r8 hairline, 8px padding, column layout
           display === 'week' &&
-            'flex-col h-full flex-1 rounded-[8px] p-[8px] items-start gap-[4px]',
-          display === 'day' &&
-            'gap-[5px] h-full flex-1 rounded-br-[10px] rounded-bl-[10px] p-[8px] items-center'
+            'flex-col h-full flex-1 rounded-[8px] p-[8px] items-start gap-[4px]'
         )}
       >
-        {display === 'day' && (
-          <div className={clsx('relative min-w-[20px]')}>
-            <img
-              className="w-[20px] h-[20px] rounded-[8px]"
-              src={post.integration.picture! || '/no-picture.jpg'}
-            />
-            <img
-              className="w-[12px] h-[12px] rounded-[8px] absolute z-10 top-[10px] end-0 border border-fifth"
-              src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
-            />
-          </div>
-        )}
         {display === 'month' ? (
-          // Buffer month pill anatomy: [16px platform chip] [time] [24px
+          // Buffer month pill anatomy: [16px platform chip] [time] [~20px
           // media thumbnail right]
           <>
             <img
@@ -1587,6 +1807,8 @@ const CalendarItem: FC<{
                 {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
                 {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
               </span>
+              {/* media slot — ~20px r4 per Buffer's month pills; renders only
+                  once the backend ships the image field (getFirstImageUrl) */}
               {mediaUrl && (
                 <img
                   src={mediaUrl}
@@ -1594,7 +1816,7 @@ const CalendarItem: FC<{
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
-                  className="w-[24px] h-[24px] min-w-[24px] rounded-[4px] object-cover ms-auto"
+                  className="w-[20px] h-[20px] min-w-[20px] rounded-[4px] object-cover ms-auto"
                 />
               )}
             </div>
@@ -1628,33 +1850,7 @@ const CalendarItem: FC<{
               />
             )}
           </>
-        ) : (
-          <div className="w-full flex-1 flex flex-col">
-            {state === 'DRAFT' && (
-              <div className="text-start">{t('draft', 'Draft') + ':'}</div>
-            )}
-            <div
-              ref={contentRef}
-              className={clsx(
-                'w-full text-[15px] text-start break-words',
-                !expanded && 'line-clamp-3'
-              )}
-            >
-              {stripHtmlValidation('none', post.content, false, true, false)}
-            </div>
-            {overflowing && !expanded && (
-              <div
-                className="mt-[4px] text-[14px] text-newTextColor/60 text-start cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpanded(true);
-                }}
-              >
-                {t('see_more', 'see more')}
-              </div>
-            )}
-          </div>
-        )}
+        ) : null}
         {showTime && (
           <div className="text-newTextColor text-[14px] font-[500] whitespace-nowrap flex items-center justify-end text-end">
             {formatPostTime(
@@ -1664,20 +1860,8 @@ const CalendarItem: FC<{
             )}
           </div>
         )}
-        {/* Buffer queue/list cards: right-side media preview when the post
-            has an attached image (day display = queue + list; week/month
-            cells stay compact) */}
-        {display === 'day' && mediaUrl && (
-          <img
-            src={mediaUrl}
-            alt=""
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-            className="w-[72px] h-[72px] min-w-[72px] rounded-[8px] object-cover self-center border border-newTableBorder"
-          />
-        )}
       </div>
+      )}
     </div>
   );
 });

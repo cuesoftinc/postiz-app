@@ -209,6 +209,7 @@ export class PostsRepository {
         group: true,
         creationMethod: true,
         image: true,
+        createdAt: true,
         tags: {
           select: {
             tag: true,

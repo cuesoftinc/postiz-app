@@ -70,7 +70,8 @@ export const CalendarContext = createContext({
   reloadCalendarView: () => {
     /** empty **/
   },
-  display: 'week',
+  display: 'month',
+  lastCalendarDisplay: 'month' as string,
   setFilters: (filters: {
     startDate: string;
     endDate: string;
@@ -180,8 +181,16 @@ export const CalendarWeekProvider: FC<{
   const [internalData, setInternalData] = useState([] as any[]);
   const [trendings] = useState<string[]>([]);
   const searchParams = useSearchParams();
-  const [displaySaved, setDisplaySaved] = useCookie('calendar-display', 'week');
-  const display = searchParams.get('display') || displaySaved;
+  // Buffer defaults to the month calendar; the cookie tracks the last view so
+  // a refresh never resets it (URL param still wins for deep links).
+  const [displaySaved, setDisplaySaved] = useCookie('calendar-display', 'month');
+  const display = searchParams.get('display') || displaySaved || 'month';
+  // The last non-list calendar view — what the List|Calendar segmented
+  // restores when switching back to Calendar (Buffer behavior).
+  const [lastCalendarDisplay, setLastCalendarDisplay] = useCookie(
+    'calendar-display-last-cal',
+    'month'
+  );
 
   // Presentation-only timezone for the calendar render layer (Buffer's
   // "<City>" toolbar dropdown). Scheduling/publishing stay untouched.
@@ -355,6 +364,9 @@ export const CalendarWeekProvider: FC<{
       integration?: string | null;
     }) => {
       setDisplaySaved(newFilters.display);
+      if (newFilters.display !== 'list') {
+        setLastCalendarDisplay(newFilters.display);
+      }
       setFilters((prev) => ({
         ...newFilters,
         integration:
@@ -457,6 +469,7 @@ export const CalendarWeekProvider: FC<{
         setListState,
         displayTimezone,
         setDisplayTimezone,
+        lastCalendarDisplay,
       }}
     >
       {children}

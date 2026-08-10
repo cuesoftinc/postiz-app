@@ -976,39 +976,13 @@ button { white-space: nowrap; }
   color: var(--new-btn-text) !important;
 }
 
-/* Queue rows (list view, Buffer §Queue): the day column is scoped `.cs-queue`
-   in calendar.tsx (ListView). Cards read as elevation, not outline — elevated
-   token surface, radius 12, borderless, padding 20 — and the hover pill grows
-   to the spec 36px quiet button. Grid chips above keep the compact treatment. */
-.cs-queue .group > [class*="rounded-tl-[10px]"][class*="h-[24px]"] {
-  border-radius: 12px 12px 0 0 !important;
-}
-.cs-queue .group:hover > [class*="rounded-tl-[10px]"][class*="h-[24px]"] {
-  height: 36px !important; min-height: 36px !important; max-height: 36px !important;
-  padding: 0 12px !important;
-  inset-inline-end: 16px;
-  border-radius: 8px !important;
-}
-.cs-queue .group > [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] {
-  background-color: var(--new-bgLineColor) !important; /* elevated: #1e1e1e dark / #e7e9eb light */
-  border: 0 !important;
-  border-radius: 12px !important;
-  padding: 20px !important;
-}
-
-/* card body: real padding + gap so the copy never touches the avatar, the
-   timestamp or the card edge. Scoped to the list view (.cs-queue): calendar
-   month pills and week cards own their compact Buffer metrics in calendar.tsx
-   (their body divs carry data-cs and no longer use the rounded-br/bl pair). */
-.cs-queue [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] {
-  border-radius: 12px !important;
-  padding: 14px 16px !important;
-  gap: 12px !important;
-  align-items: center !important;
-  background-color: var(--new-bgColorInner) !important; /* elevated, like Buffer */
-  border-color: transparent !important;
-}
-.cs-queue [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] img { margin-inline-end: 4px; }
+/* Queue rows (list view, Buffer §Queue): the list card now owns its full
+   Buffer anatomy in calendar.tsx (CalendarItem, display 'day') — white
+   bg-newBgColorInner surface, hairline border, r12, header/body/divider/footer
+   — and carries data-cs, so it needs no scss surgery. The old `.cs-queue`
+   overrides that reskinned the strip + rounded-br/bl blob targeted markup that
+   no longer exists in the list card and were removed with it; the generic
+   strip/hover-pill rules above still serve the week/month chips. */
 
 /* ===== Mobile (<768px) =====
    The shell is desktop-only: the nav column is `position: fixed` at a hardcoded
