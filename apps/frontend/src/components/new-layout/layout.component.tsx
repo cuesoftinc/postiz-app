@@ -88,7 +88,9 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                 'flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] font-sans'
               )}
             >
-              <div>{user?.admin ? <Impersonate /> : <div />}</div>
+              {/* Admin-only impersonation strip — Buffer's phone chrome has no
+                  equivalent and it swallowed a third of the viewport there */}
+              <div className="phone:hidden">{user?.admin ? <Impersonate /> : <div />}</div>
               {user.tier === 'FREE' && isGeneral && billingEnabled ? (
                 <FirstBillingComponent />
               ) : (

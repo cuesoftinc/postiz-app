@@ -47,6 +47,43 @@ function getDateRange(
 }
 
 
+/* Buffer toolbar geometry (measured live): filter triggers are 32px tall r8,
+ * transparent, 14/500, [16px icon][label][16px chevron]; Today and the view
+ * combobox are 24px tall r6. Select menus are 200px, r6, p8, 32px rows with a
+ * 16px check reserved at the left of the selected row. */
+const ddTriggerCls =
+  'flex items-center gap-[6px] h-[32px] px-[10px] rounded-[8px] text-[14px] font-[500] text-newTextColor/70 hover:text-newTextColor hover:bg-boxHover transition-colors duration-150';
+
+const ChevronDown: FC = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
+/** Buffer's single-select menu row: [16px check slot][label], 32px, r6. */
+const SelectRow: FC<{
+  selected: boolean;
+  label: string;
+  onClick: () => void;
+}> = ({ selected, label, onClick }) => (
+  <div
+    onClick={onClick}
+    className={clsx(
+      'flex items-center gap-[8px] h-[32px] px-[8px] rounded-[6px] text-[14px] font-[500] cursor-pointer hover:bg-boxHover transition-colors duration-150',
+      selected ? 'bg-boxHover text-newTextColor' : 'text-newTextColor/80'
+    )}
+  >
+    <span className="w-[16px] shrink-0 flex items-center justify-center">
+      {selected && (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      )}
+    </span>
+    {label}
+  </div>
+);
+
 /** Buffer's "Channels" toolbar filter: search, Select all, checkbox rows.
  *  Drives the existing ?integration= URL param (comma-list) — the calendar
  *  context and both repository queries already consume it. */
@@ -98,18 +135,17 @@ const ChannelsFilter: FC = () => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-[6px] h-[36px] px-[10px] rounded-[6px] text-[14px] text-newTextColor/70 hover:text-newTextColor hover:bg-boxHover transition-colors"
+        className={ddTriggerCls}
       >
+        {/* Buffer's channels glyph is four circles, not squares */}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <rect width="7" height="7" x="3" y="3" rx="1" />
-          <rect width="7" height="7" x="14" y="3" rx="1" />
-          <rect width="7" height="7" x="14" y="14" rx="1" />
-          <rect width="7" height="7" x="3" y="14" rx="1" />
+          <path d="M10 6.5C10 8.433 8.433 10 6.5 10C4.567 10 3 8.433 3 6.5C3 4.567 4.567 3 6.5 3C8.433 3 10 4.567 10 6.5Z" />
+          <path d="M21 6.5C21 8.433 19.433 10 17.5 10C15.567 10 14 8.433 14 6.5C14 4.567 15.567 3 17.5 3C19.433 3 21 4.567 21 6.5Z" />
+          <path d="M10 17.5C10 19.433 8.433 21 6.5 21C4.567 21 3 19.433 3 17.5C3 15.567 4.567 14 6.5 14C8.433 14 10 15.567 10 17.5Z" />
+          <path d="M21 17.5C21 19.433 19.433 21 17.5 21C15.567 21 14 19.433 14 17.5C14 15.567 15.567 14 17.5 14C19.433 14 21 15.567 21 17.5Z" />
         </svg>
         {t('channels', 'Channels')}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <ChevronDown />
       </button>
       {open && (
         <DropdownPanel
@@ -188,11 +224,13 @@ const StateFilter: FC = () => {
   const [open, setOpen] = useState(false);
   const ref = useClickAway<HTMLDivElement>(() => setOpen(false));
 
+  // Buffer's order and terms exactly: the calendar dropdown says "Scheduled"
+  // (the list tabs are the surface that says "Queue")
   const options: { value: ListStateFilter; label: string }[] = [
     { value: 'all', label: t('all_posts', 'All Posts') },
-    { value: 'scheduled', label: t('scheduled', 'Queue') },
     { value: 'draft', label: t('drafts', 'Drafts') },
-    { value: 'published', label: t('published', 'Sent') },
+    { value: 'scheduled', label: t('scheduled', 'Scheduled') },
+    { value: 'published', label: t('sent', 'Sent') },
   ];
 
   const urlState = searchParams.get('state');
@@ -212,40 +250,29 @@ const StateFilter: FC = () => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-[6px] h-[36px] px-[10px] rounded-[6px] text-[14px] text-newTextColor/70 hover:text-newTextColor hover:bg-boxHover transition-colors"
+        className={ddTriggerCls}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 12h.01" />
-          <path d="M3 18h.01" />
-          <path d="M3 6h.01" />
-          <path d="M8 12h13" />
-          <path d="M8 18h13" />
-          <path d="M8 6h13" />
+        {/* Buffer's "All Posts" glyph: two overlapping squares */}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <path d="M3 5C3 3.89543 3.89543 3 5 3H16C17.1046 3 18 3.89543 18 5V16C18 17.1046 17.1046 18 16 18H5C3.89543 18 3 17.1046 3 16V5ZM5 5H16V16H5L5 5Z" />
+          <path d="M20 9.60001C20 9.04772 20.4477 8.60001 21 8.60001C21.5523 8.60001 22 9.04772 22 9.60001V19.4C22 20.0896 21.7261 20.7509 21.2385 21.2385C20.7509 21.7261 20.0896 22 19.4 22H9.6C9.04771 22 8.6 21.5523 8.6 21C8.6 20.4477 9.04771 20 9.6 20H19.4C19.5591 20 19.7117 19.9368 19.8243 19.8243C19.9368 19.7117 20 19.5591 20 19.4V9.60001Z" />
         </svg>
         {options.find((o) => o.value === current)?.label}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <ChevronDown />
       </button>
       {open && (
         <DropdownPanel
           surface="panel"
           anchor="end"
-          className="mt-[6px] min-w-[180px] p-[6px] flex flex-col gap-[2px]"
+          className="mt-[4px] w-[200px] !rounded-[6px] p-[8px] flex flex-col"
         >
           {options.map((option) => (
-            <div
+            <SelectRow
               key={option.value}
+              selected={current === option.value}
+              label={option.label}
               onClick={() => select(option.value)}
-              className={clsx(
-                'px-[10px] py-[8px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150',
-                current === option.value
-                  ? 'text-newTextColor font-[600]'
-                  : 'text-newTextColor/70'
-              )}
-            >
-              {option.label}
-            </div>
+            />
           ))}
         </DropdownPanel>
       )}
@@ -295,7 +322,7 @@ const TagsFilter: FC = () => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-[6px] h-[36px] px-[10px] rounded-[6px] text-[14px] text-newTextColor/70 hover:text-newTextColor hover:bg-boxHover transition-colors"
+        className={ddTriggerCls}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
@@ -307,9 +334,7 @@ const TagsFilter: FC = () => {
             {selected.size}
           </span>
         )}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <ChevronDown />
       </button>
       {open && (
         <DropdownPanel
@@ -369,6 +394,19 @@ const TimezoneFilter: FC = () => {
     []
   );
 
+  // Buffer renders "City (GMT+1:00)" — offset without a leading zero on the
+  // hour, minutes always shown.
+  const gmt = useCallback((tz: string) => {
+    try {
+      const minutes = newDayjs().tz(tz).utcOffset();
+      const sign = minutes < 0 ? '-' : '+';
+      const abs = Math.abs(minutes);
+      return `GMT${sign}${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, '0')}`;
+    } catch {
+      return '';
+    }
+  }, []);
+
   const list = useMemo(
     () =>
       timezones.filter((tz) =>
@@ -391,7 +429,7 @@ const TimezoneFilter: FC = () => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-[6px] h-[36px] px-[10px] rounded-[6px] text-[14px] text-newTextColor/70 hover:text-newTextColor hover:bg-boxHover transition-colors"
+        className={ddTriggerCls}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
@@ -399,9 +437,7 @@ const TimezoneFilter: FC = () => {
           <path d="M2 12h20" />
         </svg>
         {city(calendar.displayTimezone)}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <ChevronDown />
       </button>
       {open && (
         <DropdownPanel
@@ -417,7 +453,7 @@ const TimezoneFilter: FC = () => {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder={t('search_timezone', 'Search timezone')}
+              placeholder={t('search_cities_or_timezones', 'Search cities or timezones')}
               className="flex-1 bg-transparent outline-none text-[14px] text-newTextColor placeholder:text-newTextColor/50"
             />
           </div>
@@ -427,21 +463,198 @@ const TimezoneFilter: FC = () => {
                 key={tz}
                 onClick={() => select(tz)}
                 className={clsx(
-                  'flex items-center gap-[8px] px-[6px] py-[6px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150',
+                  'flex items-center gap-[8px] px-[6px] py-[7px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150',
                   tz === calendar.displayTimezone
                     ? 'text-newTextColor font-[600]'
-                    : 'text-newTextColor/70'
+                    : 'text-newTextColor/80'
                 )}
               >
-                <span className="truncate">{city(tz)}</span>
-                <span className="ms-auto text-[12px] text-newTextColor/50 truncate">
-                  {tz.split('/').slice(0, -1).join('/')}
+                <span className="truncate">
+                  {city(tz)} ({gmt(tz)})
                 </span>
               </div>
             ))}
           </div>
         </DropdownPanel>
       )}
+    </div>
+  );
+};
+
+// Buffer segmented control (spec §Page header): active = green-tint fill.
+// The fill is the lime var washed to 15% so it mirrors per theme; the ink
+// token is #bfff72 in dark / #3f6c0e in light. Presentation only.
+const segActive =
+  'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_15%,transparent)] text-newTableTextFocused';
+const segInactive = 'text-newTextColor/60 hover:text-newTextColor';
+
+/** Buffer's view combobox: 24px borderless trigger, no leading icon, and only
+ *  Week/Month options — Buffer offers no Day view at desktop (phones get the
+ *  rolling three-day grid instead). display=day stays URL-reachable. */
+const ViewFilter: FC = () => {
+  const t = useT();
+  const calendar = useCalendar();
+  const [open, setOpen] = useState(false);
+  const ref = useClickAway<HTMLDivElement>(() => setOpen(false));
+
+  const setView = useCallback(
+    (display: 'week' | 'month') => {
+      setOpen(false);
+      if (calendar.display === display) return;
+      const range = getDateRange(display);
+      calendar.setFilters({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        display,
+        customer: calendar.customer,
+      });
+    },
+    [calendar]
+  );
+
+  const label =
+    calendar.display === 'month'
+      ? t('month', 'Month')
+      : calendar.display === 'day'
+      ? t('day', 'Day')
+      : t('week', 'Week');
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-[6px] h-[24px] px-[8px] rounded-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+      >
+        {label}
+        <ChevronDown />
+      </button>
+      {open && (
+        <DropdownPanel
+          surface="panel"
+          anchor="start"
+          className="mt-[4px] w-[200px] !rounded-[6px] p-[8px] flex flex-col"
+        >
+          <SelectRow
+            selected={calendar.display === 'week'}
+            label={t('week', 'Week')}
+            onClick={() => setView('week')}
+          />
+          <SelectRow
+            selected={calendar.display === 'month'}
+            label={t('month', 'Month')}
+            onClick={() => setView('month')}
+          />
+        </DropdownPanel>
+      )}
+    </div>
+  );
+};
+
+/** Buffer's page header row: [icon chip] All Channels … [List|Calendar
+ *  segmented] [+ New Post]. Rendered by the launches page above the toolbar,
+ *  inside the CalendarWeekProvider. */
+export const PageHeader: FC = () => {
+  const t = useT();
+  const calendar = useCalendar();
+  const searchParams = useSearchParams();
+
+  // A single ?integration= selection titles the page with that channel, like
+  // Buffer's per-channel view; anything else reads "All Channels".
+  const selectedIds = (searchParams.get('integration') || '')
+    .split(',')
+    .filter(Boolean);
+  const single =
+    selectedIds.length === 1
+      ? (calendar.integrations || []).find((i: any) => i.id === selectedIds[0])
+      : undefined;
+
+  const isListView = calendar.display === 'list';
+
+  const toView = useCallback(
+    (target: 'calendar' | 'list') => {
+      if ((target === 'list') === isListView) return;
+      const display = target === 'list' ? 'list' : 'week';
+      const range = getDateRange(display);
+      calendar.setFilters({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        display,
+        customer: calendar.customer,
+      });
+    },
+    [calendar, isListView]
+  );
+
+  const newPost = useCallback(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('newPost', '1');
+    window.history.replaceState(null, '', url.pathname + url.search);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-[10px] select-none">
+      <div className="w-[40px] h-[40px] rounded-[10px] border border-newTableBorder flex items-center justify-center text-newTextColor shrink-0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 6.5C10 8.433 8.433 10 6.5 10C4.567 10 3 8.433 3 6.5C3 4.567 4.567 3 6.5 3C8.433 3 10 4.567 10 6.5Z" />
+          <path d="M21 6.5C21 8.433 19.433 10 17.5 10C15.567 10 14 8.433 14 6.5C14 4.567 15.567 3 17.5 3C19.433 3 21 4.567 21 6.5Z" />
+          <path d="M10 17.5C10 19.433 8.433 21 6.5 21C4.567 21 3 19.433 3 17.5C3 15.567 4.567 14 6.5 14C8.433 14 10 15.567 10 17.5Z" />
+          <path d="M21 17.5C21 19.433 19.433 21 17.5 21C15.567 21 14 19.433 14 17.5C14 15.567 15.567 14 17.5 14C19.433 14 21 15.567 21 17.5Z" />
+        </svg>
+      </div>
+      <h1 className="font-display text-[20px] font-[400] text-newTextColor truncate" data-cs>
+        {single ? single.name : t('all_channels', 'All Channels')}
+      </h1>
+      <div className="flex-1" />
+      <div className="flex h-[32px] p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]" data-cs>
+        <button
+          type="button"
+          onClick={() => toView('list')}
+          className={clsx(
+            'flex items-center gap-[6px] px-[8px] rounded-[6px] transition-colors duration-150',
+            isListView ? segActive : segInactive
+          )}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 5h.01" />
+            <path d="M3 12h.01" />
+            <path d="M3 19h.01" />
+            <path d="M8 5h13" />
+            <path d="M8 12h13" />
+            <path d="M8 19h13" />
+          </svg>
+          {t('list', 'List')}
+        </button>
+        <button
+          type="button"
+          onClick={() => toView('calendar')}
+          className={clsx(
+            'flex items-center gap-[6px] px-[8px] rounded-[6px] transition-colors duration-150',
+            !isListView ? segActive : segInactive
+          )}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 2v4" />
+            <path d="M16 2v4" />
+            <rect width="18" height="18" x="3" y="4" rx="2" />
+            <path d="M3 10h18" />
+          </svg>
+          {/* own key — the 'calendar' key is locale-mapped to the nav label */}
+          {t('calendar_view', 'Calendar')}
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={newPost}
+        className="flex items-center gap-[6px] h-[32px] px-[12px] rounded-[8px] border border-newTableBorder text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+        data-cs
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14" />
+          <path d="M12 5v14" />
+        </svg>
+        {t('new_post', 'New Post')}
+      </button>
     </div>
   );
 };
@@ -454,22 +667,13 @@ export const Filters = () => {
   const currentLanguage = i18next.resolvedLanguage || 'en';
   dayjs.locale();
 
-  // Calculate display date range text
-  const getDisplayText = () => {
-    const startDate = newDayjs(calendar.startDate);
-    const endDate = newDayjs(calendar.endDate);
-
-    switch (calendar.display) {
-      case 'day':
-        return startDate.format('dddd (L)');
-      case 'week':
-        return `${startDate.format('L')} - ${endDate.format('L')}`;
-      case 'month':
-        return startDate.format('MMMM YYYY');
-      default:
-        return '';
-    }
-  };
+  // Buffer titles every calendar view "August 2026" — for a week the label is
+  // the month that owns most of it (mid-week day decides straddling weeks).
+  const monthTitle = useMemo(() => {
+    const start = newDayjs(calendar.startDate);
+    const mid = calendar.display === 'week' ? start.add(3, 'day') : start;
+    return mid.format('MMMM YYYY');
+  }, [calendar.startDate, calendar.display]);
 
   const setToday = useCallback(() => {
     const today = newDayjs();
@@ -489,88 +693,6 @@ export const Filters = () => {
       startDate: currentRange.startDate,
       endDate: currentRange.endDate,
       display: calendar.display as 'day' | 'week' | 'month',
-      customer: calendar.customer,
-    });
-  }, [calendar]);
-
-  const setDay = useCallback(() => {
-    // If already in day view and showing today, don't change
-    if (calendar.display === 'day') {
-      const todayRange = getDateRange('day');
-      if (calendar.startDate === todayRange.startDate) {
-        return;
-      }
-    }
-
-    const range = getDateRange('day');
-    calendar.setFilters({
-      startDate: range.startDate,
-      endDate: range.endDate,
-      display: 'day',
-      customer: calendar.customer,
-    });
-  }, [calendar]);
-
-  const setWeek = useCallback(() => {
-    // If already in week view and showing current week, don't change
-    if (calendar.display === 'week') {
-      const currentWeekRange = getDateRange('week');
-      if (calendar.startDate === currentWeekRange.startDate) {
-        return;
-      }
-    }
-
-    const range = getDateRange('week');
-    calendar.setFilters({
-      startDate: range.startDate,
-      endDate: range.endDate,
-      display: 'week',
-      customer: calendar.customer,
-    });
-  }, [calendar]);
-
-  const setMonth = useCallback(() => {
-    // If already in month view and showing current month, don't change
-    if (calendar.display === 'month') {
-      const currentMonthRange = getDateRange('month');
-      if (calendar.startDate === currentMonthRange.startDate) {
-        return;
-      }
-    }
-
-    const range = getDateRange('month');
-    calendar.setFilters({
-      startDate: range.startDate,
-      endDate: range.endDate,
-      display: 'month',
-      customer: calendar.customer,
-    });
-  }, [calendar]);
-
-  const setList = useCallback(() => {
-    if (calendar.display === 'list') {
-      return;
-    }
-
-    const range = getDateRange('list');
-    calendar.setFilters({
-      startDate: range.startDate,
-      endDate: range.endDate,
-      display: 'list',
-      customer: calendar.customer,
-    });
-  }, [calendar]);
-
-  const setCalendarView = useCallback(() => {
-    if (calendar.display !== 'list') {
-      return;
-    }
-
-    const range = getDateRange('week');
-    calendar.setFilters({
-      startDate: range.startDate,
-      endDate: range.endDate,
-      display: 'week',
       customer: calendar.customer,
     });
   }, [calendar]);
@@ -650,28 +772,7 @@ export const Filters = () => {
     });
   }, [calendar]);
 
-  const setCurrent = useCallback(
-    (type: 'day' | 'week' | 'month') => () => {
-      if (type === 'day') {
-        setDay();
-      } else if (type === 'week') {
-        setWeek();
-      } else if (type === 'month') {
-        setMonth();
-      }
-    },
-    [setDay, setWeek, setMonth]
-  );
-
   const isListView = calendar.display === 'list';
-
-  // Buffer segmented control (spec §Page header): active = deep-green fill +
-  // light-green text. The fill is the lime var washed to 15% so it mirrors per
-  // theme (deep green over dark, pale green over white); the ink token is
-  // #bfff72 in dark / #3f6c0e in light. Presentation only.
-  const segActive =
-    'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_15%,transparent)] text-newTableTextFocused';
-  const segInactive = 'text-newTextColor/60 hover:text-newTextColor';
 
   const [stateDdOpen, setStateDdOpen] = useState(false);
   const stateDdRef = useClickAway<HTMLDivElement>(() => setStateDdOpen(false));
@@ -706,65 +807,42 @@ export const Filters = () => {
   return (
     <div className="text-textColor flex flex-col !flex-row flex-wrap phone:!flex-col gap-[8px] items-center select-none">
       {!isListView && (
-        <div className="flex flex-grow flex-row items-center gap-[10px]">
-          <div className="h-[36px] gap-[2px] flex items-center">
-            <div
-              onClick={previous}
-              className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center hover:bg-newTextColor/10 hover:text-newTextColor transition-colors duration-150"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </div>
-            <div className="min-w-[200px] text-center h-full flex items-center justify-center">
-              <div className="px-[9px] text-[16px] font-[500]">
-                {getDisplayText()}
-              </div>
-            </div>
-            <div
-              onClick={next}
-              className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center hover:bg-newTextColor/10 hover:text-newTextColor transition-colors duration-150"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </div>
+        <div className="flex flex-grow flex-row items-center">
+          {/* Buffer: the two chevrons sit ADJACENT, before the title */}
+          <div
+            onClick={previous}
+            className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[32px] h-[32px] rounded-[8px] flex items-center justify-center hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
           </div>
-          <div className="flex-1 text-[13px] font-[500]">
-            <div className="text-center flex items-center h-[36px]">
-              <div
-                onClick={setToday}
-                className="hover:bg-newTextColor/10 h-[24px] px-[10px] flex justify-center items-center rounded-[6px] transition-all cursor-pointer text-[13px] bg-newTextColor/5 border border-newTextColor/10"
-              >
-                {t('today', 'Today')}
-              </div>
-            </div>
+          <div
+            onClick={next}
+            className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[32px] h-[32px] rounded-[8px] flex items-center justify-center hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </div>
+          <h2 className="ms-[4px] text-[16px] font-[500] whitespace-nowrap">
+            {monthTitle}
+          </h2>
+          <div
+            onClick={setToday}
+            className="ms-[16px] h-[24px] px-[10px] flex justify-center items-center rounded-[6px] border border-newTableBorder text-[14px] font-[500] cursor-pointer hover:bg-boxHover transition-colors duration-150"
+          >
+            {t('today', 'Today')}
+          </div>
+          <div className="ms-[8px]">
+            <ViewFilter />
           </div>
         </div>
       )}
       {isListView && (
         <div className="flex flex-grow flex-row items-center gap-[10px]">
-          <div className="h-[36px] gap-[2px] flex items-center">
+          {/* Buffer shows no pager at all on a single page */}
+          <div className={clsx('h-[36px] gap-[2px] flex items-center', calendar.listTotalPages <= 1 && 'hidden')}>
             <div
               onClick={previousPage}
               className={clsx(
@@ -879,102 +957,19 @@ export const Filters = () => {
           <div className="flex-1" />
         </div>
       )}
-      {/* Buffer's toolbar filter row: All Posts (calendar only — the list view
-          has its own state tabs), Tags, Channels, customer, timezone. */}
+      {/* Buffer's toolbar filter order: Channels · All Posts · Tags · timezone
+          (All Posts is calendar-only — the list view has its own state tabs;
+          the customer selector is a Postiz capability kept before timezone).
+          The List|Calendar view segmented moved up into PageHeader. */}
+      <ChannelsFilter />
       {!isListView && <StateFilter />}
       <TagsFilter />
-      <ChannelsFilter />
       <SelectCustomer
         customer={calendar.customer as string}
         onChange={(customer: string) => setCustomer(customer)}
         integrations={calendar.integrations}
       />
       <TimezoneFilter />
-      {!isListView && (
-        <div className="flex flex-row h-[36px] p-[2px] border border-newTextColor/10 bg-newTextColor/5 rounded-[8px] text-[14px] font-[500]">
-          <div
-            className={clsx(
-              'cursor-pointer w-[74px] text-center flex items-center justify-center rounded-[6px] transition-colors',
-              calendar.display === 'day' ? segActive : segInactive
-            )}
-            onClick={setDay}
-          >
-            {t('day', 'Day')}
-          </div>
-          <div
-            className={clsx(
-              'cursor-pointer w-[74px] text-center flex items-center justify-center rounded-[6px] transition-colors',
-              calendar.display === 'week' ? segActive : segInactive
-            )}
-            onClick={setWeek}
-          >
-            {t('week', 'Week')}
-          </div>
-          <div
-            className={clsx(
-              'cursor-pointer w-[74px] text-center flex items-center justify-center rounded-[6px] transition-colors',
-              calendar.display === 'month' ? segActive : segInactive
-            )}
-            onClick={setMonth}
-          >
-            {t('month', 'Month')}
-          </div>
-        </div>
-      )}
-      <div className="flex flex-row h-[36px] p-[2px] border border-newTextColor/10 bg-newTextColor/5 rounded-[8px] text-[14px] font-[500]">
-        <div
-          onClick={setCalendarView}
-          className={clsx(
-            'cursor-pointer flex justify-center items-center w-[34px] text-center rounded-[6px] transition-colors',
-            !isListView ? segActive : segInactive
-          )}
-        >
-          {/*calendar*/}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M8 2v4" />
-            <path d="M16 2v4" />
-            <rect width="18" height="18" x="3" y="4" rx="2" />
-            <path d="M3 10h18" />
-          </svg>
-        </div>
-        <div
-          onClick={setList}
-          className={clsx(
-            'flex justify-center items-center cursor-pointer w-[34px] text-center rounded-[6px] transition-colors',
-            isListView ? segActive : segInactive
-          )}
-        >
-          {/*list*/}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M3 12h.01" />
-            <path d="M3 18h.01" />
-            <path d="M3 6h.01" />
-            <path d="M8 12h13" />
-            <path d="M8 18h13" />
-            <path d="M8 6h13" />
-          </svg>
-        </div>
-      </div>
     </div>
   );
 };

@@ -5,7 +5,7 @@ import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { groupBy, orderBy } from 'lodash';
 import { CalendarWeekProvider } from '@gitroom/frontend/components/launches/calendar.context';
-import { Filters } from '@gitroom/frontend/components/launches/filters';
+import { Filters, PageHeader } from '@gitroom/frontend/components/launches/filters';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import clsx from 'clsx';
@@ -641,6 +641,12 @@ export const LaunchesComponent = () => {
           </div>
         </div>
         <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
+          {/* hidden mount: NewPost owns the ?newPost=1 consumption effect that
+              opens the composer (header button + sidebar pill both deep-link) */}
+          <span className="hidden">
+            <NewPost />
+          </span>
+          <PageHeader />
           <Filters />
           <div className="flex-1 flex">
             <Calendar />
