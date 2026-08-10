@@ -434,11 +434,13 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   );
 
   return (
-    <div className="w-full h-full flex-1 p-[40px] flex relative">
+    <div className="w-full h-full flex-1 p-[40px] phone:p-0 flex relative">
       {/* Buffer spec: composer surface = elevated token, cards radius 12 */}
-      <div className="flex flex-1 bg-newBgColorInner rounded-[12px] flex-col">
+      <div className="flex flex-1 bg-newBgColorInner rounded-[12px] phone:rounded-none flex-col">
         <div className="flex-1 flex">
-          <div className="flex flex-col flex-1 border-e border-newBorder">
+          {/* phone: the editor owns the full width — the fixed 420px preview
+              pane collapsed it to 1px (editor-first, like Buffer mobile) */}
+          <div className="flex flex-col flex-1 border-e border-newBorder phone:border-e-0">
             {/* Header sits on the surface itself (no page-bg band) with a
                 hairline below; title 18px Outfit per spec — data-cs keeps the
                 ladder from forcing text-[18px] down to 16. */}
@@ -539,7 +541,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               </div>
             </div>
           </div>
-          <div className="w-[420px] flex flex-col">
+          <div className="w-[420px] flex flex-col phone:hidden">
             {/* Panel heading 16px/600 per spec; the X becomes a quiet 36px
                 icon button (newTextColor/10 hover = white-alpha in dark,
                 black-alpha in light). */}
