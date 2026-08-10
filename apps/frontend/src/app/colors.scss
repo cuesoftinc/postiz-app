@@ -18,6 +18,7 @@
     --new-ai-btn: #325ea6;
     --new-box-hover: rgba(255, 255, 255, 0.06);
     --new-table-border: rgba(255, 255, 255, 0.10);
+    --new-grid-line: rgba(255, 255, 255, 0.14);
     --new-table-header: #1a1a1a;
     --new-table-text: #9c9c9c;
     --new-table-text-focused: #bfff72;
@@ -56,22 +57,27 @@
     --new-bgColorInner: #ffffff;
     --new-bgLineColor: #eae8e5;
     --new-textItemFocused: #000000;
-    --new-textItemBlur: #6b6f73;
+    /* Buffer parity r2 (measured off publish.buffer.com):
+       ink lab(16.56) = #292928, muted lab(38.22) = #5a5a59, chip hairline =
+       warm dark @12% alpha, calendar grid line = #dddcd9, washes warmed to
+       match the cream canvas. Buttons keep Cuesoft lime/blue. */
+    --new-textItemBlur: #5a5a59;
     --new-boxFocused: #e4f6c6;
-    --new-textColor: 14 14 14;
+    --new-textColor: 41 41 40;
     --new-blockSeparator: rgba(0, 0, 0, 0.08);
     --new-btn-simple: #eceef1;
     --new-btn-text: #0e0e0e;
     --new-btn-primary: #bfff72;
     --new-ai-btn: #325ea6;
     --new-box-hover: rgba(0, 0, 0, 0.04);
-    --new-table-border: rgba(0, 0, 0, 0.10);
-    --new-table-header: #f5f7f9;
-    --new-table-text: #777b7f;
+    --new-table-border: rgba(43, 32, 17, 0.12);
+    --new-grid-line: #dddcd9;
+    --new-table-header: #f4f3f0;
+    --new-table-text: #5a5a59;
     --new-table-text-focused: #3f6c0e;
     --new-small-strips: #191818;
-    --new-big-strips: #f5f7f9;
-    --new-col-color: #eff1f3;
+    --new-big-strips: #f4f3f0;
+    --new-col-color: #ffffff;
     --new-menu-dots: #696868;
     --new-menu-hover: #000;
     --menu-shadow: -22px 83px 24px 0 rgba(55, 52, 75, 0),

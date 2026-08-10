@@ -16,11 +16,13 @@ const MetricComponent = dynamic(
 export const GlobalSettings = () => {
   const t = useT();
   return (
-    <div className="flex flex-col">
-      {/* Buffer settings page title: 24/500 display face. data-cs opts out of
-          the desktop ladder (which would pin text-[24px] to 20px); the phone
-          ladder still steps it down to 18px. */}
-      <h3 data-cs className="text-[24px] font-[500] font-display">
+    // pb-[56px]: the fixed bottom-center admin pill (S6) hovers over dead
+    // space instead of the last settings row's control.
+    <div className="flex flex-col pb-[56px]">
+      {/* Buffer settings content H1 measures 20px/400 display face (round-1
+          structure JSON: 'Profile'). data-cs opts out of the desktop ladder
+          so it renders at the literal 20px. */}
+      <h3 data-cs className="text-[20px] font-[400] font-display">
         {t('global_settings', 'Global Settings')}
       </h3>
       <MetricComponent />

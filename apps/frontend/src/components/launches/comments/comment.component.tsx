@@ -145,48 +145,39 @@ export const EditableCommentComponent: FC<{
   );
 };
 export const CommentComponent: FC<{
+  postId: string;
   date: dayjs.Dayjs;
 }> = (props) => {
-  const { date } = props;
+  const { postId, date } = props;
   const { closeAll } = useModals();
   const [commentsList, setCommentsList] = useState<Comments[]>([]);
   const user = useUser();
   const fetch = useFetch();
   const load = useCallback(async () => {
-    const data = await (
-      await fetch(`/comments/${date.utc().format('YYYY-MM-DDTHH:mm:00')}`)
-    ).json();
-    setCommentsList(data);
-  }, []);
+    const data = await (await fetch(`/posts/${postId}/comments`)).json();
+    // defensive: an error payload is an object, not an array
+    const list = Array.isArray(data?.comments)
+      ? data.comments
+      : Array.isArray(data)
+      ? data
+      : [];
+    setCommentsList(list);
+  }, [postId]);
   useEffect(() => {
     load();
   }, []);
-  const editComment = useCallback(
-    (comment: Comments) => async (content: string) => {
-      fetch(`/comments/${comment.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          content,
-          date: date.utc().format('YYYY-MM-DDTHH:mm:00'),
-        }),
-      });
-    },
-    []
-  );
   const addComment = useCallback(
     async (content: string) => {
-      const { id } = await (
-        await fetch('/comments', {
+      const added = await (
+        await fetch(`/posts/${postId}/comments`, {
           method: 'POST',
-          body: JSON.stringify({
-            content,
-            date: date.utc().format('YYYY-MM-DDTHH:mm:00'),
-          }),
+          body: JSON.stringify({ comment: content }),
         })
       ).json();
       setCommentsList((list) => [
+        ...list,
         {
-          id,
+          id: added?.id || `local-${list.length}`,
           user: {
             email: user?.email!,
             id: user?.id!,
@@ -194,76 +185,9 @@ export const CommentComponent: FC<{
           content,
           childrenComment: [],
         },
-        ...list,
       ]);
     },
-    [commentsList, setCommentsList]
-  );
-  const deleteComment = useCallback(
-    (comment: Comments) => async () => {
-      await fetch(`/comments/${comment.id}`, {
-        method: 'DELETE',
-      });
-      setCommentsList((list) => list.filter((item) => item.id !== comment.id));
-    },
-    [commentsList, setCommentsList]
-  );
-  const deleteChildrenComment = useCallback(
-    (parent: Comments, children: Comments) => async () => {
-      await fetch(`/comments/${children.id}`, {
-        method: 'DELETE',
-      });
-      setCommentsList((list) =>
-        list.map((item) => {
-          if (item.id === parent.id) {
-            return {
-              ...item,
-              childrenComment: item.childrenComment.filter(
-                (child) => child.id !== children.id
-              ),
-            };
-          }
-          return item;
-        })
-      );
-    },
-    [commentsList, setCommentsList]
-  );
-  const addChildrenComment = useCallback(
-    (comment: Comments) => async (content: string) => {
-      const { id } = await (
-        await fetch(`/comments/${comment.id}`, {
-          method: 'POST',
-          body: JSON.stringify({
-            content,
-            date: date.utc().format('YYYY-MM-DDTHH:mm:00'),
-          }),
-        })
-      ).json();
-      setCommentsList((list) =>
-        list.map((item) => {
-          if (item.id === comment.id) {
-            return {
-              ...item,
-              childrenComment: [
-                ...item.childrenComment,
-                {
-                  id,
-                  user: {
-                    email: user?.email!,
-                    id: user?.id!,
-                  },
-                  content,
-                  childrenComment: [],
-                },
-              ],
-            };
-          }
-          return item;
-        })
-      );
-    },
-    [commentsList]
+    [postId, user]
   );
   const extractNameFromEmailAndCapitalize = useCallback((email: string) => {
     return (
@@ -271,86 +195,30 @@ export const CommentComponent: FC<{
     );
   }, []);
   return (
-    <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] border border-customColor6 bg-sixth p-[16px] pt-0">
-      <TopTitle title={`Comments for ${date.format('DD/MM/YYYY HH:mm')}`} />
+    <div className="relative flex gap-[20px] flex-col flex-1 rounded-[8px] border border-newTableBorder bg-newBgColorInner p-[16px] pt-0">
+      <TopTitle title={`Comments — ${date.format('MMM D, h:mm A')}`} />
       <ModalCloseButton onClick={closeAll} offset={{ top: 15 }} />
 
-      <div>
+      <div className="flex flex-col gap-[16px]">
         {commentsList.map((comment, index) => (
-          <Fragment key={`comment_${index}_${comment.content}`}>
-            <div
-              className={clsx(
-                `flex relative flex-col`,
-                comment?.childrenComment?.length && 'gap-[10px]'
-              )}
-            >
-              <div className="flex gap-[8px]">
-                <div className="w-[40px] flex flex-col items-center">
-                  <div
-                    className={`rounded-full relative z-[2] text-blue-500 font-bold flex justify-center items-center w-[40px] h-[40px] bg-white border-tableBorder border`}
-                  >
-                    {comment.user.email[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 w-[2px] h-[calc(100%-10px)] bg-customColor25 absolute top-[10px] z-[1]" />
-                </div>
-                <div className="flex-1 flex flex-col gap-[4px]">
-                  <div className="flex">
-                    <div className="h-[22px] text-[15px] font-[700]">
-                      {extractNameFromEmailAndCapitalize(comment.user.email)}
-                    </div>
-                  </div>
-                  <EditableCommentComponent
-                    onDelete={deleteComment(comment)}
-                    onEdit={editComment(comment)}
-                    comment={comment}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-[10px]">
-                {comment?.childrenComment?.map((childComment, index2) => (
-                  <div
-                    key={`comment2_${index2}_${childComment.content}`}
-                    className={clsx(`flex gap-[8px] relative`)}
-                  >
-                    <div className="w-[40px] flex flex-col items-center">
-                      <div
-                        className={`rounded-full relative z-[2] text-blue-500 font-bold flex justify-center items-center w-[40px] h-[40px] bg-white border-tableBorder border`}
-                      >
-                        {childComment.user.email[0].toUpperCase()}
-                      </div>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-[4px]">
-                      <div className="flex">
-                        <div className="h-[22px] text-[15px] font-[700]">
-                          {extractNameFromEmailAndCapitalize(
-                            childComment.user.email
-                          )}
-                        </div>
-                      </div>
-                      <EditableCommentComponent
-                        onDelete={deleteChildrenComment(comment, childComment)}
-                        onEdit={editComment(childComment)}
-                        comment={childComment}
-                      />
-                    </div>
-                  </div>
-                ))}
+          <div
+            key={`comment_${index}_${comment.id}`}
+            className="flex gap-[10px]"
+          >
+            <div className="w-[32px] shrink-0">
+              <div className="rounded-full text-newTextColor text-[14px] font-[600] flex justify-center items-center w-[32px] h-[32px] bg-newTableHeader border border-newTableBorder">
+                {comment.user?.email?.[0]?.toUpperCase()}
               </div>
             </div>
-            <div className="flex">
-              <div className="relative w-[40px] flex flex-col items-center">
-                <div className="h-[30px] w-[2px] bg-customColor25 absolute top-0 z-[1]" />
-                <div className="h-[2px] w-[21px] bg-customColor25 absolute top-[30px] end-0 z-[1]" />
+            <div className="flex-1 flex flex-col gap-[2px] min-w-0">
+              <div className="text-[14px] font-[600] text-newTextColor">
+                {extractNameFromEmailAndCapitalize(comment.user?.email || '')}
               </div>
-              <div className="flex-1">
-                <CommentBox
-                  type="input"
-                  onChange={addChildrenComment(comment)}
-                />
-              </div>
+              <pre className="text-wrap font-sans text-[14px] text-newTextColor/80">
+                {comment.content}
+              </pre>
             </div>
-          </Fragment>
+          </div>
         ))}
         <CommentBox type="textarea" onChange={addComment} />
       </div>

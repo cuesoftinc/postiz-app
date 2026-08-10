@@ -79,6 +79,16 @@ export class PostsController {
     return this._postsService.createComment(org.id, user.id, id, body.comment);
   }
 
+  @Get('/:id/comments')
+  async getComments(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string
+  ) {
+    return {
+      comments: await this._postsService.getCommentsWithUser(org.id, id),
+    };
+  }
+
   @Get('/tags')
   async getTags(@GetOrgFromRequest() org: Organization) {
     return { tags: await this._postsService.getTags(org.id) };

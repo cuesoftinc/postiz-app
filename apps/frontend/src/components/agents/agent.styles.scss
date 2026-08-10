@@ -1,0 +1,49 @@
+/* Agents-page-scoped overrides (Buffer parity r1). Imported by
+   agent.chat.tsx. Two scopes:
+
+   - `.agent`       — the CopilotKit chat surface (classes CopilotKit owns);
+                      complements the `.agent` block in app/global.scss.
+   - `.agent-scope` — the shared Insert-Media chip row that MediaPortal mounts
+                      from media.component.tsx (the composer's file — NOT
+                      edited). Selectors are keyed on the row's current legacy
+                      utility classes on purpose: if the composer's toolbar is
+                      restyled at the source, these stop matching and the page
+                      inherits the new styling instead of double-applying. */
+
+.agent {
+  /* CopilotKit ships its own ui-sans-serif/system stack — everything else on
+     the page is Inter */
+  .copilotKitChat {
+    font-family: inherit;
+  }
+
+  /* default input: r20 (off the 6/8/12/999 radius scale) with a hard-coded
+     rgb(200,200,200) border */
+  .copilotKitInput {
+    border-radius: 12px;
+    border: 1px solid var(--new-table-border);
+  }
+
+  /* default bubble: r15; bg/ink now come from the
+     --copilot-kit-primary/contrast pair set in agent.chat.tsx */
+  .copilotKitUserMessage {
+    border-radius: 12px;
+  }
+}
+
+/* Insert-Media / Design-Media chips: h-30 r6 grey bg-newColColor with
+   11px/600 labels -> 32px r8 hairline white chip, 14px/500 label (S4).
+   Glyphs stay the legacy SVGs — swapping them means editing the composer. */
+.agent-scope .b2 {
+  .h-\[30px\].rounded-\[6px\] {
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--new-table-border);
+    background: var(--new-bgColorInner);
+  }
+
+  .text-\[11px\] {
+    font-size: 14px;
+    font-weight: 500;
+  }
+}

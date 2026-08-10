@@ -84,7 +84,9 @@ export const ApiModal: FC<{
             <Input label="API Key" name="api" />
           </div>
           <div>
-            <Button loading={loading} type="submit">
+            {/* modal primary keeps the lime fill; radius joins the 8px scale
+                (!: the shared Button base carries rounded-[6px]) */}
+            <Button loading={loading} type="submit" className="!rounded-[8px]">
               {t('add_integration', 'Add Integration')}
             </Button>
           </div>
@@ -126,7 +128,7 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
   );
 
   return (
-    <div className="grid grid-cols-4 mobile:grid-cols-2 phone:grid-cols-1 gap-[10px] justify-items-center justify-center">
+    <div className="grid grid-cols-4 mobile:grid-cols-2 phone:grid-cols-1 gap-[16px] justify-items-center justify-center">
       {data?.map((p: any) => (
         <div
           onClick={addApiKey(p.title, p.identifier)}
@@ -146,7 +148,16 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
             {p.description}
           </div>
           <div className="w-full flex">
-            <Button className="w-full">Add</Button>
+            {/* quiet 32px hairline secondary — a lime primary on every card
+                was a wall of primaries; green stays reserved for the single
+                page-level CTA (S4). !-overrides beat the Button base's
+                h-[40px]/px-[24px]/rounded-[6px] (precedent: merge.post.tsx) */}
+            <Button
+              secondary={true}
+              className="w-full !h-[32px] !px-[16px] !rounded-[8px] text-[14px] font-[500]"
+            >
+              Add
+            </Button>
           </div>
         </div>
       ))}

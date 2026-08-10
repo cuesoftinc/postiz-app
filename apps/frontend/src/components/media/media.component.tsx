@@ -47,7 +47,6 @@ import {
   InsertMediaIcon,
   DesignMediaIcon,
   VerticalDividerIcon,
-  NoMediaIcon,
 } from '@gitroom/frontend/components/ui/icons';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -63,10 +62,12 @@ export const Pagination: FC<{
   current: number;
   totalPages: number;
   setPage: (num: number) => void;
+  /** Extra classes on the row — e.g. bottom clearance for the fixed admin pill. */
+  className?: string;
 }> = (props) => {
   const t = useT();
 
-  const { current, totalPages, setPage } = props;
+  const { current, totalPages, setPage, className } = props;
 
   const paginationItems = useMemo(() => {
     // Convert to 1-based for algorithm (current is 0-based)
@@ -121,12 +122,17 @@ export const Pagination: FC<{
   }, [current, totalPages]);
 
   return (
-    <ul className="flex flex-row items-center gap-1 justify-center mt-[15px]">
+    <ul
+      className={clsx(
+        'flex flex-row items-center gap-1 justify-center mt-[15px]',
+        className
+      )}
+    >
       <li>
         <PagerButton
           direction="prev"
           disabled={current === 0}
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-[6px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-[36px] px-4 gap-1 ps-2.5 text-textItemBlur hover:text-newTextColor border-newBorder hover:bg-boxHover"
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-[8px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-[32px] px-4 gap-1 ps-2.5 text-textItemBlur hover:text-newTextColor border-newBorder hover:bg-boxHover"
           aria-label="Go to previous page"
           onClick={() => setPage(current - 1)}
         >
@@ -137,7 +143,7 @@ export const Pagination: FC<{
       {paginationItems.map((item, index) => (
         <li key={index}>
           {item === '...' ? (
-            <span className="inline-flex items-center justify-center h-[36px] w-[36px] text-textItemBlur select-none">
+            <span className="inline-flex items-center justify-center h-[32px] w-[32px] text-textItemBlur select-none">
               ...
             </span>
           ) : (
@@ -145,7 +151,7 @@ export const Pagination: FC<{
               active={current === item - 1}
               onClick={() => setPage(item - 1)}
               className={clsx(
-                'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[6px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border hover:bg-boxHover h-[36px] w-[36px] border-newBorder',
+                'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[8px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border hover:bg-boxHover h-[32px] w-[32px] border-newBorder',
                 current === item - 1
                   ? 'bg-newBorder text-newTextColor font-[600]'
                   : 'text-textItemBlur hover:text-newTextColor'
@@ -160,7 +166,7 @@ export const Pagination: FC<{
         <PagerButton
           direction="next"
           disabled={current + 1 === totalPages}
-          className="group inline-flex items-center justify-center whitespace-nowrap rounded-[6px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-[36px] px-4 gap-1 pe-2.5 text-textItemBlur hover:text-newTextColor border-newBorder hover:bg-boxHover"
+          className="group inline-flex items-center justify-center whitespace-nowrap rounded-[8px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-[32px] px-4 gap-1 pe-2.5 text-textItemBlur hover:text-newTextColor border-newBorder hover:bg-boxHover"
           aria-label="Go to next page"
           onClick={() => setPage(current + 1)}
         >
@@ -230,6 +236,7 @@ export const MediaBox: FC<{
   );
   const [selected, setSelected] = useState([]);
   const t = useT();
+  const user = useUser();
   const uploaderRef = useRef<any>(null);
   const mediaDirectory = useMediaDirectory();
   const [loading, setLoading] = useState(false);
@@ -396,16 +403,19 @@ export const MediaBox: FC<{
     [mutate]
   );
 
+  // Quiet upload variant — stays the picker-modal's button ('Add selected
+  // media' is the primary there); the standalone page promotes Upload to the
+  // lime page-level primary in the header below (Buffer parity S4/media §1).
   const btn = useMemo(() => {
     return (
       <button
         disabled={loading}
         onClick={() => uploaderRef?.current?.click()}
-        className="relative cursor-pointer bg-newBgColorInner border border-newTableBorder hover:bg-boxHover changeColor flex gap-[8px] h-[36px] px-[14px] text-[14px] justify-center items-center rounded-[8px]"
+        className="relative cursor-pointer bg-newBgColorInner border border-newTableBorder hover:bg-boxHover changeColor flex gap-[8px] h-[32px] px-[12px] text-[14px] font-[500] justify-center items-center rounded-[8px] transition-colors duration-150"
       >
         {loading ? (
           <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
-            <div className="animate-spin h-[20px] w-[20px] border-4 border-current border-t-transparent rounded-full" />
+            <div className="animate-spin h-[16px] w-[16px] border-2 border-current border-t-transparent rounded-full" />
           </div>
         ) : (
           <PlusIcon size={14} />
@@ -418,6 +428,54 @@ export const MediaBox: FC<{
   return (
     <DropFiles disabled={loading} className="flex flex-col flex-1" onDrop={dragAndDrop}>
       <div className="flex flex-col flex-1">
+        {/* Page header (standalone /media only — the composer's media modal
+            keeps its own modal title): Buffer anatomy = 40px r10 hairline
+            icon chip + 20px/400 display-face title + spacer + the one lime
+            page-level primary. Stays visible on phone (S1). */}
+        {standalone && (
+          <div className="flex items-center gap-[10px] select-none mb-[16px] phone:h-[56px]">
+            <div className="w-[40px] h-[40px] rounded-[10px] border border-newTableBorder flex items-center justify-center text-newTextColor shrink-0">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+            </div>
+            <h1
+              className="font-display text-[20px] font-[400] text-newTextColor truncate min-w-0"
+              data-cs
+            >
+              {t('media', 'Media')}
+            </h1>
+            <div className="flex-1" />
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => uploaderRef?.current?.click()}
+              className="relative cursor-pointer bg-btnPrimary text-black flex gap-[8px] h-[32px] px-[12px] text-[14px] font-[500] justify-center items-center rounded-[8px] transition-colors duration-150 disabled:opacity-50 shrink-0"
+            >
+              {loading ? (
+                <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
+                  <div className="animate-spin h-[16px] w-[16px] border-2 border-current border-t-transparent rounded-full" />
+                </div>
+              ) : (
+                <PlusIcon size={14} />
+              )}
+              <div className={loading ? 'invisible' : undefined}>
+                {t('upload', 'Upload')}
+              </div>
+            </button>
+          </div>
+        )}
         <div
           className={clsx(
             'flex items-center gap-[12px]',
@@ -427,15 +485,16 @@ export const MediaBox: FC<{
               'hidden'
           )}
         >
-          <div className="flex-1">
+          <div className="w-[320px] max-w-full min-w-0 phone:w-full">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('search_media_by_name', 'Search by file name')}
-              className="w-full h-[36px] px-[10px] rounded-[6px] bg-newBgColorInner border border-newTableBorder text-[14px] text-textColor outline-none focus:border-forth"
+              className="w-full h-[32px] px-[10px] rounded-[8px] bg-newBgColorInner border border-newTableBorder text-[14px] text-textColor outline-none focus:border-forth"
             />
           </div>
+          <div className="flex-1" />
           <input
             type="file"
             ref={uploaderRef}
@@ -443,12 +502,21 @@ export const MediaBox: FC<{
             className="hidden"
             multiple={true}
           />
-          <div className="flex gap-[8px]">
-            {btn}
+          <div className="flex gap-[8px] shrink-0">
+            {!standalone && btn}
             <ThirdPartyMediaLibrary onImported={() => mutate()} />
           </div>
         </div>
-        <div className="w-full pointer-events-none relative mt-[5px] mb-[5px]">
+        {/* Uppy progress strip only occupies space while an upload runs —
+            idle it reserved ~60px of dead space between search and grid
+            (Buffer parity, media §2). Kept mounted (hidden) so Uppy's
+            Dashboard stays bound to the uploader instance. */}
+        <div
+          className={clsx(
+            'w-full pointer-events-none relative mt-[5px] mb-[5px]',
+            !loading && 'hidden'
+          )}
+        >
           <div className="w-full h-[46px] overflow-hidden absolute left-0 bg-newBgColorInner uppyChange">
             <Dashboard
               height={46}
@@ -466,7 +534,7 @@ export const MediaBox: FC<{
         </div>
         <div
           className={clsx(
-            'flex-1 relative',
+            'flex-1 relative mt-[16px]',
             !isLoading &&
               !data?.results?.length &&
               'bg-newTextColor/[0.02] rounded-[12px]'
@@ -481,7 +549,27 @@ export const MediaBox: FC<{
             {!isLoading && !data?.results?.length && (
               <EmptyState
                 variant="hero"
-                icon={<NoMediaIcon />}
+                icon={
+                  /* Buffer empty-state pattern (S2): 64px muted circle
+                     wrapping a 24px stroke image glyph — replaces the
+                     old-Postiz violet NoMediaIcon illustration. */
+                  <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                      <circle cx="9" cy="9" r="2" />
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
+                  </div>
+                }
                 title={
                   debouncedSearch
                     ? t(
@@ -519,11 +607,11 @@ export const MediaBox: FC<{
                 {[...new Array(16)].map((_, i) => (
                   <div
                     className={clsx(
-                      'p-[8px] float-left rounded-[6px] cursor-pointer w8-max aspect-square'
+                      'p-[8px] float-left rounded-[8px] cursor-pointer w8-max aspect-square'
                     )}
                     key={i}
                   >
-                    <div className="w-full h-full bg-newSep rounded-[6px] animate-pulse" />
+                    <div className="w-full h-full bg-newSep rounded-[8px] animate-pulse" />
                   </div>
                 ))}
               </>
@@ -540,14 +628,14 @@ export const MediaBox: FC<{
               .map((media: any) => (
                 <div
                   className={clsx(
-                    'group p-[8px] float-left rounded-[6px] w8-max aspect-square',
+                    'group p-[8px] float-left rounded-[8px] w8-max aspect-square',
                     !standalone && 'cursor-pointer'
                   )}
                   key={media.id}
                 >
                   <div
                     className={clsx(
-                      'w-full h-full rounded-[6px] border-[4px] relative',
+                      'w-full h-full rounded-[8px] border-[4px] relative',
                       !!selected.find((p) => p.id === media.id)
                         ? 'border-forth'
                         : 'border-transparent'
@@ -564,14 +652,16 @@ export const MediaBox: FC<{
                         onClick={deleteImage(media)}
                       />
                     )}
-                    <div className="absolute bottom-[10px] end-[10px] z-[100] text-[10px] text-white bg-black/50 px-[4px] rounded truncate max-w-[90%]">
+                    {/* filename badge: hover-only (Buffer never stamps
+                        permanent text over thumbnails), 12px type floor */}
+                    <div className="hidden group-hover:block absolute bottom-[10px] end-[10px] z-[100] text-[12px] text-white bg-black/50 px-[6px] rounded-[6px] truncate max-w-[90%]">
                       {media.originalName}
                     </div>
-                    <div className="w-full h-full rounded-[6px] overflow-hidden relative">
+                    <div className="w-full h-full rounded-[8px] overflow-hidden relative">
                       <div className="absolute z-[20] left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
                         <div
                           onClick={maximize(media)}
-                          className="cursor-pointer p-[4px] bg-black/40 hidden group-hover:block hover:scale-150 transition-all"
+                          className="cursor-pointer w-[32px] h-[32px] rounded-[8px] bg-black/50 hidden group-hover:flex items-center justify-center transition-colors duration-150 hover:bg-black/70"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -614,6 +704,13 @@ export const MediaBox: FC<{
             current={page}
             totalPages={data?.pages}
             setPage={setPage}
+            // standalone page: clear the fixed bottom-center admin pill
+            // (fixed bottom-[16px] z-[600]) so it never covers the pager (S6)
+            className={
+              // `admin` is an API-only field (same untyped check gates the
+              // pill render in new-layout/layout.component.tsx:86)
+              standalone && (user as any)?.admin ? 'mb-[56px]' : undefined
+            }
           />
         )}
         {!standalone && (

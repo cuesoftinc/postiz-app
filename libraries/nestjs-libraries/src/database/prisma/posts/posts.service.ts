@@ -1147,6 +1147,10 @@ export class PostsService {
     return this._postRepository.getComments(postId);
   }
 
+  getCommentsWithUser(orgId: string, postId: string) {
+    return this._postRepository.getCommentsWithUser(orgId, postId);
+  }
+
   getTags(orgId: string) {
     return this._postRepository.getTags(orgId);
   }

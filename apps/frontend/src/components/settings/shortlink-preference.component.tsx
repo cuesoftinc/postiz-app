@@ -73,10 +73,14 @@ const ShortlinkPreferenceComponent = () => {
 
   return (
     <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
-      <div className="text-[15px] font-[600]">
+      {/* Buffer section H2s measure 16/550 (round-1 addendum) */}
+      <div className="text-[16px] font-[550]">
         {t('shortlink_settings', 'Shortlink Settings')}
       </div>
-      <div className="flex items-center justify-between gap-[24px]">
+      {/* phone: Buffer stacks settings rows — label + description full
+          width, control on its own line (the side-by-side layout squeezed
+          the description to ~45% width at 390) */}
+      <div className="flex items-center justify-between gap-[24px] phone:flex-col phone:items-stretch phone:gap-[8px]">
         <div className="flex flex-col flex-1">
           <div className="text-[14px] font-[500]">
             {t('shortlink_preference', 'Shortlink Preference')}
@@ -88,7 +92,7 @@ const ShortlinkPreferenceComponent = () => {
             )}
           </div>
         </div>
-        <div className="w-[200px]">
+        <div className="w-[200px] phone:w-full">
           <Select
             name="shortlink"
             label=""

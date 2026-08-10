@@ -854,6 +854,27 @@ export class PostsRepository {
     });
   }
 
+  async getCommentsWithUser(orgId: string, postId: string) {
+    return this._comments.model.comments.findMany({
+      where: {
+        postId,
+        organizationId: orgId,
+        deletedAt: null,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
   async getTags(orgId: string) {
     return this._tags.model.tags.findMany({
       where: {

@@ -38,12 +38,20 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { ExistingDataContextProvider } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import clsx from 'clsx';
+import './agent.styles.scss';
 
 export const AgentChat: FC = () => {
   const { backendUrl } = useVariables();
   const params = useParams<{ id: string }>();
   const { properties } = useContext(PropertiesContext);
   const t = useT();
+  const user = useUser();
+  // `admin` rides on /user/self and survives ContextWrapper's spread, but the
+  // context type only declares the Prisma columns — same reason
+  // layout.component.tsx reads it off the raw SWR value
+  const isAdmin = !!(user as any)?.admin;
 
   return (
     <CopilotKit
@@ -61,26 +69,51 @@ export const AgentChat: FC = () => {
       <div
         style={
           {
-            '--copilot-kit-primary-color': 'var(--new-btn-text)',
-            '--copilot-kit-background-color': 'var(--new-bg-color)',
+            // full CopilotKit token set mapped to the system tokens. User
+            // bubble = boxFocused (lime wash) + textItemFocused ink — an
+            // explicit pair, so CopilotKit's own prefers-color-scheme
+            // contrast guess never applies. background-color previously
+            // pointed at --new-bg-color, a token that does not exist
+            // (--new-bgColor is the real name) and resolved to nothing.
+            '--copilot-kit-primary-color': 'var(--new-boxFocused)',
+            '--copilot-kit-contrast-color': 'var(--new-textItemFocused)',
+            '--copilot-kit-background-color': 'var(--new-bgColorInner)',
+            '--copilot-kit-input-background-color': 'var(--new-bgColorInner)',
+            '--copilot-kit-secondary-color': 'var(--new-table-header)',
+            '--copilot-kit-secondary-contrast-color':
+              'rgb(var(--new-textColor))',
+            '--copilot-kit-separator-color': 'var(--new-table-border)',
+            '--copilot-kit-muted-color': 'var(--new-textItemBlur)',
           } as CopilotKitCSSProperties
         }
-        className="trz agent bg-newBgColorInner flex flex-col gap-[15px] transition-all flex-1 items-center relative"
+        // phone: the absolute pane contributes zero height once the page
+        // stacks — the min-height here is what keeps the chat usable at 390
+        className="trz agent bg-newBgColorInner flex flex-col gap-[15px] transition-all flex-1 items-center relative phone:min-h-[65dvh]"
       >
-        <div className="absolute left-0 w-full h-full pb-[20px]">
+        {/* admin: the fixed bottom-center admin pill needs dead space under
+            the input (S6) */}
+        <div
+          className={clsx(
+            'absolute left-0 w-full h-full',
+            isAdmin ? 'pb-[56px]' : 'pb-[20px]'
+          )}
+        >
           <CopilotChat
             className="w-full h-full"
             labels={{
               title: t('your_assistant', 'Your Assistant'),
-              initial: t('agent_welcome_message', `Hello, I am your Postiz agent 🙌🏻.
-              
-I can schedule a post or multiple posts to multiple channels and generate pictures and videos.
+              // new key: 'agent_welcome_message' is pinned to the old Postiz
+              // copy in every locale's translation.json — a fresh key falls
+              // back to this string
+              initial: t('cuesoft_agent_welcome_message', `Hello, I am your Cuesoft agent 🙌🏻.
 
-You can select the channels you want to use from the left menu.
+I can schedule one post or many across your channels, and generate pictures and videos to go with them.
 
-You can see your previous conversations from the right menu.
+Pick the channels you want to post to from the bar above.
 
-You can also use me as an MCP Server, check Settings >> Public API
+Your previous conversations live in the panel on the right.
+
+You can also use me as an MCP server — see Settings > Public API.
 `),
             }}
             UserMessage={Message}

@@ -971,8 +971,11 @@ export const PageHeader: FC = () => {
   }, []);
 
   return (
-    <div className="flex items-center gap-[10px] select-none">
-      <div className="w-[40px] h-[40px] rounded-[10px] border border-newTableBorder flex items-center justify-center text-newTextColor shrink-0">
+    <div data-cs className="flex items-center gap-[10px] h-[48px] shrink-0 select-none">
+      <div
+        data-cs
+        className="w-[40px] h-[40px] rounded-[10px] border border-newTableBorder flex items-center justify-center text-newTextColor shrink-0"
+      >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M10 6.5C10 8.433 8.433 10 6.5 10C4.567 10 3 8.433 3 6.5C3 4.567 4.567 3 6.5 3C8.433 3 10 4.567 10 6.5Z" />
           <path d="M21 6.5C21 8.433 19.433 10 17.5 10C15.567 10 14 8.433 14 6.5C14 4.567 15.567 3 17.5 3C19.433 3 21 4.567 21 6.5Z" />
@@ -1284,6 +1287,8 @@ export const Filters = () => {
     <div
       className={clsx(
         'text-textColor flex flex-col !flex-row flex-wrap gap-[8px] items-center select-none',
+        // Buffer's toolbar is a 48px band (32px controls centered in it)
+        !isListView && 'min-h-[48px]',
         // Buffer's list tabs sit on a full-width hairline track
         isListView && 'border-b border-newTableBorder pb-[0px]'
       )}

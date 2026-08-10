@@ -175,10 +175,19 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           The utility cluster (bell, theme, language, extension,
                           feedback, org switch) moved into the sidebar footer so
                           it stays reachable on phone too (the sidebar renders
-                          inside the drawer). /launches carries its own page
-                          header, so the bar would be an empty strip there —
-                          hidden; every other route keeps it for the Title. */}
-                      {!(pathname || '').startsWith('/launches') && (
+                          inside the drawer). /launches and /third-party carry
+                          their own page headers, and on /settings the settings
+                          rail carries the title — the bar would be an empty
+                          duplicate strip on those routes, so they are excluded;
+                          every other route keeps it for the Title. */}
+                      {![
+                        '/launches',
+                        '/settings',
+                        '/third-party',
+                        '/analytics',
+                        '/agents',
+                        '/media',
+                      ].some((p) => (pathname || '').startsWith(p)) && (
                         <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center phone:hidden">
                           {/* page title: display face 20px/400 (spec §Page
                               header) — the ladder rescales text-[24px] to 20px */}

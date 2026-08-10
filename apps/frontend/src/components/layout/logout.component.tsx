@@ -48,7 +48,7 @@ export const LogoutComponent: FC<{ isIcon?: boolean }> = ({ isIcon }) => {
             data-tooltip-id="tooltip"
             data-tooltip-content={`
             ${t('logout_from', 'Logout from')}${' '}
-            ${isGeneral ? ' Postiz' : ' Gitroom'}
+            ${isGeneral ? ' Cuesoft' : ' Gitroom'}
             `}
           >
             <path d="m16 17 5-5-5-5" />
@@ -58,7 +58,7 @@ export const LogoutComponent: FC<{ isIcon?: boolean }> = ({ isIcon }) => {
         ) : (
           <span className="text-red-400">
             {t('logout_from', 'Logout from')}
-            {isGeneral ? ' Postiz' : ' Gitroom'}
+            {isGeneral ? ' Cuesoft' : ' Gitroom'}
           </span>
         )}
       </div>

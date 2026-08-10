@@ -640,7 +640,12 @@ export const LaunchesComponent = () => {
             {channelManagement}
           </div>
         </div>
-        <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
+        {/* Buffer page-pane rhythm (measured): 24px top / 32px side insets,
+            8px between title row, toolbar and grid */}
+        <div
+          data-cs
+          className="bg-newBgColorInner flex-1 flex-col flex pt-[24px] px-[32px] pb-[20px] gap-[8px] phone:pt-[12px] phone:px-[12px]"
+        >
           {/* hidden mount: NewPost owns the ?newPost=1 consumption effect that
               opens the composer (header button + sidebar pill both deep-link) */}
           <span className="hidden">

@@ -91,6 +91,8 @@ module.exports = {
         ai: 'var(--new-ai-btn)',
         boxHover: 'var(--new-box-hover)',
         newTableBorder: 'var(--new-table-border)',
+        // calendar grid lines — Buffer draws these darker than card hairlines
+        newGridLine: 'var(--new-grid-line)',
         newTableHeader: 'var(--new-table-header)',
         newTableText: 'var(--new-table-text)',
         newTableTextFocused: 'var(--new-table-text-focused)',
@@ -122,10 +124,11 @@ module.exports = {
         loginBg: 'url(/auth/bg-login.png)',
       },
       fontFamily: {
-        // Buffer replica: Inter body (their literal body font), Outfit for
-        // display (closest free face to their Stolzl titles)
+        // Buffer replica: Inter body (their literal body font), Plus Jakarta
+        // Sans for display (closest free face to their Stolzl titles —
+        // geometric grotesque, double-story a; Outfit read too round)
         sans: ['var(--font-inter)', 'Inter', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['var(--font-outfit)', 'Outfit', 'var(--font-inter)', 'sans-serif'],
+        display: ['var(--font-jakarta)', 'Plus Jakarta Sans', 'var(--font-inter)', 'sans-serif'],
       },
       animation: {
         fade: 'fadeOut 0.5s ease-in-out',

@@ -1,9 +1,10 @@
 'use client';
 
 import useSWR from 'swr';
-import { useCallback, useMemo, useState } from 'react';
+import { FC, useCallback, useMemo, useState } from 'react';
 import { capitalize, orderBy } from 'lodash';
 import clsx from 'clsx';
+import dayjs from 'dayjs';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { RenderAnalytics } from '@gitroom/frontend/components/platform-analytics/render.analytics';
 import { Button } from '@gitroom/react/form/button';
@@ -31,6 +32,52 @@ const allowedIntegrations = [
   'threads',
   'x',
 ];
+
+/** Buffer Insights bar-chart glyph — shared by the page-header chip (20px)
+    and the no-channels empty state (24px). vb24, stroke 2.2, round caps. */
+const BarChartGlyph: FC<{ size: number }> = ({ size }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+    <path d="M8 17v-3" />
+    <path d="M13 17V9" />
+    <path d="M18 17V5" />
+  </svg>
+);
+
+/** S1 page header, cloned from the /launches pattern (filters.tsx):
+    [40px r10 hairline icon chip w/ 20px glyph][h1 display 20/400][flex-1].
+    No right-side actions — Postiz has no Export, so none is invented.
+    data-cs on the chip keeps the ladder from squashing h-[40px] to 32 and
+    rounded-[10px] to 8. Rendered twice: a desktop copy inside the content
+    pane (phone:hidden) and a 56px phone row above the channel strip (the
+    generic layout Title bar is phone:hidden, so 390 had no title at all). */
+const AnalyticsHeaderRow: FC<{ title: string }> = ({ title }) => (
+  <div className="flex w-full items-center gap-[10px] select-none min-w-0">
+    <div
+      data-cs
+      className="w-[40px] h-[40px] rounded-[10px] border border-newTableBorder flex items-center justify-center text-newTextColor shrink-0"
+    >
+      <BarChartGlyph size={20} />
+    </div>
+    <h1
+      className="font-display text-[20px] font-[400] text-newTextColor truncate min-w-0"
+      data-cs
+    >
+      {title}
+    </h1>
+    <div className="flex-1" />
+  </div>
+);
+
 export const PlatformAnalytics = () => {
   const fetch = useFetch();
   const t = useT();
@@ -39,6 +86,7 @@ export const PlatformAnalytics = () => {
   const { disableXAnalytics } = useVariables();
 
   const [key, setKey] = useState(7);
+  const [rangeSheetOpen, setRangeSheetOpen] = useState(false);
   const { collapsed, toggle } = useSidePanelCollapse();
   const toaster = useToaster();
   const load = useCallback(async () => {
@@ -143,9 +191,23 @@ export const PlatformAnalytics = () => {
     return options[0]?.key;
   }, [key, currentIntegration]);
 
+  // Buffer's Summary subline shows the concrete range ("Jul 12 - Aug 10,
+  // 2026"), not an echo of the selected chip. No "Compared to" — there is no
+  // comparison data in the API.
+  const dateRangeLabel = useMemo(() => {
+    if (!keys) {
+      return '';
+    }
+    return `${dayjs().subtract(keys, 'day').format('MMM D')} – ${dayjs().format(
+      'MMM D, YYYY'
+    )}`;
+  }, [keys]);
+
+  const pageTitle = t('analytics', 'Insights');
+
   if (isLoading) {
     return (
-      <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] transition-all items-center justify-center">
+      <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] items-center justify-center">
         <LoadingComponent />
       </div>
     );
@@ -153,36 +215,59 @@ export const PlatformAnalytics = () => {
 
   if (!sortedIntegrations.length && !isLoading) {
     return (
-      <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] transition-all items-center justify-center">
-        <EmptyState
-          variant="hero"
-          image={<img src="/peoplemarketplace.svg" />}
-          title={t('can_t_show_analytics_yet', "Can't show insights yet")}
-          description={
-            <>
-              {t(
-                'you_have_to_add_social_media_channels',
-                'You have to add Social Media channels'
-              )}
-              <br />
-              {t('supported', 'Supported:')}{' '}
-              {allowedIntegrations.map((p) => capitalize(p)).join(', ')}
-            </>
-          }
-          action={
-            <Button onClick={() => router.push('/launches')}>
-              {t(
-                'go_to_the_calendar_to_add_channels',
-                'Go to Publish to connect channels'
-              )}
-            </Button>
-          }
-        />
-      </div>
+      <>
+        {/* S1 phone header — 56px title row (the generic layout bar is
+            phone:hidden, so this is the page's only title at 390) */}
+        <div className="hidden phone:flex bg-newBgColorInner h-[56px] px-[12px] items-center shrink-0">
+          <AnalyticsHeaderRow title={pageTitle} />
+        </div>
+        <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[12px]">
+          <div className="phone:hidden">
+            <AnalyticsHeaderRow title={pageTitle} />
+          </div>
+          <div className="flex flex-1 flex-col items-center justify-center">
+            {/* S2 empty state: 64px muted circle + 24px stroke glyph instead
+                of the old /peoplemarketplace.svg marketing illustration */}
+            <EmptyState
+              variant="hero"
+              image={
+                <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60">
+                  <BarChartGlyph size={24} />
+                </div>
+              }
+              title={t('can_t_show_analytics_yet', "Can't show insights yet")}
+              description={
+                <>
+                  {t(
+                    'you_have_to_add_social_media_channels',
+                    'You have to add Social Media channels'
+                  )}
+                  <br />
+                  {t('supported', 'Supported:')}{' '}
+                  {allowedIntegrations.map((p) => capitalize(p)).join(', ')}
+                </>
+              }
+              action={
+                <Button onClick={() => router.push('/launches')}>
+                  {t(
+                    'go_to_the_calendar_to_add_channels',
+                    'Go to Publish to connect channels'
+                  )}
+                </Button>
+              }
+            />
+          </div>
+        </div>
+      </>
     );
   }
   return (
     <>
+      {/* S1 phone header — sits above the channel strip, mirroring Buffer's
+          390 order: app bar → title row → selector → content */}
+      <div className="hidden phone:flex bg-newBgColorInner h-[56px] px-[12px] items-center shrink-0">
+        <AnalyticsHeaderRow title={pageTitle} />
+      </div>
       {/* Buffer has no second channel panel on desktop — the global sidebar's
           channel rows drive selection via /analytics?integration=<id>. Phones
           have no sidebar, so this strip stays as the phone-only selector (the
@@ -218,61 +303,157 @@ export const PlatformAnalytics = () => {
                 );
               }}
               dimmed={currentIntegration.id !== integration.id}
+              // S5: Buffer never ghosts controls. ChannelRow's dimmed state is
+              // opacity-20 (near-invisible chips on the phone strip); the
+              // phone: variant is emitted after the base utility so it wins
+              // at 390 and lifts unselected chips to a legible .55. The
+              // SELECTED chip is marked with an ink border instead of pure
+              // opacity contrast (! beats global.scss's hard-coded
+              // rgba(128,128,128,.32) chip border). This strip is
+              // hidden phone:flex, so neither class ever acts on desktop.
+              className={
+                currentIntegration.id !== integration.id
+                  ? 'phone:opacity-[0.55]'
+                  : 'phone:!border-newTextColor'
+              }
             />
           ))}
         </div>
       </div>
       <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
+        {/* S1 desktop header (the phone copy renders above the strip) */}
+        <div className="phone:hidden">
+          <AnalyticsHeaderRow title={pageTitle} />
+        </div>
         {!!options.length && (
           <div className="flex-1 flex flex-col gap-[14px]">
-            {/* Buffer Insights date-range chip row: active = green chip
-                (boxFocused/textItemFocused mirrors on both themes), inactive =
-                hairline chip, muted text, white-alpha hover fill. Same setter
-                (setKey) + same option keys the old ToolbarSelect drove — the
-                option set is the existing bounded 7/30/90 per-platform list. */}
-            <div className="flex flex-wrap items-center gap-[8px]">
-              {options.map((option) => (
-                <button
-                  key={option.key}
-                  type="button"
-                  onClick={() => setKey(option.key)}
-                  className={clsx(
-                    'h-[32px] px-[14px] rounded-[8px] border text-[14px] whitespace-nowrap cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
-                    keys === option.key
-                      ? 'bg-boxFocused text-textItemFocused border-transparent font-[500]'
-                      : 'text-textItemBlur border-newTableBorder hover:bg-newTableBorder'
-                  )}
-                >
-                  {option.value}
-                </button>
-              ))}
-            </div>
-            {/* Buffer Insights "Summary" section header: title 18/600 (data-cs
-                keeps the ladder from forcing 18 -> 16, same as the composer
-                title) + muted 14px date-range line from the existing selected
-                option — no computed dates, no compared-to (no such data). */}
-            <div className="flex flex-col gap-[2px]">
-              <div data-cs className="text-[18px] font-display font-[600]">
-                {t('summary', 'Summary')}
+            {/* Buffer Insights toolbar: ONE white hairline container (32px,
+                r8, 4px padding) holding 24px r6 radio segments — lowercase
+                labels, active = green-tint fill, inactive borderless muted —
+                separated from content by a full-width hairline. Same setter
+                (setKey) + same bounded 7/30/90 per-platform option list the
+                old chips drove. */}
+            <div className="flex items-center border-b border-newTableBorder pb-[12px]">
+              <div
+                data-cs
+                className="phone:hidden inline-flex items-center h-[32px] p-[4px] gap-[2px] rounded-[8px] border border-newTableBorder bg-newBgColorInner"
+              >
+                {options.map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setKey(option.key)}
+                    className={clsx(
+                      'h-[24px] px-[10px] rounded-[6px] text-[14px] font-[500] lowercase whitespace-nowrap cursor-pointer transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
+                      keys === option.key
+                        ? 'bg-boxFocused text-textItemFocused'
+                        : 'text-textItemBlur hover:bg-boxHover'
+                    )}
+                  >
+                    {option.value}
+                  </button>
+                ))}
               </div>
-              <div className="text-[14px] text-textItemBlur">
+              {/* Buffer 390 collapses the picker to a single bordered
+                  "30 days ▾" trigger opening a bottom sheet */}
+              <button
+                type="button"
+                data-cs
+                onClick={() => setRangeSheetOpen(true)}
+                className="hidden phone:inline-flex items-center gap-[8px] h-[40px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[14px] font-[500] lowercase text-newTextColor"
+              >
                 {options.find((option) => option.key === keys)?.value}
-              </div>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-newTextColor/60"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
             </div>
-            <div className="flex-1">
-              {/* key remounts the analytics on channel change — replaces the
-                  old setRefresh(true)/setTimeout unmount trick. */}
-              {!!keys && !!currentIntegration && (
-                <RenderAnalytics
-                  key={currentIntegration.id}
-                  integration={currentIntegration}
-                  date={keys}
-                />
-              )}
+            {/* Buffer wraps each Insights block in a warm-grey SECTION (r12,
+                tiles inset 8px, title inset 16px) with the header INSIDE:
+                "Summary" 16/600 body face + muted concrete date range. */}
+            <div className="bg-newTableHeader rounded-[12px] p-[8px] flex flex-col gap-[12px]">
+              <div className="flex flex-col gap-[2px] px-[8px] pt-[8px]">
+                <div className="text-[16px] font-[600]">
+                  {t('summary', 'Summary')}
+                </div>
+                <div className="text-[14px] text-newTextColor/60">
+                  {dateRangeLabel}
+                </div>
+              </div>
+              <div className="flex-1">
+                {/* key remounts the analytics on channel change — replaces the
+                    old setRefresh(true)/setTimeout unmount trick. */}
+                {!!keys && !!currentIntegration && (
+                  <RenderAnalytics
+                    key={currentIntegration.id}
+                    integration={currentIntegration}
+                    date={keys}
+                  />
+                )}
+              </div>
             </div>
           </div>
         )}
       </div>
+      {/* Phone date-range bottom sheet — same shell as the launches filter
+          sheet (scrim, rounded top, drag handle), rows w/ check LEFT of the
+          selected option per the spec's select-menu anatomy. */}
+      {rangeSheetOpen && (
+        <div
+          // h-[100dvh]: in this stack a fixed inset-0 box refuses to stretch
+          // between insets (verified live on the launches sheet) — explicit
+          // viewport height is what actually pins the scrim over the page
+          className="hidden phone:flex fixed inset-0 h-[100dvh] w-full z-[650] bg-black/50 items-end"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setRangeSheetOpen(false);
+          }}
+        >
+          <div className="w-full bg-newBgColorInner rounded-t-[16px] px-[8px] pb-[20px] max-h-[70vh] overflow-y-auto">
+            <div className="w-[36px] h-[4px] rounded-full bg-newTextColor/20 mx-auto my-[10px]" />
+            <div className="flex flex-col gap-[2px]">
+              {options.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => {
+                    setKey(option.key);
+                    setRangeSheetOpen(false);
+                  }}
+                  className="flex items-center gap-[10px] w-full h-[44px] px-[12px] rounded-[8px] text-[14px] font-[500] lowercase text-newTextColor hover:bg-boxHover text-start"
+                >
+                  <span className="w-[16px] flex items-center justify-center shrink-0">
+                    {keys === option.key && (
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    )}
+                  </span>
+                  {option.value}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

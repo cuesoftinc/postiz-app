@@ -501,7 +501,7 @@ export const WeekView = () => {
       <div className="flex-1 relative">
         <div
           ref={scrollRef}
-          className="grid gap-[1px] bg-newTableBorder border border-newTableBorder rounded-[12px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
+          className="grid gap-[1px] bg-newGridLine border border-newGridLine rounded-[12px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
           style={{
             gridTemplateColumns: isPhone
               ? `48px repeat(${visibleDays.length}, minmax(0, 1fr))`
@@ -621,12 +621,37 @@ export const MonthView = () => {
     return calendarDays;
   }, [startDate]);
 
+  // Buffer opens the month scrolled so today's week row sits at the top
+  // (measured scrollTop 407 = two 205px rows + gaps behind the sticky
+  // header). Only on mount, and only when the grid contains today.
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el || el.scrollTop !== 0 || !calendarDays.length) return;
+    const idx = calendarDays.findIndex(({ day }) =>
+      day.isSame(newDayjs(), 'day')
+    );
+    if (idx < 7) return; // today absent or already in the first row
+    const row = Math.floor(idx / 7);
+    const cell = el.children[7 + row * 7] as HTMLElement | undefined;
+    if (cell) {
+      // 37 = sticky weekday header (36px) + 1px grid gap
+      el.scrollTop = Math.max(0, cell.offsetTop - 37);
+    }
+  }, [calendarDays]);
+
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
         {/* Buffer rounds the grid corners at 12px (border-separate table w/
             per-corner cell radii — measured 12px 0 0 on the first cell) */}
-        <div className="grid grid-cols-7 grid-rows-[36px] [grid-auto-rows:minmax(205px,auto)] gap-[1px] bg-newTableBorder border border-newTableBorder rounded-[12px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+        <div
+          ref={gridRef}
+          // implicit rows stay `auto` — Chrome pins minmax(205px, auto)
+          // tracks at the minimum and never grows them with content (verified
+          // live); the 205px floor lives on each cell's min-h instead
+          className="grid grid-cols-7 grid-rows-[36px] gap-[1px] bg-newGridLine border border-newGridLine rounded-[12px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
+        >
           {localizedDays.map((day) => (
             <div
               key={day}
@@ -638,9 +663,16 @@ export const MonthView = () => {
             </div>
           ))}
           {calendarDays.map((date, index) => (
+            // items-stretch (not center) — when a day expands, the row track
+            // grows and every cell in the row stretches with it (Buffer:
+            // rows measured 205 -> 319 in flow); centering makes a taller
+            // cell overflow both edges and float over adjacent rows
+            // no min-height HERE: Chrome swaps a grid item's min-height in
+            // for its content contribution, pinning the auto row at 205 even
+            // when the day inside is taller — the floor lives on the day view
             <div
               key={index}
-              className="text-center items-center justify-center flex bg-newBgColorInner"
+              className="flex flex-col min-w-0 bg-newBgColorInner"
             >
               <CalendarColumn
                 getDate={newDayjs(date.day).endOf('day')}
@@ -691,7 +723,9 @@ export const ListView = () => {
         classNames: {
           modal: 'w-[100%] max-w-[600px]',
         },
-        children: <CommentComponent date={dayjs.utc(post.publishDate)} />,
+        children: (
+          <CommentComponent postId={post.id} date={dayjs.utc(post.publishDate)} />
+        ),
       });
     },
     [modal]
@@ -1139,18 +1173,23 @@ export const CalendarColumn: FC<{
 
   const addProvider = useAddProvider();
   const isToday = getDate.isSame(newDayjs(), 'day');
-  const isWeekend = getDate.day() === 0 || getDate.day() === 6;
   const isOtherMonth = !!monthLabel && monthLabel !== 'current-month';
   return (
     <div
       className={clsx(
-        'flex flex-col w-full min-h-full relative',
-        isBeforeNow && 'repeated-strip',
+        'flex flex-col w-full relative group/cell',
+        // month: `grow` (basis auto) — fills the cell when short AND lets
+        // tall content grow the grid track (a % min-height cycles against
+        // the track and pins it at 205px); the 205px row floor lives here
+        // too. Week/day cells are block parents where only min-h-full fills
+        display === 'month' ? 'grow min-h-[205px]' : 'min-h-full',
+        display === 'month' && isBeforeNow && 'repeated-strip',
         loading && 'animate-pulse',
-        // Buffer tint model: weekend columns, other-month days and past cells
-        // washed; today/future current-month weekday cells flat white
+        // Buffer tint model (user-verified): the past wash is MONTH-only —
+        // week hour cells stay white even in the past, and future weekends /
+        // other-month days are flat white too
         display !== 'day' &&
-          (isBeforeNow || isWeekend || isOtherMonth
+          (display === 'month' && isBeforeNow
             ? 'bg-newTableHeader'
             : 'bg-newBgColorInner'),
         display === 'day' &&
@@ -1161,13 +1200,13 @@ export const CalendarColumn: FC<{
       ref={drop as any}
     >
       {display === 'month' && (
-        <div className="pt-[6px] px-[8px] text-[14px] text-start flex items-center">
+        <div className="pt-[6px] px-[8px] text-[14px] font-[500] text-start flex items-center">
           {/* Buffer three-tone day numbers; today = filled circle (their green
               -> our lime; the global primary-surface rule paints black ink) */}
           <span
             className={clsx(
               isToday
-                ? 'w-[24px] h-[24px] -ms-[4px] rounded-full bg-btnPrimary text-black flex items-center justify-center'
+                ? 'w-[24px] h-[24px] -ms-[4px] rounded-full bg-[#b7eb9d] text-[#292928] flex items-center justify-center'
                 : isOtherMonth
                 ? 'text-newTextColor/40'
                 : isBeforeNow
@@ -1179,6 +1218,29 @@ export const CalendarColumn: FC<{
           </span>
         </div>
       )}
+      {display !== 'day' && !isBeforeNow && (
+        // Buffer's add affordance: a small hairline '+' square pinned to the
+        // cell's top-right, visible only while the cell is hovered
+        <div
+          onClick={integrations.length ? addModal : addProvider}
+          className="absolute top-[6px] end-[6px] z-[30] w-[24px] h-[24px] rounded-[6px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center cursor-pointer opacity-0 pointer-events-none group-hover/cell:opacity-100 group-hover/cell:pointer-events-auto transition-opacity duration-150"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            className="text-newTextColor/60"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+          </svg>
+        </div>
+      )}
       <div
         className={clsx(
           'relative flex flex-col flex-1 rounded-[8px]',
@@ -1188,7 +1250,10 @@ export const CalendarColumn: FC<{
       >
         <div
           className={clsx(
-            'flex-col text-[12px] pointer w-full flex scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
+            // no scrollbar utilities here — they set overflow on the cell's
+            // post list, which capped the cell at the 205px track and made
+            // expanded content scroll internally; Buffer grows the row
+            'flex-col text-[12px] pointer w-full flex',
             isBeforeNow ? 'flex-1' : 'cursor-pointer'
           )}
         >
@@ -1198,10 +1263,13 @@ export const CalendarColumn: FC<{
             </div>
           )}
           {list.map((post) => (
+            // month: 6px + 2px = Buffer's measured 8px chip inset / 8px stack
+            // gap; week: Buffer insets cards ~12px inside the day column
             <div
               key={post.id}
               className={clsx(
-                'text-textColor p-[2px] relative flex flex-col justify-center items-center'
+                'text-textColor relative flex flex-col justify-center items-center',
+                display === 'week' ? 'py-[4px] px-[10px]' : 'py-[2px] px-[6px]'
               )}
             >
               <div className="relative w-full flex flex-col items-center p-[2px]">
@@ -1250,8 +1318,10 @@ export const CalendarColumn: FC<{
           >
             <div
               className={clsx(
+                // month: pure leftover-space click target (no minimum) so
+                // dense cells sit at Buffer's uniform 205px row height
                 display === ('month' as any)
-                  ? 'flex-1 min-h-[40px] w-full'
+                  ? 'flex-1 w-full'
                   : !postList.length
                   ? 'min-h-full w-full p-[5px]'
                   : 'min-h-[40px] w-full',
@@ -1259,16 +1329,10 @@ export const CalendarColumn: FC<{
               )}
             >
               {display !== 'day' && (
-                // Buffer-style quiet affordance: a ghost '+' on a faint wash,
-                // not a filled brand square
-                <div className="group w-full h-full rounded-[8px] flex justify-center items-center transition-all duration-150 hover:bg-newTextColor/[0.04]">
-                  <span
-                    data-cs
-                    className="opacity-0 group-hover:opacity-100 text-[24px] leading-none text-newTextColor/40 transition-all duration-150"
-                  >
-                    +
-                  </span>
-                </div>
+                // Buffer: no cell wash on hover — the visible affordance is
+                // the small top-right '+' pinned on the cell (see below);
+                // this strip stays as the invisible click target
+                <div className="w-full h-full" />
               )}
               {display === 'day' && (
                 <div
@@ -1792,12 +1856,15 @@ const CalendarItem: FC<{
         data-cs
         className={clsx(
           'w-full flex text-[14px] bg-newColColor border border-newTableBorder relative cursor-pointer',
-          // Buffer month pill: 33px tall, r8, hairline border, chip + time
+          // Buffer month pill: 33px tall, r8, hairline border, 4px pad
           display === 'month' &&
-            'h-[33px] min-h-[33px] rounded-[8px] px-[6px] py-[4px] items-center gap-[6px]',
-          // Buffer week card: white r8 hairline, 8px padding, column layout
+            'h-[33px] min-h-[33px] rounded-[8px] p-[4px] items-center gap-[6px]',
+          // Buffer week card: white r10 hairline, 10px padding, column layout.
+          // Natural height — h-full pinned the card to the 105px hour row and
+          // made tall content bleed across the grid line; sized to content,
+          // the auto row grows instead
           display === 'week' &&
-            'flex-col h-full flex-1 rounded-[8px] p-[8px] items-start gap-[4px]'
+            'flex-col rounded-[10px] p-[10px] items-start gap-[6px]'
         )}
       >
         {display === 'month' ? (
@@ -1805,17 +1872,16 @@ const CalendarItem: FC<{
           // media thumbnail right]
           <>
             <img
-              className="w-[16px] h-[16px] min-w-[16px] rounded-[3px]"
+              className="w-[20px] h-[20px] min-w-[20px] rounded-[4px]"
               src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
               alt=""
             />
-            <div className="flex-1 flex items-center gap-[6px] text-[13px] text-newTextColor whitespace-nowrap overflow-hidden">
+            <div className="flex-1 flex items-center gap-[6px] text-[12px] font-[500] text-newTextColor whitespace-nowrap overflow-hidden">
               <span className="truncate">
                 {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
                 {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
               </span>
-              {/* media slot — ~20px r4 per Buffer's month pills; renders only
-                  once the backend ships the image field (getFirstImageUrl) */}
+              {/* media slot — 23px r6 measured on Buffer's month pills */}
               {mediaUrl && (
                 <img
                   src={mediaUrl}
@@ -1823,39 +1889,41 @@ const CalendarItem: FC<{
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
-                  className="w-[20px] h-[20px] min-w-[20px] rounded-[4px] object-cover ms-auto"
+                  className="w-[23px] h-[23px] min-w-[23px] rounded-[6px] object-cover ms-auto"
                 />
               )}
             </div>
           </>
         ) : display === 'week' ? (
-          // Buffer week card anatomy: [16px platform chip + time] row, 2-line
-          // snippet, 36px media thumbnail bottom-right
+          // Buffer week card anatomy: [18px platform glyph + time] header,
+          // then body row = 2-line snippet LEFT + 44px r6 thumbnail RIGHT
           <>
             <div className="w-full flex items-center gap-[6px]">
               <img
-                className="w-[16px] h-[16px] min-w-[16px] rounded-[3px]"
+                className="w-[18px] h-[18px] min-w-[18px] rounded-[4px]"
                 src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
                 alt=""
               />
-              <div className="text-[14px] font-[500] text-newTextColor whitespace-nowrap">
+              <div className="text-[15px] font-[400] text-newTextColor whitespace-nowrap">
                 {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
               </div>
             </div>
-            <div className="w-full text-[13px] text-start break-words line-clamp-2">
-              {state === 'DRAFT' ? t('draft', 'Draft') + ': ' : ''}
-              {stripHtmlValidation('none', post.content, false, true, false)}
+            <div className="w-full flex items-start gap-[8px]">
+              <div className="flex-1 min-w-0 text-[14px] text-start break-words line-clamp-2 text-newTextColor/80">
+                {state === 'DRAFT' ? t('draft', 'Draft') + ': ' : ''}
+                {stripHtmlValidation('none', post.content, false, true, false)}
+              </div>
+              {mediaUrl && (
+                <img
+                  src={mediaUrl}
+                  alt=""
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  className="w-[44px] h-[44px] min-w-[44px] rounded-[6px] object-cover"
+                />
+              )}
             </div>
-            {mediaUrl && (
-              <img
-                src={mediaUrl}
-                alt=""
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-                className="w-[36px] h-[36px] min-w-[36px] rounded-[8px] object-cover ms-auto self-end"
-              />
-            )}
           </>
         ) : null}
         {showTime && (

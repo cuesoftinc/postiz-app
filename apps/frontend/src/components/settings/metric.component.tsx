@@ -33,17 +33,22 @@ const MetricComponent = () => {
   };
   return (
     <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
-      <div className="text-[15px] font-[600]">Date Metrics</div>
-      <Select name="metric" disableForm={true} label="" onChange={changeMetric} value={currentMetric ? 'US' : 'GLOBAL'}>
-        {dateMetrics.map((metric) => (
-          <option
-            key={metric.value}
-            value={metric.value}
-          >
-            {metric.label}
-          </option>
-        ))}
-      </Select>
+      {/* Buffer section H2s measure 16/550 (round-1 addendum) */}
+      <div className="text-[16px] font-[550]">Date Metrics</div>
+      {/* Buffer never stretches a control across the pane — 200px select,
+          matching the shortlink select geometry */}
+      <div className="w-[200px] phone:w-full">
+        <Select name="metric" disableForm={true} label="" onChange={changeMetric} value={currentMetric ? 'US' : 'GLOBAL'}>
+          {dateMetrics.map((metric) => (
+            <option
+              key={metric.value}
+              value={metric.value}
+            >
+              {metric.label}
+            </option>
+          ))}
+        </Select>
+      </div>
 
       {/*<div className="mt-[4px]">Current Timezone</div>*/}
       {/*<Select*/}

@@ -108,7 +108,8 @@ const EmailNotificationsComponent = () => {
 
   return (
     <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
-      <div className="text-[15px] font-[600]">
+      {/* Buffer section H2s measure 16/550 (round-1 addendum) */}
+      <div className="text-[16px] font-[550]">
         {t('email_notifications', 'Email Notifications')}
       </div>
       <div className="flex items-center justify-between gap-[16px]">

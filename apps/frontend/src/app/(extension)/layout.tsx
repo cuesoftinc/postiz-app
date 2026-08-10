@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import '../global.scss';
-import { Inter, Outfit } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import 'react-tooltip/dist/react-tooltip.css';
 import '@copilotkit/react-ui/styles.css';
 import LayoutContext from '@gitroom/frontend/components/layout/layout.context';
@@ -11,7 +11,7 @@ import UtmSaver from '@gitroom/helpers/utils/utm.saver';
 
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakarta' });
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body
-        className={clsx(inter.variable, outfit.variable, 'font-sans', 'dark text-primary !bg-primary')}
+        className={clsx(inter.variable, jakarta.variable, 'font-sans', 'dark text-primary !bg-primary')}
       >
         <VariableContextComponent
           language="en"
