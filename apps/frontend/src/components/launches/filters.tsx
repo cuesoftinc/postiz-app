@@ -8,6 +8,8 @@ import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dro
 import { useClickAway } from '@uidotdev/usehooks';
 import dayjs from 'dayjs';
 import { useCallback , useState, FC, useMemo } from 'react';
+import useSWR from 'swr';
+import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
@@ -169,6 +171,273 @@ const ChannelsFilter: FC = () => {
                   className="accent-btnPrimary w-[16px] h-[16px]"
                 />
               </label>
+            ))}
+          </div>
+        </DropdownPanel>
+      )}
+    </div>
+  );
+};
+
+/** Buffer's "All Posts" state filter for the CALENDAR views (the list view
+ *  keeps its own tabs — no doubling up). Drives ?state= (absent = all) via
+ *  history.replaceState; the calendar context syncs it into the /posts query. */
+const StateFilter: FC = () => {
+  const t = useT();
+  const searchParams = useSearchParams();
+  const [open, setOpen] = useState(false);
+  const ref = useClickAway<HTMLDivElement>(() => setOpen(false));
+
+  const options: { value: ListStateFilter; label: string }[] = [
+    { value: 'all', label: t('all_posts', 'All Posts') },
+    { value: 'scheduled', label: t('scheduled', 'Queue') },
+    { value: 'draft', label: t('drafts', 'Drafts') },
+    { value: 'published', label: t('published', 'Sent') },
+  ];
+
+  const urlState = searchParams.get('state');
+  const current =
+    options.find((o) => o.value === urlState)?.value || ('all' as const);
+
+  const select = useCallback((value: ListStateFilter) => {
+    const url = new URL(window.location.href);
+    if (value === 'all') url.searchParams.delete('state');
+    else url.searchParams.set('state', value);
+    window.history.replaceState(null, '', url.pathname + url.search);
+    setOpen(false);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-[6px] h-[36px] px-[10px] rounded-[6px] text-[14px] text-newTextColor/70 hover:text-newTextColor hover:bg-boxHover transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12h.01" />
+          <path d="M3 18h.01" />
+          <path d="M3 6h.01" />
+          <path d="M8 12h13" />
+          <path d="M8 18h13" />
+          <path d="M8 6h13" />
+        </svg>
+        {options.find((o) => o.value === current)?.label}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <DropdownPanel
+          surface="panel"
+          anchor="end"
+          className="mt-[6px] min-w-[180px] p-[6px] flex flex-col gap-[2px]"
+        >
+          {options.map((option) => (
+            <div
+              key={option.value}
+              onClick={() => select(option.value)}
+              className={clsx(
+                'px-[10px] py-[8px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150',
+                current === option.value
+                  ? 'text-newTextColor font-[600]'
+                  : 'text-newTextColor/70'
+              )}
+            >
+              {option.label}
+            </div>
+          ))}
+        </DropdownPanel>
+      )}
+    </div>
+  );
+};
+
+/** Buffer's "Tags" filter: checkbox rows of the org's tags with their colour
+ *  dots. Drives ?tags= (comma-list of tag ids) — the context feeds it to both
+ *  the calendar and list queries. Same endpoint + SWR key as TagsComponent. */
+const TagsFilter: FC = () => {
+  const t = useT();
+  const fetch = useFetch();
+  const searchParams = useSearchParams();
+  const [open, setOpen] = useState(false);
+  const ref = useClickAway<HTMLDivElement>(() => setOpen(false));
+
+  const loadTags = useCallback(async () => {
+    return (await fetch('/posts/tags')).json();
+  }, []);
+  const { data } = useSWR('load-tags', loadTags);
+  const tags: { id: string; name: string; color: string }[] = data?.tags || [];
+
+  const selected = useMemo(
+    () =>
+      new Set<string>(
+        (searchParams.get('tags') || '').split(',').filter(Boolean)
+      ),
+    [searchParams]
+  );
+
+  const toggleTag = useCallback(
+    (id: string) => {
+      const next = new Set<string>(selected);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      const url = new URL(window.location.href);
+      if (next.size) url.searchParams.set('tags', [...next].join(','));
+      else url.searchParams.delete('tags');
+      window.history.replaceState(null, '', url.pathname + url.search);
+    },
+    [selected]
+  );
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-[6px] h-[36px] px-[10px] rounded-[6px] text-[14px] text-newTextColor/70 hover:text-newTextColor hover:bg-boxHover transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+          <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+        </svg>
+        {t('tags', 'Tags')}
+        {selected.size > 0 && (
+          <span className="text-[12px] text-newTextColor/60">
+            {selected.size}
+          </span>
+        )}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <DropdownPanel
+          surface="panel"
+          anchor="end"
+          className="mt-[6px] w-[240px] p-[10px] flex flex-col gap-[2px]"
+        >
+          {tags.length === 0 && (
+            <div className="px-[6px] py-[8px] text-[13px] text-newTextColor/60">
+              {t('no_tags_yet', 'No tags yet')}
+            </div>
+          )}
+          <div className="flex flex-col max-h-[280px] overflow-y-auto">
+            {tags.map((tag) => (
+              <label
+                key={tag.id}
+                className="flex items-center gap-[10px] px-[6px] py-[6px] rounded-[6px] hover:bg-boxHover cursor-pointer"
+              >
+                <span
+                  className="w-[10px] h-[10px] rounded-full shrink-0"
+                  style={{ backgroundColor: tag.color }}
+                />
+                <span className="flex-1 truncate text-[14px]">{tag.name}</span>
+                <input
+                  type="checkbox"
+                  checked={selected.has(tag.id)}
+                  onChange={() => toggleTag(tag.id)}
+                  className="accent-btnPrimary w-[16px] h-[16px]"
+                />
+              </label>
+            ))}
+          </div>
+        </DropdownPanel>
+      )}
+    </div>
+  );
+};
+
+/** Buffer's display-timezone selector ("<City>"). Cookie-persisted through
+ *  the calendar context (displayTimezone) — the render layer consumes it.
+ *  Presentation only; scheduling stays in the org/user timezone. */
+const TimezoneFilter: FC = () => {
+  const t = useT();
+  const calendar = useCalendar();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useClickAway<HTMLDivElement>(() => setOpen(false));
+
+  // es2020 lib — supportedValuesOf (es2022) is feature-detected at runtime.
+  const timezones = useMemo<string[]>(() => {
+    const supported = (Intl as any).supportedValuesOf;
+    return typeof supported === 'function' ? supported('timeZone') : [];
+  }, []);
+
+  const city = useCallback(
+    (tz: string) => (tz.split('/').pop() || tz).replace(/_/g, ' '),
+    []
+  );
+
+  const list = useMemo(
+    () =>
+      timezones.filter((tz) =>
+        tz.toLowerCase().replace(/_/g, ' ').includes(q.toLowerCase())
+      ),
+    [timezones, q]
+  );
+
+  const select = useCallback(
+    (tz: string) => {
+      calendar.setDisplayTimezone(tz);
+      setOpen(false);
+      setQ('');
+    },
+    [calendar]
+  );
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-[6px] h-[36px] px-[10px] rounded-[6px] text-[14px] text-newTextColor/70 hover:text-newTextColor hover:bg-boxHover transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+          <path d="M2 12h20" />
+        </svg>
+        {city(calendar.displayTimezone)}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <DropdownPanel
+          surface="panel"
+          anchor="end"
+          className="mt-[6px] w-[280px] p-[10px] flex flex-col gap-[8px]"
+        >
+          <div className="flex items-center gap-[8px] h-[36px] px-[10px] rounded-[6px] border border-newTableBorder focus-within:border-forth">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-newTextColor/60">
+              <path d="m21 21-4.34-4.34" />
+              <circle cx="11" cy="11" r="8" />
+            </svg>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t('search_timezone', 'Search timezone')}
+              className="flex-1 bg-transparent outline-none text-[14px] text-newTextColor placeholder:text-newTextColor/50"
+            />
+          </div>
+          <div className="flex flex-col max-h-[280px] overflow-y-auto">
+            {list.map((tz) => (
+              <div
+                key={tz}
+                onClick={() => select(tz)}
+                className={clsx(
+                  'flex items-center gap-[8px] px-[6px] py-[6px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150',
+                  tz === calendar.displayTimezone
+                    ? 'text-newTextColor font-[600]'
+                    : 'text-newTextColor/70'
+                )}
+              >
+                <span className="truncate">{city(tz)}</span>
+                <span className="ms-auto text-[12px] text-newTextColor/50 truncate">
+                  {tz.split('/').slice(0, -1).join('/')}
+                </span>
+              </div>
             ))}
           </div>
         </DropdownPanel>
@@ -610,12 +879,17 @@ export const Filters = () => {
           <div className="flex-1" />
         </div>
       )}
+      {/* Buffer's toolbar filter row: All Posts (calendar only — the list view
+          has its own state tabs), Tags, Channels, customer, timezone. */}
+      {!isListView && <StateFilter />}
+      <TagsFilter />
       <ChannelsFilter />
       <SelectCustomer
         customer={calendar.customer as string}
         onChange={(customer: string) => setCustomer(customer)}
         integrations={calendar.integrations}
       />
+      <TimezoneFilter />
       {!isListView && (
         <div className="flex flex-row h-[36px] p-[2px] border border-newTextColor/10 bg-newTextColor/5 rounded-[8px] text-[14px] font-[500]">
           <div

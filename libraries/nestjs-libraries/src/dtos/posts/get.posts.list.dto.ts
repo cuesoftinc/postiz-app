@@ -36,4 +36,9 @@ export class GetPostsListDto {
   @IsOptional()
   @IsIn(['all', 'scheduled', 'draft', 'published'])
   state?: PostListStateFilter = 'all';
+
+  /** Comma-separated tag ids; posts matching ANY of the tags are returned. */
+  @IsOptional()
+  @IsString()
+  tags?: string;
 }

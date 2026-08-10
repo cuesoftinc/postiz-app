@@ -28,6 +28,21 @@ extend(weekOfYear);
 
 export type ListStateFilter = 'all' | 'scheduled' | 'draft' | 'published';
 
+const STATE_FILTER_VALUES: readonly string[] = [
+  'all',
+  'scheduled',
+  'draft',
+  'published',
+];
+
+/** ?state= is user-editable — anything outside the enum collapses to 'all'
+ *  (absent), so the backend never sees an invalid value. */
+function readStateParam(value: string | null): ListStateFilter {
+  return value && STATE_FILTER_VALUES.includes(value)
+    ? (value as ListStateFilter)
+    : 'all';
+}
+
 export const CalendarContext = createContext({
   startDate: newDayjs().startOf('isoWeek').format('YYYY-MM-DD'),
   endDate: newDayjs().endOf('isoWeek').format('YYYY-MM-DD'),
@@ -83,6 +98,16 @@ export const CalendarContext = createContext({
   },
   listState: 'all' as ListStateFilter,
   setListState: (state: ListStateFilter) => {
+    /** empty **/
+  },
+  /** Calendar-view state filter (?state=). 'all' = absent = no extra clause. */
+  state: 'all' as ListStateFilter,
+  /** Comma-separated tag-id filter (?tags=), applied to both views. */
+  tags: null as string | null,
+  /** Presentation-only timezone the calendar renders times in
+   *  (cookie-persisted; scheduling stays in the org timezone). */
+  displayTimezone: '' as string,
+  setDisplayTimezone: (tz: string) => {
     /** empty **/
   },
 });
@@ -149,6 +174,13 @@ export const CalendarWeekProvider: FC<{
   const [displaySaved, setDisplaySaved] = useCookie('calendar-display', 'week');
   const display = searchParams.get('display') || displaySaved;
 
+  // Presentation-only timezone for the calendar render layer (Buffer's
+  // "<City>" toolbar dropdown). Scheduling/publishing stay untouched.
+  const [displayTimezone, setDisplayTimezone] = useCookie(
+    'displayTimezone',
+    dayjs.tz.guess()
+  );
+
   // List view state
   const [listPage, setListPage] = useState(0);
   const [listState, setListStateRaw] = useState<ListStateFilter>('all');
@@ -162,6 +194,8 @@ export const CalendarWeekProvider: FC<{
   const initEndDate = searchParams.get('endDate');
   const initCustomer = searchParams.get('customer');
   const initIntegration = searchParams.get('integration');
+  const initState = readStateParam(searchParams.get('state'));
+  const initTags = searchParams.get('tags');
 
   const initialRange =
     initStartDate && initEndDate
@@ -173,40 +207,55 @@ export const CalendarWeekProvider: FC<{
     endDate: initialRange.endDate,
     customer: initCustomer || null,
     integration: initIntegration || null,
+    state: initState,
+    tags: initTags || null,
     display,
   });
 
-  // The sidebar's channel rows navigate to /launches?integration=<id>. When we
-  // are ALREADY on /launches only searchParams changes — filters state was
-  // initialized once — so keep the channel filter in sync with the URL.
+  // The sidebar's channel rows navigate to /launches?integration=<id>, and the
+  // toolbar dropdowns (state/tags) write their params with history.replaceState.
+  // When we are ALREADY on /launches only searchParams changes — filters state
+  // was initialized once — so keep the URL-driven filters in sync with the URL.
   useEffect(() => {
     const urlIntegration = searchParams.get('integration') || null;
+    const urlState = readStateParam(searchParams.get('state'));
+    const urlTags = searchParams.get('tags') || null;
     setFilters((prev) =>
-      prev.integration === urlIntegration
+      prev.integration === urlIntegration &&
+      prev.state === urlState &&
+      prev.tags === urlTags
         ? prev
-        : { ...prev, integration: urlIntegration }
+        : { ...prev, integration: urlIntegration, state: urlState, tags: urlTags }
     );
   }, [searchParams]);
 
   const params = useMemo(() => {
-    return new URLSearchParams({
+    const search = new URLSearchParams({
       display: filters.display,
       startDate: filters.startDate,
       endDate: filters.endDate,
       customer: filters?.customer?.toString() || '',
       integration: filters?.integration?.toString() || '',
-    }).toString();
+    });
+    // Additive read-path filters: omitted entirely at their defaults so the
+    // default request (and SWR key) stays byte-identical to pre-filter days.
+    if (filters.state !== 'all') search.set('state', filters.state);
+    if (filters.tags) search.set('tags', filters.tags);
+    return search.toString();
   }, [filters]);
 
   // Calendar view data fetcher
   const loadData = useCallback(async () => {
-    const modifiedParams = new URLSearchParams({
+    const search = new URLSearchParams({
       display: filters.display,
       customer: filters?.customer?.toString() || '',
       integration: filters?.integration?.toString() || '',
       startDate: newDayjs(filters.startDate).startOf('day').utc().format(),
       endDate: newDayjs(filters.endDate).endOf('day').utc().format(),
-    }).toString();
+    });
+    if (filters.state !== 'all') search.set('state', filters.state);
+    if (filters.tags) search.set('tags', filters.tags);
+    const modifiedParams = search.toString();
 
     const data = await (await fetch(`/posts?${modifiedParams}`)).json();
     return expandPosts(data);
@@ -214,14 +263,16 @@ export const CalendarWeekProvider: FC<{
 
   // List view data fetcher
   const listParams = useMemo(() => {
-    return new URLSearchParams({
+    const search = new URLSearchParams({
       page: listPage.toString(),
       limit: '100',
       customer: filters?.customer?.toString() || '',
       integration: filters?.integration?.toString() || '',
       state: listState,
-    }).toString();
-  }, [listPage, filters.customer, filters.integration, listState]);
+    });
+    if (filters.tags) search.set('tags', filters.tags);
+    return search.toString();
+  }, [listPage, filters.customer, filters.integration, filters.tags, listState]);
 
   const loadListData = useCallback(async () => {
     const response = await fetch(`/posts/list?${listParams}`);
@@ -301,6 +352,10 @@ export const CalendarWeekProvider: FC<{
           newFilters.integration !== undefined
             ? newFilters.integration
             : prev.integration,
+        // The toolbar dropdowns own these (URL-driven) — never clobbered by
+        // date/view navigation.
+        state: prev.state,
+        tags: prev.tags,
       }));
       setInternalData([]);
 
@@ -309,12 +364,20 @@ export const CalendarWeekProvider: FC<{
         setListPage(0);
       }
 
+      // Carry the dropdown-owned params through the URL rewrite so the
+      // searchParams sync effect doesn't read their absence as a reset.
+      const carried = new URLSearchParams(window.location.search);
+      const carriedState = readStateParam(carried.get('state'));
+      const carriedTags = carried.get('tags');
+
       const path = [
         `startDate=${newFilters.startDate}`,
         `endDate=${newFilters.endDate}`,
         `display=${newFilters.display}`,
         newFilters.customer ? `customer=${newFilters.customer}` : ``,
         newFilters.integration ? `integration=${newFilters.integration}` : ``,
+        carriedState !== 'all' ? `state=${carriedState}` : ``,
+        carriedTags ? `tags=${encodeURIComponent(carriedTags)}` : ``,
       ].filter((f) => f);
       window.history.replaceState(null, '', `/launches?${path.join('&')}`);
     },
@@ -383,6 +446,8 @@ export const CalendarWeekProvider: FC<{
         setListPage,
         listState,
         setListState,
+        displayTimezone,
+        setDisplayTimezone,
       }}
     >
       {children}

@@ -177,6 +177,26 @@ export class PostsRepository {
                 : query.integration,
             }
           : {}),
+        // Additive state filter (same mapping as the list view's stateFilter).
+        // Absent or 'all' adds no clause, preserving today's calendar
+        // behavior exactly — including ERROR-state posts.
+        ...(query.state === 'scheduled'
+          ? { state: State.QUEUE }
+          : query.state === 'draft'
+          ? { state: State.DRAFT }
+          : query.state === 'published'
+          ? { state: State.PUBLISHED }
+          : {}),
+        // Additive tag filter: match posts carrying ANY of the given tag ids.
+        ...(query.tags
+          ? {
+              tags: {
+                some: {
+                  tagId: { in: query.tags.split(',') },
+                },
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -188,6 +208,7 @@ export class PostsRepository {
         intervalInDays: true,
         group: true,
         creationMethod: true,
+        image: true,
         tags: {
           select: {
             tag: true,
@@ -287,6 +308,16 @@ export class PostsRepository {
               : query.integration,
           }
         : {}),
+      // Additive tag filter: match posts carrying ANY of the given tag ids.
+      ...(query.tags
+        ? {
+            tags: {
+              some: {
+                tagId: { in: query.tags.split(',') },
+              },
+            },
+          }
+        : {}),
     };
 
     const [posts, total] = await Promise.all([
@@ -307,6 +338,7 @@ export class PostsRepository {
           intervalInDays: true,
           group: true,
           creationMethod: true,
+          image: true,
           tags: {
             select: {
               tag: true,

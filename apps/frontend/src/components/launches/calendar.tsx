@@ -87,6 +87,89 @@ const convertTimeFormatBasedOnLocality = (time: number) => {
   }
 };
 
+// ---------------------------------------------------------------------------
+// Display timezone — RENDER ONLY. When the calendar context carries a
+// displayTimezone (or the app's timezone setting is explicitly set), displayed
+// times are formatted in that zone via dayjs.tz. When nothing is set, the
+// exact pre-existing format chains run so default rendering is unchanged.
+// Scheduling, drag/drop and date-mutation math never go through these helpers.
+// ---------------------------------------------------------------------------
+// The value is cookie/localStorage-backed, so validate it (cached) before any
+// .tz() call — a corrupt identifier must never crash a view.
+const timezoneValidity = new Map<string, boolean>();
+const toValidTimezone = (tz: string | null | undefined): string | undefined => {
+  if (!tz) {
+    return undefined;
+  }
+  let valid = timezoneValidity.get(tz);
+  if (valid === undefined) {
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: tz });
+      valid = true;
+    } catch {
+      valid = false;
+    }
+    timezoneValidity.set(tz, valid);
+  }
+  return valid ? tz : undefined;
+};
+
+const useDisplayTimezone = (): string | undefined => {
+  const calendar = useCalendar() as ReturnType<typeof useCalendar> & {
+    displayTimezone?: string | null;
+  };
+  return (
+    toValidTimezone(calendar.displayTimezone) ||
+    (typeof window === 'undefined'
+      ? undefined
+      : toValidTimezone(localStorage.getItem('timezone')))
+  );
+};
+
+// Format a UTC-based post date for display: in the display timezone when set,
+// otherwise via the exact legacy chain (plain parse + .local()).
+const formatPostTime = (
+  value: string | Date,
+  displayTimezone: string | undefined,
+  format: string
+) => {
+  if (displayTimezone) {
+    try {
+      return dayjs.utc(value).tz(displayTimezone).format(format);
+    } catch {
+      // invalid timezone identifier — fall back to legacy rendering
+    }
+  }
+  return newDayjs(value).local().format(format);
+};
+
+// The post's media field ("image" on the Post model) is a JSON string of
+// uploaded items ({ name, path, ... }). Tolerate raw strings, arrays, single
+// objects and broken payloads — a bad value must never break the card.
+// Images only: obvious video files are skipped.
+const VIDEO_EXTENSION = /\.(mp4|mov|webm|avi|mkv|m4v)(\?|#|$)/i;
+const getFirstImageUrl = (media: unknown): string | undefined => {
+  try {
+    const parsed =
+      typeof media === 'string'
+        ? media.trim()
+          ? JSON.parse(media)
+          : undefined
+        : media;
+    const items = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+    for (const item of items) {
+      const path =
+        typeof item === 'string' ? item : item?.path || item?.url || '';
+      if (typeof path === 'string' && path && !VIDEO_EXTENSION.test(path)) {
+        return path;
+      }
+    }
+  } catch {
+    // broken media JSON — render the card without a thumbnail
+  }
+  return undefined;
+};
+
 export const hours = Array.from(
   {
     length: 24,
@@ -259,6 +342,7 @@ const usePostActions = (onMutate?: () => void) => {
 export const DayView = () => {
   const calendar = useCalendar();
   const { integrations, posts, startDate } = calendar;
+  const displayTimezone = useDisplayTimezone();
 
   // Set dayjs locale based on current language
   const currentLanguage = i18next.resolvedLanguage || 'en';
@@ -306,12 +390,20 @@ export const DayView = () => {
         {options.map((option) => (
           <Fragment key={option[0].time}>
             <div className="text-center text-[14px] min-h-[21px]">
-              {newDayjs()
-                .utc()
-                .startOf('day')
-                .add(option[0].time, 'minute')
-                .local()
-                .format(isUSCitizen() ? 'hh:mm A' : 'LT')}
+              {/* display-only: the queue gutter label; the slot's drop-target
+                  date below keeps the exact legacy chain */}
+              {(displayTimezone
+                ? newDayjs()
+                    .utc()
+                    .startOf('day')
+                    .add(option[0].time, 'minute')
+                    .tz(displayTimezone)
+                : newDayjs()
+                    .utc()
+                    .startOf('day')
+                    .add(option[0].time, 'minute')
+                    .local()
+              ).format(isUSCitizen() ? 'hh:mm A' : 'LT')}
             </div>
             <div
               key={option[0].time}
@@ -501,19 +593,31 @@ export const ListView = () => {
 
   // Use shared post actions hook
   const { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease } = usePostActions();
+  const displayTimezone = useDisplayTimezone();
 
-  // Group posts by date
+  // Group posts by date (display-only: which day header a card renders under;
+  // projected into the display timezone so headers agree with the card times)
   const groupedPosts = useMemo(() => {
     const groups: { [key: string]: any[] } = {};
     listPosts.forEach((post) => {
-      const dateKey = newDayjs(post.publishDate).local().format('YYYY-MM-DD');
+      const dateKey = formatPostTime(
+        post.publishDate,
+        displayTimezone,
+        'YYYY-MM-DD'
+      );
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
       groups[dateKey].push(post);
     });
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [listPosts]);
+  }, [listPosts, displayTimezone]);
+
+  // "now", projected into the display timezone when set — only used to label
+  // a group Today/Tomorrow; without a display timezone it is exactly newDayjs()
+  const displayNow = displayTimezone
+    ? newDayjs(dayjs().tz(displayTimezone).format('YYYY-MM-DD'))
+    : newDayjs();
 
   if (loading) {
     return (
@@ -541,9 +645,9 @@ export const ListView = () => {
                 Today/Tomorrow is pure presentation of the same date. */}
             <div className="text-start text-[17px] text-newTextColor font-[500] mt-[32px] first:mt-[8px] mb-[12px] px-[10px]">
               <span>
-                {(newDayjs(dateKey).isSame(newDayjs(), 'day')
+                {(newDayjs(dateKey).isSame(displayNow, 'day')
                   ? t('today', 'Today')
-                  : newDayjs(dateKey).isSame(newDayjs().add(1, 'day'), 'day')
+                  : newDayjs(dateKey).isSame(displayNow.add(1, 'day'), 'day')
                   ? t('tomorrow', 'Tomorrow')
                   : newDayjs(dateKey).format('dddd')) + ','}
               </span>{' '}
@@ -1036,6 +1140,10 @@ const CalendarItem: FC<{
   } = props;
   const { disableXAnalytics } = useVariables();
   const user = useUser();
+  const displayTimezone = useDisplayTimezone();
+  // First attached image of the post's media field (backend now selects it
+  // through the minified payload); undefined when absent/broken/video-only
+  const mediaUrl = useMemo(() => getFirstImageUrl(post.image), [post.image]);
   const showCreationMethodBadge =
     user?.impersonate &&
     post.creationMethod &&
@@ -1233,12 +1341,27 @@ const CalendarItem: FC<{
         </div>
         {display === 'month' ? (
           // Buffer month cells carry compact pills — platform icon + time,
-          // no post text (the payload has no media thumbnail to show)
-          <div className="flex-1 flex items-center text-[12px] text-newTextColor whitespace-nowrap">
-            {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
-            {newDayjs(post.publishDate)
-              .local()
-              .format(isUSCitizen() ? 'h:mm A' : 'HH:mm')}
+          // plus a tiny rounded media thumbnail on the right when the post
+          // has an attached image
+          <div className="flex-1 flex items-center gap-[6px] text-[12px] text-newTextColor whitespace-nowrap">
+            <span>
+              {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
+              {formatPostTime(
+                post.publishDate,
+                displayTimezone,
+                isUSCitizen() ? 'h:mm A' : 'HH:mm'
+              )}
+            </span>
+            {mediaUrl && (
+              <img
+                src={mediaUrl}
+                alt=""
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+                className="w-[24px] h-[24px] min-w-[24px] rounded-[4px] object-cover ms-auto"
+              />
+            )}
           </div>
         ) : (
           <div className="w-full flex-1 flex flex-col min-h-[40px]">
@@ -1255,8 +1378,25 @@ const CalendarItem: FC<{
         )}
         {showTime && (
           <div className="text-newTextColor text-[15px] whitespace-nowrap flex items-center justify-end text-end">
-            {newDayjs(post.publishDate).local().format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
+            {formatPostTime(
+              post.publishDate,
+              displayTimezone,
+              isUSCitizen() ? 'hh:mm A' : 'HH:mm'
+            )}
           </div>
+        )}
+        {/* Buffer queue/list cards: right-side media preview when the post
+            has an attached image (day display = queue + list; week/month
+            cells stay compact) */}
+        {display === 'day' && mediaUrl && (
+          <img
+            src={mediaUrl}
+            alt=""
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+            className="w-[72px] h-[72px] min-w-[72px] rounded-[8px] object-cover self-center border border-newTableBorder"
+          />
         )}
       </div>
     </div>
