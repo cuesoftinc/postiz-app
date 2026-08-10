@@ -2,10 +2,12 @@
 
 import { useCalendar, ListStateFilter } from '@gitroom/frontend/components/launches/calendar.context';
 import clsx from 'clsx';
+import { useSearchParams } from 'next/navigation';
+import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useClickAway } from '@uidotdev/usehooks';
 import dayjs from 'dayjs';
-import { useCallback , useState } from 'react';
+import { useCallback , useState, FC, useMemo } from 'react';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
@@ -41,6 +43,139 @@ function getDateRange(
       };
   }
 }
+
+
+/** Buffer's "Channels" toolbar filter: search, Select all, checkbox rows.
+ *  Drives the existing ?integration= URL param (comma-list) — the calendar
+ *  context and both repository queries already consume it. */
+const ChannelsFilter: FC = () => {
+  const t = useT();
+  const calendar = useCalendar();
+  const searchParams = useSearchParams();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useClickAway<HTMLDivElement>(() => setOpen(false));
+
+  const selected = useMemo(
+    () =>
+      new Set<string>(
+        (searchParams.get('integration') || '')
+          .split(',')
+          .filter(Boolean)
+      ),
+    [searchParams]
+  );
+
+  const writeSelection = useCallback((ids: string[]) => {
+    const url = new URL(window.location.href);
+    if (ids.length) url.searchParams.set('integration', ids.join(','));
+    else url.searchParams.delete('integration');
+    window.history.replaceState(null, '', url.pathname + url.search);
+  }, []);
+
+  const toggleChannel = useCallback(
+    (id: string) => {
+      const next = new Set<string>(selected);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      writeSelection([...next]);
+    },
+    [selected, writeSelection]
+  );
+
+  const list = useMemo(
+    () =>
+      (calendar.integrations || []).filter((i: any) =>
+        i.name.toLowerCase().includes(q.toLowerCase())
+      ),
+    [calendar.integrations, q]
+  );
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-[6px] h-[36px] px-[10px] rounded-[6px] text-[14px] text-newTextColor/70 hover:text-newTextColor hover:bg-boxHover transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <rect width="7" height="7" x="3" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="14" rx="1" />
+          <rect width="7" height="7" x="3" y="14" rx="1" />
+        </svg>
+        {t('channels', 'Channels')}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <DropdownPanel
+          surface="panel"
+          anchor="end"
+          className="mt-[6px] w-[300px] p-[10px] flex flex-col gap-[8px]"
+        >
+          <div className="flex items-center gap-[8px] h-[36px] px-[10px] rounded-[6px] border border-newTableBorder focus-within:border-forth">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-newTextColor/60">
+              <path d="m21 21-4.34-4.34" />
+              <circle cx="11" cy="11" r="8" />
+            </svg>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t('search_channels', 'Search channels')}
+              className="flex-1 bg-transparent outline-none text-[14px] text-newTextColor placeholder:text-newTextColor/50"
+            />
+          </div>
+          <div className="flex items-center justify-between px-[6px]">
+            <span className="text-[13px] font-[600]">
+              {t('channels', 'Channels')}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                writeSelection(
+                  selected.size === (calendar.integrations || []).length
+                    ? []
+                    : (calendar.integrations || []).map((i: any) => i.id)
+                )
+              }
+              className="text-[13px] text-newTextColor/70 hover:text-newTextColor"
+            >
+              {t('select_all', 'Select all')}
+            </button>
+          </div>
+          <div className="flex flex-col max-h-[280px] overflow-y-auto">
+            {list.map((integration: any) => (
+              <label
+                key={integration.id}
+                className="flex items-center gap-[10px] px-[6px] py-[6px] rounded-[6px] hover:bg-boxHover cursor-pointer"
+              >
+                <ChannelAvatar
+                  picture={integration.picture}
+                  identifier={integration.identifier}
+                  name={integration.name}
+                  size={28}
+                  badgeSize={12}
+                  fallback="placeholder"
+                />
+                <span className="flex-1 truncate text-[14px]">
+                  {integration.name}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={selected.has(integration.id)}
+                  onChange={() => toggleChannel(integration.id)}
+                  className="accent-btnPrimary w-[16px] h-[16px]"
+                />
+              </label>
+            ))}
+          </div>
+        </DropdownPanel>
+      )}
+    </div>
+  );
+};
 
 export const Filters = () => {
   const calendar = useCalendar();
@@ -475,6 +610,7 @@ export const Filters = () => {
           <div className="flex-1" />
         </div>
       )}
+      <ChannelsFilter />
       <SelectCustomer
         customer={calendar.customer as string}
         onChange={(customer: string) => setCustomer(customer)}

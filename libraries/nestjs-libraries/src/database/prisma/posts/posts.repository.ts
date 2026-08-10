@@ -170,7 +170,13 @@ export class PostsRepository {
               },
             }
           : {}),
-        ...(query.integration ? { integrationId: query.integration } : {}),
+        ...(query.integration
+          ? {
+              integrationId: query.integration.includes(',')
+                ? { in: query.integration.split(',') }
+                : query.integration,
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -274,7 +280,13 @@ export class PostsRepository {
             }
           : {}),
       },
-      ...(query.integration ? { integrationId: query.integration } : {}),
+      ...(query.integration
+        ? {
+            integrationId: query.integration.includes(',')
+              ? { in: query.integration.split(',') }
+              : query.integration,
+          }
+        : {}),
     };
 
     const [posts, total] = await Promise.all([
