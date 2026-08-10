@@ -58,6 +58,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import { getCookie } from 'react-use-cookie';
 import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
 import { Button } from '@gitroom/react/form/button';
 import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
@@ -463,11 +464,20 @@ export const WeekView = () => {
     return days;
   }, [i18next.resolvedLanguage, startDate, endDate]);
 
-  // Buffer phone: a rolling THREE-day hour grid starting today, sliced
-  // client-side from the already-fetched range (never a new fetch). When
-  // today is outside the range, the first three days of the range show.
+  // Buffer phone: the Week option renders either a rolling THREE-day hour
+  // grid starting today (default) or the full 7-day week — the phone
+  // date-picker sheet in filters.tsx writes the choice to the
+  // 'phone-week-span' cookie ('3' | '7'). Read fresh each render: the
+  // sheet's setFilters always publishes a new context object, so a cookie
+  // flip re-renders this view and the memo recomputes. Sliced client-side
+  // from the already-fetched range (never a new fetch). When today is
+  // outside the range, the first days of the range show.
+  const phoneWeekSpan =
+    typeof document === 'undefined'
+      ? '3'
+      : getCookie('phone-week-span') || '3';
   const visibleDays = useMemo(() => {
-    if (!isPhone) {
+    if (!isPhone || phoneWeekSpan === '7') {
       return localizedDays.slice(0, 7);
     }
     const today = newDayjs().startOf('day');
@@ -475,7 +485,7 @@ export const WeekView = () => {
     const start =
       idx === -1 ? 0 : Math.max(0, Math.min(idx, localizedDays.length - 3));
     return localizedDays.slice(start, start + 3);
-  }, [localizedDays, isPhone]);
+  }, [localizedDays, isPhone, phoneWeekSpan]);
 
   // Buffer opens the hour grid scrolled to "now" (one row of context above).
   // Guard: only from the untouched top position — the force-dynamic page
@@ -1306,39 +1316,45 @@ export const CalendarColumn: FC<{
             </div>
           ))}
           {!showAll && postList.length > 3 && (
-            <div
-              className={clsx(
-                'h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer',
-                // phone month cells are ~51px wide — the full '{n} More'
-                // label becomes a compact centered '+N' (Buffer)
-                display === 'month' && 'phone:justify-center phone:gap-0 phone:ps-0'
-              )}
-              onClick={showAllFunc}
-            >
-              <span
+            <>
+              <div
                 className={clsx(
-                  'contents',
+                  'h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer',
+                  // phone month has no expansion (Buffer) — the desktop
+                  // expander hides; the display-only pill below replaces it
                   display === 'month' && 'phone:hidden'
                 )}
+                onClick={showAllFunc}
               >
                 <ExpandChevron />
                 <span>
                   {postList.length - 3} {t('show_more', 'More')}
                 </span>
-              </span>
+              </div>
               {display === 'month' && (
-                <span
-                  data-cs
-                  className="hidden phone:block text-[11px] font-[500] text-newTextColor/60"
-                >
-                  +{postList.length - 3}
-                </span>
+                // Buffer phone month overflow: a bordered '+N' pill centered
+                // in the ~51px column — display-only, NOT clickable (no
+                // Show less at 390); pointer-events-none keeps taps falling
+                // through to nothing rather than expanding
+                <div className="hidden phone:flex justify-center py-[2px] pointer-events-none">
+                  <span
+                    data-cs
+                    className="h-[24px] px-[8px] flex items-center justify-center rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[13px] font-[500] text-newTextColor"
+                  >
+                    +{postList.length - 3}
+                  </span>
+                </div>
               )}
-            </div>
+            </>
           )}
           {showAll && postList.length > 3 && (
             <div
-              className="h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer"
+              className={clsx(
+                'h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer',
+                // phone month never expands — hide the collapse row too
+                // (reachable only by resizing an expanded desktop view)
+                display === 'month' && 'phone:hidden'
+              )}
               onClick={showLessFunc}
             >
               <ExpandChevron up />
@@ -1401,7 +1417,7 @@ export const CalendarColumn: FC<{
                         ) : (
                           <SafeImage
                             src={`/icons/platforms/${selectedIntegrations.identifier}.png`}
-                            className="rounded-[8px] absolute z-10 -bottom-[5px] -end-[5px] border border-fifth"
+                            className="rounded-[8px] absolute z-10 -bottom-[5px] -end-[5px] border border-newTableBorder"
                             alt={selectedIntegrations.identifier}
                             width={20}
                             height={20}
@@ -1682,7 +1698,7 @@ const CalendarItem: FC<{
           {t('copy_debug_json', 'Copy Debug JSON')}
         </div>
       )}
-      <div className="h-[1px] bg-tableBorder my-[4px]" />
+      <div className="h-[1px] bg-newTableBorder my-[4px]" />
       <div
         className={clsx(menuItemCls, '!text-red-400')}
         onClick={() => {
@@ -1773,7 +1789,7 @@ const CalendarItem: FC<{
               />
               <div
                 onClick={(e) => e.stopPropagation()}
-                className="absolute top-[26px] end-0 z-[300] min-w-[180px] p-[6px] bg-fifth rounded-[8px] border border-tableBorder flex flex-col"
+                className="absolute top-[26px] end-0 z-[300] min-w-[180px] p-[6px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_2px_8px_rgba(43,32,17,0.14)] flex flex-col"
               >
                 {actionMenuItems}
               </div>
@@ -2010,7 +2026,7 @@ const CalendarItem: FC<{
                   />
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-[36px] end-0 z-[300] min-w-[180px] p-[6px] bg-fifth rounded-[8px] border border-tableBorder flex flex-col"
+                    className="absolute top-[36px] end-0 z-[300] min-w-[180px] p-[6px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_2px_8px_rgba(43,32,17,0.14)] flex flex-col"
                   >
                     {actionMenuItems}
                   </div>
@@ -2028,49 +2044,47 @@ const CalendarItem: FC<{
         data-cs
         className={clsx(
           'w-full flex text-[14px] bg-newColColor border border-newTableBorder relative cursor-pointer',
+          // Buffer hover (desktop, user-flagged): pills/cards lift to white
+          // with a soft shadow
+          'hover:bg-white hover:shadow-[0_2px_8px_rgba(43,32,17,0.14)] transition-shadow duration-150',
           // Buffer month pill: 33px tall, r8, hairline border, 4px pad.
-          // Phone month (Buffer, measured at 390): the pill compacts to a
-          // 30×30 r6 mini-tile — thumbnail face when media exists, else the
-          // hairline tile with the platform icon centered; time hidden.
+          // Phone month (Buffer, screenshots at 390): the pill compacts to a
+          // 30×30 r6 hairline mini-tile with the 20px platform icon centered
+          // — NEVER a media thumbnail; time hidden.
           display === 'month' &&
             'h-[33px] min-h-[33px] rounded-[8px] p-[4px] items-center gap-[6px] phone:w-[30px] phone:min-w-[30px] phone:h-[30px] phone:min-h-[30px] phone:rounded-[6px] phone:p-0 phone:gap-0 phone:justify-center phone:overflow-hidden phone:mx-auto',
+          // phone month past-day tiles render dimmed (Buffer screenshots)
+          display === 'month' && isBeforeNow && 'phone:opacity-[0.55]',
           // Buffer week card: white r10 hairline, 10px padding, column layout.
           // Natural height — h-full pinned the card to the 105px hour row and
           // made tall content bleed across the grid line; sized to content,
-          // the auto row grows instead
+          // the auto row grows instead.
+          // Phone (Buffer screenshots): the card compacts to a single-row
+          // 36px chip — icon + time only (snippet/thumb hidden below)
           display === 'week' &&
-            'flex-col rounded-[10px] p-[10px] items-start gap-[6px]'
+            'flex-col rounded-[10px] p-[10px] items-start gap-[6px] phone:flex-row phone:items-center phone:gap-[6px] phone:h-[36px] phone:min-h-0 phone:rounded-[8px] phone:px-[8px] phone:py-0 phone:overflow-hidden'
         )}
       >
         {display === 'month' ? (
           // Buffer month pill anatomy: [16px platform chip] [time] [~20px
           // media thumbnail right]
           <>
+            {/* phone mini-tile: the platform icon is ALWAYS the tile face
+                (Buffer screenshots) — never the media thumbnail */}
             <img
-              className={clsx(
-                'w-[20px] h-[20px] min-w-[20px] rounded-[4px]',
-                // phone mini-tile: the icon is the tile face only when there
-                // is no media — a thumbnail covers the whole tile instead
-                mediaUrl && 'phone:hidden'
-              )}
+              className="w-[20px] h-[20px] min-w-[20px] rounded-[4px]"
               src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
               alt=""
             />
-            <div
-              className={clsx(
-                'flex-1 flex items-center gap-[6px] text-[12px] font-[500] text-newTextColor whitespace-nowrap overflow-hidden',
-                // phone mini-tile shows no time; without media this row is
-                // empty — hide it so the icon centers in the tile
-                !mediaUrl && 'phone:hidden'
-              )}
-            >
-              <span className="truncate phone:hidden">
+            {/* phone mini-tile shows no time and no media — the whole row
+                hides so the icon centers in the 30px tile */}
+            <div className="flex-1 flex items-center gap-[6px] text-[12px] font-[500] text-newTextColor whitespace-nowrap overflow-hidden phone:hidden">
+              <span className="truncate">
                 {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
                 {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
               </span>
-              {/* media slot — 23px r6 measured on Buffer's month pills;
-                  phone: covers the whole 30px tile (abs against the pill,
-                  which is `relative` + overflow-hidden at phone) */}
+              {/* media slot — 23px r6 measured on Buffer's month pills
+                  (desktop only) */}
               {mediaUrl && (
                 <img
                   src={mediaUrl}
@@ -2078,7 +2092,7 @@ const CalendarItem: FC<{
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
-                  className="w-[23px] h-[23px] min-w-[23px] rounded-[6px] object-cover ms-auto phone:absolute phone:inset-0 phone:w-full phone:h-full phone:min-w-0 phone:ms-0"
+                  className="w-[23px] h-[23px] min-w-[23px] rounded-[6px] object-cover ms-auto"
                 />
               )}
             </div>
@@ -2087,17 +2101,22 @@ const CalendarItem: FC<{
           // Buffer week card anatomy: [18px platform glyph + time] header,
           // then body row = 2-line snippet LEFT + 44px r6 thumbnail RIGHT
           <>
-            <div className="w-full flex items-center gap-[6px]">
+            {/* min-w-0 + overflow-hidden: inert on desktop; on the 7-day
+                phone grid (~49px cols) the nowrap time clips inside the chip
+                instead of bleeding across the grid line */}
+            <div className="w-full min-w-0 flex items-center gap-[6px]">
               <img
                 className="w-[18px] h-[18px] min-w-[18px] rounded-[4px]"
                 src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
                 alt=""
               />
-              <div className="text-[15px] font-[400] text-newTextColor whitespace-nowrap">
+              <div className="min-w-0 overflow-hidden text-[15px] font-[400] text-newTextColor whitespace-nowrap">
                 {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
               </div>
             </div>
-            <div className="w-full flex items-start gap-[8px]">
+            {/* phone (Buffer screenshots): the chip is icon + time only —
+                the snippet/thumbnail body row hides */}
+            <div className="w-full flex items-start gap-[8px] phone:hidden">
               <div className="flex-1 min-w-0 text-[14px] text-start break-words line-clamp-2 text-newTextColor/80">
                 {state === 'DRAFT' ? t('draft', 'Draft') + ': ' : ''}
                 {stripHtmlValidation('none', post.content, false, true, false)}
@@ -2321,7 +2340,7 @@ export const SetSelectionModal: FC<{
         ))}
       </div>
 
-      <div className="flex gap-2 pt-2 border-t border-tableBorder">
+      <div className="flex gap-2 pt-2 border-t border-newTableBorder">
         <button
           onClick={onContinueWithoutSet}
           className="flex-1 px-4 py-2 text-textColor border border-newTableBorder rounded-[8px] transition-colors hover:bg-boxHover"

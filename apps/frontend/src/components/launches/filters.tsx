@@ -15,6 +15,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { expandPostsList } from '@gitroom/helpers/utils/posts.list.minify';
+import useCookie from 'react-use-cookie';
 
 // Helper function to get start and end dates based on display type
 function getDateRange(
@@ -770,10 +771,227 @@ const PhoneFilterSheet: FC<{ open: boolean; onClose: () => void }> = ({
   );
 };
 
+/** Buffer's phone date-picker sheet (user screenshots): the toolbar title
+ *  chip ("August 10 ▾") opens this bottom sheet — centered "Calendar" title,
+ *  a [3 Days | Week | Month] segmented control, a mini month picker, and a
+ *  Today row. Same shell as PhoneFilterSheet. The 3-vs-7 phone week span
+ *  persists in the 'phone-week-span' cookie, read by WeekView's visibleDays
+ *  memo in calendar.tsx (setFilters always publishes a new context object,
+ *  so the flip re-renders the grid). */
+const PhoneCalendarSheet: FC<{
+  open: boolean;
+  onClose: () => void;
+  /** the date the visible range is anchored on (today when in range) */
+  anchorDate: dayjs.Dayjs;
+  setToday: () => void;
+}> = ({ open, onClose, anchorDate, setToday }) => {
+  const t = useT();
+  const calendar = useCalendar();
+  const [phoneWeekSpan, setPhoneWeekSpan] = useCookie('phone-week-span', '3');
+
+  // the month the mini picker is browsing; re-syncs to the anchor per open
+  const [viewMonth, setViewMonth] = useState(() => anchorDate.startOf('month'));
+  useEffect(() => {
+    if (open) setViewMonth(anchorDate.startOf('month'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const activeView: '3days' | 'week' | 'month' =
+    calendar.display === 'month'
+      ? 'month'
+      : phoneWeekSpan === '7'
+      ? 'week'
+      : '3days';
+
+  // '3 Days' -> week display + 3-day phone slice; 'Week' -> week display,
+  // all 7 days; 'Month' -> month display. Range re-derives anchored on the
+  // current anchor date so navigation position survives the switch.
+  const applyView = useCallback(
+    (view: '3days' | 'week' | 'month') => {
+      const isCalDisplay =
+        calendar.display === 'week' || calendar.display === 'month';
+      if (isCalDisplay && view === activeView) return;
+      if (view !== 'month') setPhoneWeekSpan(view === 'week' ? '7' : '3');
+      const display = (view === 'month' ? 'month' : 'week') as 'week' | 'month';
+      const range = getDateRange(display, anchorDate.format('YYYY-MM-DD'));
+      calendar.setFilters({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        display,
+        customer: calendar.customer,
+      });
+    },
+    [calendar, activeView, anchorDate, setPhoneWeekSpan]
+  );
+
+  // picking a day re-anchors the visible range to that date and closes
+  const pickDay = useCallback(
+    (day: dayjs.Dayjs) => {
+      const display = (
+        calendar.display === 'list' ? 'week' : calendar.display
+      ) as 'day' | 'week' | 'month';
+      const range = getDateRange(display, day.format('YYYY-MM-DD'));
+      calendar.setFilters({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        display,
+        customer: calendar.customer,
+      });
+      onClose();
+    },
+    [calendar, onClose]
+  );
+
+  // Sunday-first 6-week grid around the browsed month
+  const gridDays = useMemo(() => {
+    const first = viewMonth.startOf('month');
+    const gridStart = first.subtract(first.day(), 'day');
+    return Array.from({ length: 42 }, (_, i) => gridStart.add(i, 'day'));
+  }, [viewMonth]);
+
+  const weekdayLetters = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) =>
+        newDayjs().day(i).format('dd').charAt(0)
+      ),
+    []
+  );
+
+  if (!open) return null;
+
+  const today = newDayjs();
+  const viewOptions: { key: '3days' | 'week' | 'month'; label: string }[] = [
+    { key: '3days', label: t('three_days', '3 Days') },
+    { key: 'week', label: t('week', 'Week') },
+    { key: 'month', label: t('month', 'Month') },
+  ];
+
+  return (
+    <div
+      // h-[100dvh]: same shell caveat as PhoneFilterSheet — a fixed inset-0
+      // box refuses to stretch between insets here; explicit viewport height
+      // pins the scrim over the whole page
+      className="hidden phone:flex fixed inset-0 h-[100dvh] w-full z-[650] bg-black/50 items-end"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full bg-newBgColorInner rounded-t-[16px] px-[16px] pb-[20px] max-h-[85vh] overflow-y-auto">
+        <div className="w-[36px] h-[4px] rounded-full bg-newTextColor/20 mx-auto my-[10px]" />
+        <div className="text-center text-[16px] font-[600] text-newTextColor mb-[12px]">
+          {/* own key — the 'calendar' key is locale-mapped to the nav label */}
+          {t('calendar_view', 'Calendar')}
+        </div>
+        {/* [3 Days | Week | Month] segmented — lime active segment */}
+        <div className="flex w-full h-[44px] p-[4px] border border-newTableBorder rounded-[12px] text-[15px] font-[500] mb-[16px]">
+          {viewOptions.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => applyView(option.key)}
+              className={clsx(
+                'flex-1 rounded-[8px] flex items-center justify-center transition-colors duration-150',
+                activeView === option.key
+                  ? 'bg-boxFocused text-textItemFocused'
+                  : 'text-newTextColor/60'
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        {/* mini month picker */}
+        <div className="flex items-center mb-[8px]">
+          <div className="flex-1 text-[16px] font-[600] text-newTextColor text-start">
+            {viewMonth.format('MMMM YYYY')}
+          </div>
+          <button
+            type="button"
+            aria-label={t('previous', 'Previous')}
+            onClick={() => setViewMonth((m) => m.subtract(1, 'month'))}
+            className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center text-newTextColor/70 rtl:rotate-180"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            aria-label={t('next', 'Next')}
+            onClick={() => setViewMonth((m) => m.add(1, 'month'))}
+            className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center text-newTextColor/70 rtl:rotate-180"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+        </div>
+        <div className="grid grid-cols-7">
+          {weekdayLetters.map((letter, i) => (
+            <div
+              key={i}
+              className="h-[28px] flex items-center justify-center text-[12px] font-[500] text-newTextColor/60"
+            >
+              {letter}
+            </div>
+          ))}
+          {gridDays.map((day) => {
+            const isToday = day.isSame(today, 'day');
+            const isAnchor = day.isSame(anchorDate, 'day');
+            const otherMonth = !day.isSame(viewMonth, 'month');
+            return (
+              <button
+                key={day.format('YYYY-MM-DD')}
+                type="button"
+                onClick={() => pickDay(day)}
+                className="h-[40px] flex items-center justify-center"
+              >
+                <span
+                  className={clsx(
+                    'w-[32px] h-[32px] rounded-full flex items-center justify-center text-[15px]',
+                    // today = lime circle (the primary-surface global rule
+                    // paints black ink); non-today anchor = lime-tint fill
+                    isToday
+                      ? 'bg-btnPrimary text-black font-[500]'
+                      : isAnchor
+                      ? 'bg-boxFocused text-textItemFocused font-[500]'
+                      : otherMonth
+                      ? 'text-newTextColor/40'
+                      : 'text-newTextColor'
+                  )}
+                >
+                  {day.date()}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="h-[1px] bg-newTableBorder my-[8px]" />
+        <button
+          type="button"
+          onClick={() => {
+            setToday();
+            onClose();
+          }}
+          className="flex items-center gap-[12px] w-full h-[44px] px-[12px] rounded-[8px] text-[15px] font-[500] text-newTextColor hover:bg-boxHover text-start"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 2v4" />
+            <path d="M16 2v4" />
+            <rect width="18" height="18" x="3" y="4" rx="2" />
+            <path d="M3 10h18" />
+          </svg>
+          {t('today', 'Today')}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 /** Buffer's view combobox: 24px borderless trigger, no leading icon, and only
- *  Week/Month options — Buffer offers no Day view. It stays in the PHONE
- *  toolbar too (measured at 390): Week = the rolling 3-day hour grid, Month =
- *  the real 7-column mini-tile grid. display=day stays URL-reachable. */
+ *  Week/Month options — Buffer offers no Day view. Desktop toolbar only: the
+ *  phone toolbar's date chip → PhoneCalendarSheet owns the view switch at 390
+ *  (3 Days/Week/Month). display=day stays URL-reachable. */
 const ViewFilter: FC = () => {
   const t = useT();
   const calendar = useCalendar();
@@ -807,8 +1025,7 @@ const ViewFilter: FC = () => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        // phone: 40px tap target to match the funnel/segmented cluster
-        className="flex items-center gap-[6px] h-[24px] phone:h-[40px] px-[8px] rounded-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+        className="flex items-center gap-[6px] h-[24px] px-[8px] rounded-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
       >
         {label}
         <ChevronDown />
@@ -817,9 +1034,7 @@ const ViewFilter: FC = () => {
         <DropdownPanel
           surface="panel"
           anchor="start"
-          // phone: the trigger sits in the right-edge cluster — hug the end
-          // edge so the 200px panel stays inside a 390px viewport
-          className="mt-[4px] w-[200px] !rounded-[6px] p-[8px] flex flex-col phone:start-auto phone:end-0"
+          className="mt-[4px] w-[200px] !rounded-[6px] p-[8px] flex flex-col"
         >
           <SelectRow
             selected={calendar.display === 'week'}
@@ -1092,6 +1307,21 @@ export const Filters = () => {
     return mid.format('MMMM YYYY');
   }, [calendar.startDate, calendar.display]);
 
+  // The phone title chip / date-picker sheet anchor: today when the visible
+  // range contains it, otherwise the range's owning day (month = the owning
+  // month's 1st; week/day = the range start).
+  const anchorDate = useMemo(() => {
+    const today = newDayjs();
+    const start = newDayjs(calendar.startDate);
+    const end = newDayjs(calendar.endDate);
+    if (!today.isBefore(start, 'day') && !today.isAfter(end, 'day')) {
+      return today;
+    }
+    return calendar.display === 'month'
+      ? start.add(15, 'day').startOf('month')
+      : start;
+  }, [calendar.startDate, calendar.endDate, calendar.display]);
+
   const setToday = useCallback(() => {
     const today = newDayjs();
     const currentRange = getDateRange(
@@ -1197,6 +1427,7 @@ export const Filters = () => {
   const isListView = calendar.display === 'list';
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [calSheetOpen, setCalSheetOpen] = useState(false);
 
   const toView = useCallback(
     (target: 'calendar' | 'list') => {
@@ -1331,9 +1562,21 @@ export const Filters = () => {
               <path d="m9 18 6-6-6-6" />
             </svg>
           </div>
-          <h2 className="ms-[4px] text-[16px] font-[500] whitespace-nowrap">
+          <h2 className="ms-[4px] text-[16px] font-[500] whitespace-nowrap phone:hidden">
             {monthTitle}
           </h2>
+          {/* Buffer phone (screenshots): the title is a chip trigger
+              "August 10 ▾" opening the calendar bottom sheet — it replaces
+              both the static month h2 and the old phone view dropdown */}
+          <button
+            type="button"
+            data-cs
+            onClick={() => setCalSheetOpen(true)}
+            className="hidden phone:flex ms-[4px] items-center gap-[6px] h-[40px] px-[12px] rounded-[8px] bg-newTableHeader text-[16px] font-[500] text-newTextColor whitespace-nowrap"
+          >
+            {anchorDate.format('MMMM D')}
+            <ChevronDown />
+          </button>
           <div
             onClick={setToday}
             className="ms-[16px] h-[24px] px-[10px] flex justify-center items-center rounded-[6px] border border-newTableBorder text-[14px] font-[500] cursor-pointer hover:bg-boxHover transition-colors duration-150 phone:hidden"
@@ -1501,9 +1744,8 @@ export const Filters = () => {
         <TimezoneFilter />
       </div>
       <div className="hidden phone:flex items-center gap-[8px] ms-auto">
-        {/* Buffer keeps the Week/Month view dropdown in the phone toolbar,
-            beside the funnel — the other filters stay behind the sheet */}
-        {!isListView && <ViewFilter />}
+        {/* the view switch lives in the date chip's calendar sheet on phone
+            (Buffer screenshots) — only funnel + segmented ride here */}
         <button
           type="button"
           aria-label={t('more_actions', 'More actions')}
@@ -1556,6 +1798,14 @@ export const Filters = () => {
         </div>
       </div>
       <PhoneFilterSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
+      {!isListView && (
+        <PhoneCalendarSheet
+          open={calSheetOpen}
+          onClose={() => setCalSheetOpen(false)}
+          anchorDate={anchorDate}
+          setToday={setToday}
+        />
+      )}
     </div>
   );
 };

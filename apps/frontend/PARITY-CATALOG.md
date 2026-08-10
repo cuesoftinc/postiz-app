@@ -52,6 +52,22 @@ changelog line). Statuses:
   sideways). Month pills compact to 30×30 r6 mini-tiles on phone (thumbnail face, else
   centered 20px platform icon; time hidden); "N More" becomes a centered "+N" 11px muted
   row. Desktop untouched (all `phone:` variants). tsc clean.
+- 2026-08-10 — phone calendar recalibrated to USER-PROVIDED Buffer phone screenshots
+  (authoritative): month mini-tiles are ALWAYS the 30×30 hairline tile with the centered
+  20px platform icon (media-thumbnail face removed), past-day tiles dim to 0.55; the
+  "+N" overflow becomes a centered bordered pill (24px r8 white hairline, 13/500 ink),
+  display-only at 390 (desktop expander/Show less untouched); phone week cards compact
+  to single-row 36px r8 chips (18px icon + 15/400 time; snippet/thumb hidden); the phone
+  toolbar title becomes an "August 10 ▾" chip (40px r8 newTableHeader) replacing the h2
+  and the phone view dropdown, opening a new calendar bottom sheet (PhoneFilterSheet
+  shell): [3 Days | Week | Month] segmented (boxFocused active), mini month picker (lime
+  today circle, boxFocused anchor fill, 40px taps, day pick re-anchors via anchored
+  getDateRange), divider + Today row. 3-vs-7 day phone week span = 'phone-week-span'
+  cookie read fresh by WeekView's visibleDays. Desktop additions: month pills/week cards
+  hover to white + soft shadow (user-flagged Buffer crop). Consistency sweep inside the
+  two owned files: card kebab menus, day-view badge ring, action-menu divider and
+  SetSelectionModal footer move off legacy `bg-fifth`/`tableBorder`/`border-fifth` onto
+  newBgColorInner/newTableBorder. tsc clean.
 
 ---
 
@@ -151,7 +167,8 @@ changelog line). Statuses:
 | "+ New Post" primary button | `launches/filters.tsx` | VERIFIED-PARITY | Lime + black ink brand slot |
 | Calendar toolbar left group (‹ › adjacent 32×32, H2 16/500, Today chip, view combobox) | `launches/filters.tsx` | VERIFIED-PARITY | Measured order/geometry |
 | Week-view H2 shows "August 2026" (not a date range) | `launches/filters.tsx` getDisplayText | VERIFIED-PARITY | Gap fix landed |
-| View combobox menu (Week/Month only, check-left rows; stays in the PHONE toolbar too) | `launches/filters.tsx` | VERIFIED-PARITY | 200px r6 p8 panel; phone: 40px trigger beside the funnel, panel end-anchored to stay inside 390 |
+| View combobox menu (Week/Month only, check-left rows) | `launches/filters.tsx` | VERIFIED-PARITY | 200px r6 p8 panel; DESKTOP-only now — the phone view switch moved into the date chip's calendar sheet (user phone screenshots) |
+| Phone date chip + calendar bottom sheet ("August 10 ▾" → Calendar title, [3 Days\|Week\|Month] segmented, mini month picker, Today row) | `launches/filters.tsx` PhoneCalendarSheet | VERIFIED-PARITY | Per user phone screenshots: 40px r8 newTableHeader chip 16/500; sheet = PhoneFilterSheet shell; 44px segmented w/ boxFocused active; 40px day taps, lime today circle, boxFocused anchor fill; picking a day re-anchors the range (getDateRange anchored); 3-vs-7 week span via 'phone-week-span' cookie read by WeekView |
 | Channels filter dropdown (380 r12: search, Select all, 48px avatar+checkbox rows) | `launches/filters.tsx` | VERIFIED-PARITY | f67b9c9b + r1 measurements |
 | All Posts select (All/Drafts/Scheduled/Sent, check-left) | `launches/filters.tsx` | VERIFIED-PARITY | aa2ce4bc |
 | Tags filter dialog (256 r12: Untagged, colored pill rows, Clear all + Settings footer) | `launches/filters.tsx` | VERIFIED-PARITY | aa2ce4bc |
@@ -160,7 +177,7 @@ changelog line). Statuses:
 | Filter trigger buttons (32px, transparent, full ink, 16px icons/chevrons) | `launches/filters.tsx` | VERIFIED-PARITY | Metrics converged |
 | List tabs (Queue · Drafts · Approvals⚡ · Sent, count pills, ink underline on hairline track, 45px on rule) | `launches/filters.tsx` | VERIFIED-PARITY | de6ca24f + 03770f12; Approvals real since bbe94a8c |
 | Per-tab count fetch (4 parallel state counts) | `launches/filters.tsx` + `calendar.context.tsx` | VERIFIED-PARITY | Includes approvals tag count |
-| Phone toolbar (single row: ‹ › title, Week/Month dropdown, funnel, icon-only segmented) | `launches/filters.tsx` | VERIFIED-PARITY | 139cca46; view dropdown un-hidden on phone (Buffer keeps the full toolbar at 390) |
+| Phone toolbar (single row: ‹ › date chip, funnel, icon-only segmented) | `launches/filters.tsx` | VERIFIED-PARITY | 139cca46; reworked per user phone screenshots: the static month h2 and the phone view dropdown are replaced by the "August 10 ▾" chip → PhoneCalendarSheet |
 | Phone filter bottom sheet (drag handle, scrim, drill-in rows) | `launches/filters.tsx` | VERIFIED-PARITY | Measured vs buffer-phone-filtersheet.png |
 | Phone green icon-only "+" (40 r8) | `launches/filters.tsx` | VERIFIED-PARITY | 139cca46 |
 | Last-view restore (list/month/week cookie) | `launches/filters.tsx` | VERIFIED-PARITY | 82563526; month default (87488ff3) |
@@ -174,10 +191,10 @@ changelog line). Statuses:
 | Cell wash model (weekend/other-month/past washed; today/future white; wash month-only) | `launches/calendar.tsx` + `global.scss` | VERIFIED-PARITY | Hatching removed; flat #f4f3f0-family |
 | Today marker (day number in 24px lime circle, black ink) | `launches/calendar.tsx` | VERIFIED-PARITY | Brand map of Buffer's green circle |
 | Day-number three-tone ink hierarchy | `launches/calendar.tsx` | VERIFIED-PARITY | current/past/other tones |
-| Month post pills (h33 r8 p4: 20px brand chip · h:mm A 13px ink · 23px r6 thumb, 8px insets) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3 chips pass; phone: 30×30 r6 mini-tile (thumbnail face when media, else hairline tile w/ centered 20px platform icon; no time) per Buffer 390 |
+| Month post pills (h33 r8 p4: 20px brand chip · h:mm A 13px ink · 23px r6 thumb, 8px insets) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3 chips pass; phone (user screenshots): 30×30 r6 hairline mini-tile, ALWAYS the centered 20px platform icon (never media), no time; past-day tiles dim to 0.55; desktop hover = white + soft shadow |
 | Pill media thumbnails (backend `image` field) | `launches/calendar.tsx` + backend posts payload | NEEDS-WORK | Code landed (aa2ce4bc) but live deploy predates the field — verify thumbnails render after next deploy (month/week/list all gated on this) |
 | Past pills never grayscale | `launches/calendar.tsx` | VERIFIED-PARITY | !grayscale removed |
-| "N More" expander / "Show less" (16px chevron, 14/500 ink, left-aligned) | `launches/calendar.tsx` | VERIFIED-PARITY | Glyph + collapse retreated; phone month: compact centered "+N" 11px muted row (full label desktop; Show less unchanged) |
+| "N More" expander / "Show less" (16px chevron, 14/500 ink, left-aligned) | `launches/calendar.tsx` | VERIFIED-PARITY | Glyph + collapse retreated; phone month (user screenshots): centered bordered "+N" pill (24px r8 hairline white, 13/500 ink), display-only — no expansion at 390; desktop click + Show less unchanged |
 | Per-day "+" button (bordered, top-right of cell, wires existing day-click composer) | `launches/calendar.tsx` | VERIFIED-PARITY | de7f7dc3 hover + square |
 | Empty-slot "+" hover ghost styling | `launches/calendar.tsx` + `global.scss` | NEEDS-BUFFER-MEASUREMENT | Hover an empty Buffer month/week slot: capture the affordance (ghost + size, fill, border, icon color) — r1 flagged "verify against a fresh capture" |
 | Month fetch range includes leading/trailing grid days | `launches/calendar.context.tsx` | VERIFIED-PARITY | Visible-grid range query |
@@ -195,7 +212,7 @@ changelog line). Statuses:
 | Day headers ("Sunday 9" one line, 36px white; today green ink + 2px underline) | `launches/calendar.tsx` | VERIFIED-PARITY | Measured r1 |
 | Past-hour flat grey wash (week stays white otherwise) | `launches/calendar.tsx` + `global.scss` | VERIFIED-PARITY | Wash month-only+past-only rule (de7f7dc3) |
 | Auto-scroll to now on open | `launches/calendar.tsx` | VERIFIED-PARITY | Guard added 82563526 |
-| Week cards (natural height, r10 p10: 16px chip + h:mm A 14/500, 2-line 13px snippet, 44px thumb side-by-side) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3 |
+| Week cards (natural height, r10 p10: 16px chip + h:mm A 14/500, 2-line 13px snippet, 44px thumb side-by-side) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3; desktop hover = white + soft shadow; phone (user screenshots): single-row 36px r8 px8 chip — 18px icon + 15/400 time only, snippet/thumb hidden |
 | Week card thumbnails | backend `image` field | NEEDS-WORK | Same deploy gate as month pills |
 | Sunday-first week ranges everywhere (context + filters) | `launches/calendar.context.tsx` | VERIFIED-PARITY | isoWeek → week |
 
@@ -203,7 +220,7 @@ changelog line). Statuses:
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Phone 3-day rolling hour grid (~80px rows, 48px gutter, "Mon 10" headers) | `launches/calendar.tsx` WeekView machinery | VERIFIED-PARITY | Measured vs buffer-month-phone390.png; now the WEEK option at phone (Buffer's "Previous 3 Days" pager) — Month renders the real month grid, no more phone coercion in `Calendar` |
+| Phone 3-day rolling hour grid (~80px rows, 48px gutter, "Mon 10" headers) | `launches/calendar.tsx` WeekView machinery | VERIFIED-PARITY | Measured vs buffer-month-phone390.png; the calendar sheet's 3 Days option — its Week option shows all 7 days ('phone-week-span' cookie '3'\|'7', default '3', read fresh in visibleDays) — Month renders the real month grid, no more phone coercion in `Calendar` |
 | Desktop Day view (kept, not in the desktop combobox) | `launches/calendar.tsx` DayView | POSTIZ-ONLY-KEEP | Buffer desktop has Week/Month only; Day retained for phone + alias routes |
 | Phone full-bleed calendar card | `launches/calendar.tsx` + layout | VERIFIED-PARITY | r1 phone pass |
 
