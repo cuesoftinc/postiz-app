@@ -32,14 +32,22 @@ export const TopTitle: FC<{
     <div
       className={clsx(
         // Buffer replica: modal/panel headers separate with a hairline
-        // (white/black-alpha mirrored), titles set in the display face
+        // (white/black-alpha mirrored)
         'border-b flex items-center border-newTableBorder -mx-[24px]',
         props.extraClass ? props.extraClass : 'h-[57px]'
       )}
     >
       <div className="px-[24px] flex flex-1 items-center">
         {!removeTitle && (
-          <div className={clsx('flex-1 font-display', props.titleSize)}>
+          <div
+            data-cs
+            className={clsx(
+              // composer modal-title pattern: 18px/500 Inter ink
+              // (data-cs keeps the ladder off text-[18px])
+              'flex-1 text-[18px] font-[500] text-newTextColor',
+              props.titleSize
+            )}
+          >
             {translatedTitle}
           </div>
         )}

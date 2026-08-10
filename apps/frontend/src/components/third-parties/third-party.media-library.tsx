@@ -87,7 +87,7 @@ const ThirdPartyMediaLibraryBrowser: FC<{
 
   return (
     <div className="flex flex-col gap-[16px] h-full">
-      <div className="text-[14px] font-[600]">
+      <div className="text-[14px] font-[550]">
         {t('select_media_to_import', 'Select media to import from')}{' '}
         {integration.title}: {integration.name}
       </div>
@@ -140,7 +140,7 @@ const ThirdPartyMediaLibraryBrowser: FC<{
                       </div>
                     )}
                     {item.name && (
-                      <div className="absolute bottom-[4px] start-[4px] text-[10px] text-white bg-black/50 px-[4px] rounded truncate max-w-[90%]">
+                      <div className="absolute bottom-[4px] start-[4px] text-[12px] text-white bg-black/50 px-[4px] rounded truncate max-w-[90%]">
                         {item.name}
                       </div>
                     )}
@@ -168,7 +168,7 @@ const ThirdPartyMediaLibraryBrowser: FC<{
         <button
           onClick={importSelected}
           disabled={!selected.length || importing}
-          className="cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed h-[40px] px-[16px] text-[14px] font-[600] items-center justify-center bg-btnPrimary flex rounded-[8px] gap-[8px]"
+          className="cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed h-[40px] px-[16px] text-[14px] font-[550] items-center justify-center bg-btnPrimary flex rounded-[8px] gap-[8px]"
         >
           {importing && (
             <div className="animate-spin h-[16px] w-[16px] border-2 border-black border-t-transparent rounded-full" />
@@ -212,7 +212,7 @@ const ThirdPartyMediaLibraryPicker: FC<{
         <div
           key={p.id}
           onClick={() => setSelected(p)}
-          className="w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[12px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer"
+          className="w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[12px] transition-all text-newTextColor relative flex flex-col gap-[15px] cursor-pointer"
         >
           <div>
             <img
@@ -220,7 +220,7 @@ const ThirdPartyMediaLibraryPicker: FC<{
               src={`/icons/third-party/${p.identifier}.png`}
             />
           </div>
-          <div className="whitespace-pre-wrap text-left text-[15px] font-[600]">
+          <div className="whitespace-pre-wrap text-left text-[15px] font-[550]">
             {p.title}: {p.name}
           </div>
           <div className="whitespace-pre-wrap text-left text-[14px] text-newTextColor/60">

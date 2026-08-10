@@ -131,8 +131,8 @@ export const TimeTable: FC<{
     <div className="relative w-full max-w-[400px] mx-auto">
       {/* Add Time Slot Section */}
       <div className="bg-newBgColorInner rounded-[12px] p-[20px] border border-newTableBorder">
-        <div className="text-[15px] font-semibold font-display mb-[16px] flex items-center gap-[8px]">
-          <DelayIcon size={18} className="text-forth" />
+        <div className="text-[16px] font-[550] text-newTextColor mb-[16px] flex items-center gap-[8px]">
+          <DelayIcon size={18} className="text-newTextColor" />
           {t('add_time_slot', 'Add Time Slot')}
         </div>
 

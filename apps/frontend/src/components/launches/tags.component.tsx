@@ -161,7 +161,7 @@ export const TagsComponentInner: FC<{
     <div
       ref={ref}
       className={clsx(
-        'border rounded-[8px] justify-center flex items-center relative h-[44px] text-[15px] font-[600] select-none',
+        'border rounded-[8px] justify-center flex items-center relative h-[44px] text-[15px] font-[550] select-none',
         isOpen ? 'border-forth' : 'border-newTextColor/10'
       )}
     >
@@ -181,7 +181,7 @@ export const TagsComponentInner: FC<{
                 className="h-full flex justify-center items-center px-[8px] rounded-[4px]"
                 style={{ backgroundColor: tagValue[0].color }}
               >
-                <span className="text-shadow-tags text-[#fff]">
+                <span className="text-shadow-tags text-white">
                   {tagValue[0].name}
                 </span>
               </div>
@@ -225,7 +225,7 @@ export const TagsComponentInner: FC<{
               />
               <div className="h-full flex items-center flex-1 break-all">
                 <span
-                  className="text-[#fff] px-[8px] rounded-[8px] text-shadow-tags"
+                  className="text-white px-[8px] rounded-[8px] text-shadow-tags"
                   style={{ backgroundColor: p.color }}
                 >
                   {p.name}
@@ -234,7 +234,7 @@ export const TagsComponentInner: FC<{
               {!tagValue.find((a) => a.id === p.id) && (
                 <div
                   onClick={(e) => deleteTag(p, e)}
-                  className="ms-auto transition-opacity cursor-pointer text-red-500 text-[14px] font-[600]"
+                  className="ms-auto transition-opacity cursor-pointer text-red-500 text-[14px] font-[550]"
                 >
                   ×
                 </div>
@@ -248,7 +248,7 @@ export const TagsComponentInner: FC<{
             <div>
               <PlusIcon />
             </div>
-            <div className="text-[13px] font-[600]">
+            <div className="text-[13px] font-[550]">
               {t('add_new_tag', 'Add New Tag')}
             </div>
           </div>
@@ -266,7 +266,7 @@ const Check: FC<{ value: boolean; onChange: (value: boolean) => void }> = ({
     <div
       onClick={() => onChange(!value)}
       className={clsx(
-        'text-[10px] font-[500] text-center flex border border-btnSimple rounded-[6px] min-w-[20px] min-h-[20px] w-[20px] h-[20px] justify-center items-center',
+        'text-center flex border border-btnSimple rounded-[6px] min-w-[20px] min-h-[20px] w-[20px] h-[20px] justify-center items-center',
         value && 'bg-forth'
       )}
     >

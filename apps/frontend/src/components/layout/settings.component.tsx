@@ -292,7 +292,7 @@ export const SettingsComponent = () => {
         </div>
       ),
       classNames: {
-        modal: 'bg-transparent text-textColor',
+        modal: 'bg-transparent text-newTextColor',
       },
       withCloseButton: false,
       size: '100%',

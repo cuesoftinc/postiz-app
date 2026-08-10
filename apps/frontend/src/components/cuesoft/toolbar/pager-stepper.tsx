@@ -52,7 +52,7 @@ const Chevron: FC<{ direction: 'prev' | 'next' }> = ({ direction }) => (
 
 const arrowClassName = (disabled: boolean) =>
   clsx(
-    'text-textColor rtl:rotate-180 px-[9px] bg-newBgColorInner h-full flex items-center justify-center',
+    'text-newTextColor rtl:rotate-180 px-[9px] bg-newBgColorInner h-full flex items-center justify-center',
     disabled
       ? 'opacity-50 cursor-not-allowed'
       : 'cursor-pointer hover:text-textItemFocused hover:bg-boxFocused'

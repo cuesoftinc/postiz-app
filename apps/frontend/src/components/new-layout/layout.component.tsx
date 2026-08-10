@@ -188,11 +188,16 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         '/agents',
                         '/media',
                         '/content',
+                        '/plugs',
                       ].some((p) => (pathname || '').startsWith(p)) && (
                         <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center phone:hidden">
                           {/* page title: display face 20px/400 (spec §Page
-                              header) — the ladder rescales text-[24px] to 20px */}
-                          <div className="text-[24px] font-display font-[400] flex flex-1">
+                              header); data-cs holds the exact size (bar is
+                              phone:hidden, so no phone ladder concerns) */}
+                          <div
+                            data-cs
+                            className="text-[20px] font-display font-[400] flex flex-1"
+                          >
                             <Title />
                           </div>
                         </div>

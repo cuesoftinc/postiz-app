@@ -33,7 +33,7 @@ const MetricComponent = () => {
   };
   return (
     <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
-      {/* Buffer section H2s measure 16/550 (round-1 addendum) */}
+      {/* section headings: 16/600 ink (type scale) */}
       <div className="text-[16px] font-[550]">Date Metrics</div>
       {/* Buffer never stretches a control across the pane — 200px select,
           matching the shortlink select geometry */}

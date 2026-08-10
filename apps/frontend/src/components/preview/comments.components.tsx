@@ -54,7 +54,7 @@ export const RenderComponents: FC<{
             {...register('comment', {
               required: true,
             })}
-            className="flex w-full px-3 py-2 h-[98px] text-sm ring-offset-background placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-none text-white bg-third border border-tableBorder placeholder-gray-500 focus:ring-0"
+            className="flex w-full px-3 py-2 h-[98px] text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-none text-white bg-third border border-tableBorder placeholder:text-white/50 focus:ring-0"
             placeholder="Add a comment..."
             defaultValue={''}
           />
@@ -82,7 +82,9 @@ export const RenderComponents: FC<{
       </div>
       <div className="space-y-4">
         {!!data.comments.length && (
-          <h3 className="text-lg font-semibold">{t('comments', 'Comments')}</h3>
+          <h3 className="text-[16px] font-[550]">
+            {t('comments', 'Comments')}
+          </h3>
         )}
         {data.comments.map((comment: any) => (
           <div
@@ -96,7 +98,7 @@ export const RenderComponents: FC<{
                   {mapUsers[comment.userId]}
                 </h3>
               </div>
-              <p className="text-sm text-gray-300">{comment.content}</p>
+              <p className="text-sm text-white/80">{comment.content}</p>
             </div>
           </div>
         ))}

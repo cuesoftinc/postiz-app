@@ -147,15 +147,15 @@ const ChannelRowCells: FC<{ integration: SummaryIntegration; date: number }> =
           <td key={COLUMNS[index].key} className="px-[12px] py-[10px]">
             {cell ? (
               <div className="flex flex-col gap-[1px]">
-                <span className="text-[14px] font-[600] text-newTextColor">
+                <span className="text-[14px] font-[550] text-newTextColor">
                   {cell.total}
                 </span>
-                <span className="text-[11px] text-newTextColor/60">
+                <span className="text-[12px] text-newTextColor/60">
                   {cell.label}
                 </span>
               </div>
             ) : (
-              <span className="text-[14px] text-newTextColor/40">—</span>
+              <span className="text-[14px] text-newTextColor/40">-</span>
             )}
           </td>
         ))}
@@ -182,7 +182,7 @@ export const ChannelsSummarySection: FC<{
   return (
     <div className="bg-newTableHeader rounded-[12px] p-[8px] flex flex-col gap-[12px]">
       <div className="flex flex-col gap-[2px] px-[8px] pt-[8px]">
-        <div className="text-[16px] font-[600]">
+        <div className="text-[16px] font-[550]">
           {t('channels', 'Channels')}
         </div>
         <div className="text-[14px] text-newTextColor/60">{subtitle}</div>

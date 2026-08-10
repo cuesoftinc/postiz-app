@@ -3,12 +3,12 @@ import { useCopilotContext, useCopilotReadable } from '@copilotkit/react-core';
 import AutoResizingTextarea from '@gitroom/frontend/components/agents/agent.textarea';
 import { useChatContext } from '@copilotkit/react-ui';
 import { InputProps } from '@copilotkit/react-ui/dist/components/chat/props';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 const MAX_NEWLINES = 6;
 
 export const Input = ({
   inProgress,
   onSend,
-  isVisible = false,
   onStop,
   onUpload,
   hideStopButton = false,
@@ -16,7 +16,7 @@ export const Input = ({
 }: InputProps & { onChange: (value: string) => void }) => {
   const context = useChatContext();
   const copilotContext = useCopilotContext();
-  const showPoweredBy = !copilotContext.copilotApiConfig?.publicApiKey;
+  const t = useT();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isComposing, setIsComposing] = useState(false);
@@ -65,11 +65,7 @@ export const Input = ({
   const sendDisabled = !canSend && !canStop;
 
   return (
-    <div
-      className={`copilotKitInputContainer ${
-        showPoweredBy ? 'poweredByContainer' : ''
-      }`}
-    >
+    <div className="copilotKitInputContainer">
       <div className="copilotKitInput" onClick={handleDivClick}>
         <AutoResizingTextarea
           ref={textareaRef}
@@ -99,10 +95,17 @@ export const Input = ({
             </button>
           )}
 
-          <div style={{ flexGrow: 1 }} />
           <button
             disabled={sendDisabled}
             onClick={isInProgress && !hideStopButton ? onStop : send}
+            // icon-only button: the Content composer's send button carries
+            // aria-label t('send'); this one matches (and announces the stop
+            // label while a response streams)
+            aria-label={
+              isInProgress && !hideStopButton
+                ? context.labels.stopGenerating
+                : t('send', 'Send')
+            }
             data-copilotkit-in-progress={inProgress}
             data-test-id={
               inProgress

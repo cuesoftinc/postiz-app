@@ -577,7 +577,7 @@ export const DeleteCircleIcon: FC<IconProps> = ({
     strokeWidth="2.2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className={clsx('text-[#FF3535]', className)}
+    className={clsx('text-[#FF3F3F]', className)}
     {...props}
   >
     <circle cx="12" cy="12" r="10" />
@@ -602,7 +602,7 @@ export const CloseCircleIcon: FC<IconProps> = ({
     strokeWidth="2.2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className={clsx('text-[#FF3535]', className)}
+    className={clsx('text-[#FF3F3F]', className)}
     {...props}
   >
     <circle cx="12" cy="12" r="10" />

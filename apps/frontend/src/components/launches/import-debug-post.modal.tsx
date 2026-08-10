@@ -129,7 +129,7 @@ export const ImportDebugPostModal: FC<{ close: () => void }> = ({ close }) => {
   return (
     <ModalBody width={500}>
       <textarea
-        className="w-full h-[200px] p-[12px] rounded-[8px] bg-input border border-tableBorder text-textColor font-mono text-[13px] resize-y"
+        className="w-full h-[200px] p-[12px] rounded-[8px] bg-input border border-tableBorder text-newTextColor font-mono text-[13px] resize-y"
         placeholder={t(
           'paste_debug_json',
           'Paste the debug JSON copied from a failed post...'
@@ -145,10 +145,10 @@ export const ImportDebugPostModal: FC<{ close: () => void }> = ({ close }) => {
       {parsed && (
         <div className="flex flex-col gap-[12px]">
           <div className="flex flex-col gap-[8px] p-[12px] rounded-[8px] bg-input border border-tableBorder">
-            <div className="text-[13px] font-[600] text-textColor">
+            <div className="text-[13px] font-[550] text-newTextColor">
               {t('debug_info', 'Debug Info')}
             </div>
-            <div className="text-[12px] text-textColor/70 flex flex-col gap-[4px] min-w-0 break-all">
+            <div className="text-[12px] text-newTextColor/70 flex flex-col gap-[4px] min-w-0 break-all">
               <div>
                 <span className="font-[500]">
                   {t('provider', 'Provider')}:
@@ -176,7 +176,7 @@ export const ImportDebugPostModal: FC<{ close: () => void }> = ({ close }) => {
                   <span className="font-[500]">
                     {t('error_details', 'Error Details')}:
                   </span>
-                  <div className="mt-[4px] max-h-[100px] overflow-y-auto bg-newBgColor p-[8px] rounded-[4px] text-[11px] font-mono break-all whitespace-pre-wrap">
+                  <div className="mt-[4px] max-h-[100px] overflow-y-auto bg-newBgColor p-[8px] rounded-[4px] text-[12px] font-mono break-all whitespace-pre-wrap">
                     {parsed._debug.errors.map((err, i) => (
                       <div key={i} className="mb-[4px]">
                         [{err.platform}] {err.message}
@@ -195,9 +195,9 @@ export const ImportDebugPostModal: FC<{ close: () => void }> = ({ close }) => {
           </div>
 
           <div className="flex flex-col gap-[8px]">
-            <div className="text-[13px] font-[600] text-textColor">
+            <div className="text-[13px] font-[550] text-newTextColor">
               {t('select_local_integration', 'Select Local Integration')}
-              <span className="text-[12px] font-[400] text-textColor/60 ml-[8px]">
+              <span className="text-[12px] font-[400] text-newTextColor/60 ml-[8px]">
                 ({parsed._debug.providerIdentifier})
               </span>
             </div>
@@ -227,7 +227,7 @@ export const ImportDebugPostModal: FC<{ close: () => void }> = ({ close }) => {
                       className="w-[24px] h-[24px] rounded-[6px]"
                       alt={integration.name}
                     />
-                    <div className="text-[13px] text-textColor">
+                    <div className="text-[13px] text-newTextColor">
                       {integration.name}
                     </div>
                     <img

@@ -239,7 +239,7 @@ export const AiVideo: FC<{
               <path d="M21 16.5h-4" />
             </svg>
           </div>
-          <div className="text-[10px] font-[600] iconBreak:hidden block">
+          <div className="text-[12px] font-[500] iconBreak:hidden block">
             {t('ai', 'AI')} Video
           </div>
         </div>

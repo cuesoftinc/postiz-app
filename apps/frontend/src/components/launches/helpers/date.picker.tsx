@@ -35,7 +35,7 @@ export const DatePicker: FC<{
   );
   return (
     <div
-      className="px-[16px] phone:px-[10px] border border-newTextColor/10 rounded-[8px] justify-center flex gap-[8px] items-center relative h-[44px] text-[15px] phone:text-[13px] font-[600] select-none flex-1 whitespace-nowrap"
+      className="px-[16px] phone:px-[10px] border border-newTextColor/10 rounded-[8px] justify-center flex gap-[8px] items-center relative h-[44px] text-[15px] phone:text-[13px] font-[550] select-none flex-1 whitespace-nowrap"
       onClick={changeShow}
       ref={ref}
     >
@@ -48,7 +48,7 @@ export const DatePicker: FC<{
       {open && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="animate-fadeIn absolute bottom-[100%] mb-[16px] start-[50%] -translate-x-[50%] bg-newBgColorInner border border-newTableBorder text-textColor rounded-[16px] shadow-menu z-[300] p-[16px] flex flex-col"
+          className="animate-fadeIn absolute bottom-[100%] mb-[16px] start-[50%] -translate-x-[50%] bg-newBgColorInner border border-newTableBorder text-newTextColor rounded-[16px] shadow-menu z-[300] p-[16px] flex flex-col"
         >
           <Calendar
             onChange={changeDate('date')}
@@ -63,12 +63,12 @@ export const DatePicker: FC<{
               if (modifiers.weekend) {
                 return '!text-textItemBlur';
               }
-              return '!text-textColor';
+              return '!text-newTextColor';
             }}
             classNames={{
               day: 'hover:bg-boxHover rounded-[6px]',
-              calendarHeaderControl: 'text-textColor hover:bg-boxHover',
-              calendarHeaderLevel: 'text-textColor hover:bg-boxHover', // cell: 'child:!text-textColor'
+              calendarHeaderControl: 'text-newTextColor hover:bg-boxHover',
+              calendarHeaderLevel: 'text-newTextColor hover:bg-boxHover', // cell: 'child:!text-newTextColor'
             }}
           />
           <TimeInput
@@ -77,7 +77,7 @@ export const DatePicker: FC<{
             classNames={{
               label: 'text-[13px] text-newTextColor/60 py-[12px]',
               input:
-                'bg-transparent h-[36px] border border-newTableBorder text-textColor rounded-[6px] outline-none focus:border-forth',
+                'bg-transparent h-[36px] border border-newTableBorder text-newTextColor rounded-[6px] outline-none focus:border-forth',
             }}
             defaultValue={date.toDate()}
           />

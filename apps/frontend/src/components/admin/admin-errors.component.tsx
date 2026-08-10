@@ -74,7 +74,7 @@ const ErrorDetailsModal: FC<{ row: ErrorRow }> = ({ row }) => {
       className="rounded-[4px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px] relative w-full max-h-[80vh] overflow-auto"
     >
       <div className="sticky top-0 bg-newBgColorInner py-[16px] flex items-center justify-between gap-[12px] z-10 border-b border-newTableBorder mb-[12px]">
-        <div className="text-[16px] font-[600]">Error Details</div>
+        <div className="text-[16px] font-[550]">Error Details</div>
         <div className="flex gap-[8px] items-center">
           <Button onClick={copyAll}>Copy Debug Code</Button>
           <button
@@ -102,43 +102,43 @@ const ErrorDetailsModal: FC<{ row: ErrorRow }> = ({ row }) => {
 
       <div className="grid grid-cols-2 gap-[12px] text-[13px] mb-[12px]">
         <div>
-          <div className="opacity-60">Platform</div>
+          <div className="text-newTextColor/60">Platform</div>
           <div>{row.platform}</div>
         </div>
         <div>
-          <div className="opacity-60">Created</div>
+          <div className="text-newTextColor/60">Created</div>
           <div>{new Date(row.createdAt).toLocaleString()}</div>
         </div>
         <div>
-          <div className="opacity-60">Organization</div>
+          <div className="text-newTextColor/60">Organization</div>
           <div>
             {row.organization?.name}{' '}
-            <span className="opacity-60">({row.organization?.id})</span>
+            <span className="text-newTextColor/60">({row.organization?.id})</span>
           </div>
         </div>
         <div>
-          <div className="opacity-60">Users</div>
+          <div className="text-newTextColor/60">Users</div>
           <div className="break-all">
             {row.organization?.users
               ?.map((u) => u.user?.email)
               .filter(Boolean)
-              .join(', ') || '—'}
+              .join(', ') || '-'}
           </div>
         </div>
         <div className="col-span-2">
-          <div className="opacity-60">Post ID</div>
+          <div className="text-newTextColor/60">Post ID</div>
           <div>{row.postId}</div>
         </div>
       </div>
 
-      <div className="text-[13px] font-[600] mb-[6px]">message</div>
+      <div className="text-[13px] font-[550] mb-[6px]">message</div>
       <pre className="text-[12px] bg-sixth p-[12px] rounded overflow-auto max-h-[40vh] whitespace-pre-wrap break-all">
         {typeof parsedMessage === 'string'
           ? parsedMessage
           : JSON.stringify(parsedMessage, null, 2)}
       </pre>
 
-      <div className="text-[13px] font-[600] mb-[6px] mt-[12px]">body</div>
+      <div className="text-[13px] font-[550] mb-[6px] mt-[12px]">body</div>
       <pre className="text-[12px] bg-sixth p-[12px] rounded overflow-auto max-h-[40vh] whitespace-pre-wrap break-all">
         {typeof parsedBody === 'string'
           ? parsedBody
@@ -221,7 +221,7 @@ export const AdminErrorsComponent: FC = () => {
         closeOnClickOutside: true,
         withCloseButton: false,
         classNames: {
-          modal: 'w-[100%] max-w-[1100px] text-textColor',
+          modal: 'w-[100%] max-w-[1100px] text-newTextColor',
         },
         children: <ErrorDetailsModal row={row} />,
       });
@@ -245,7 +245,7 @@ export const AdminErrorsComponent: FC = () => {
 
   if (!user?.isSuperAdmin) {
     return (
-      <div className="text-textColor p-[20px]">
+      <div className="text-newTextColor p-[20px]">
         You do not have access to this page.
       </div>
     );
@@ -254,10 +254,12 @@ export const AdminErrorsComponent: FC = () => {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / limit)) : 1;
 
   return (
-    <div className="flex flex-col gap-[16px] text-textColor">
+    <div className="flex flex-col gap-[16px] text-newTextColor">
       <div className="flex items-center justify-between">
-        <div className="text-[20px] font-[600]">Errors</div>
-        <div className="text-[13px] opacity-70">
+        <div data-cs className="font-display text-[20px] font-[400] text-newTextColor">
+          Errors
+        </div>
+        <div className="text-[13px] text-newTextColor/60">
           {data ? `${data.total} total` : ''}
         </div>
       </div>
@@ -333,9 +335,9 @@ export const AdminErrorsComponent: FC = () => {
         // table-shaped skeleton (header wash + row bars), never a spinner
         <SkeletonTable rows={8} />
       ) : error ? (
-        <div className="text-red-400">Failed to load errors.</div>
+        <div className="text-[#FF3F3F]">Failed to load errors.</div>
       ) : !data || data.items.length === 0 ? (
-        <div className="opacity-70">No errors found.</div>
+        <div className="text-newTextColor/60">No errors found.</div>
       ) : (
         <DataTable<ErrorRow>
           columns={[
@@ -343,7 +345,6 @@ export const AdminErrorsComponent: FC = () => {
               key: 'created',
               header: 'Created',
               width: '170px',
-              cellClassName: 'opacity-90',
               render: (row) => new Date(row.createdAt).toLocaleString(),
             },
             {
@@ -354,8 +355,8 @@ export const AdminErrorsComponent: FC = () => {
                 <span
                   className={
                     (row.message || '').includes('Unknown Error')
-                      ? 'text-red-400 font-[600]'
-                      : 'opacity-90'
+                      ? 'text-[#FF3F3F] font-[550]'
+                      : ''
                   }
                 >
                   {row.platform}
@@ -373,9 +374,9 @@ export const AdminErrorsComponent: FC = () => {
                     {row.organization?.users
                       ?.map((u) => u.user?.email)
                       .filter(Boolean)
-                      .join(', ') || '—'}
+                      .join(', ') || '-'}
                   </div>
-                  <div className="opacity-60 text-[12px]">
+                  <div className="text-[12px] text-newTextColor/60">
                     {row.organization?.name}
                   </div>
                 </>
@@ -385,7 +386,7 @@ export const AdminErrorsComponent: FC = () => {
               key: 'message',
               header: 'Message',
               cellClassName:
-                'break-all whitespace-pre-wrap font-mono text-[12px] opacity-90',
+                'break-all whitespace-pre-wrap font-mono text-[12px]',
               render: (row) =>
                 (row.message || '').length > 280
                   ? row.message.slice(0, 280) + '…'

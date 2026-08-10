@@ -4,7 +4,9 @@ import React, {
   createContext,
   FC,
   useCallback,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   ReactNode,
 } from 'react';
@@ -16,7 +18,10 @@ import { useWaitForClass } from '@gitroom/helpers/utils/use.wait.for.class';
 import { MultiMediaComponent } from '@gitroom/frontend/components/media/media.component';
 import { Integration } from '@prisma/client';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import { ContentChatComponent } from '@gitroom/frontend/components/content-agent/content-chat.component';
+import { SessionsRail } from '@gitroom/frontend/components/content-agent/sessions-rail.component';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { sidePanelRoot, sidePanelPane } from '@gitroom/frontend/components/new-layout/side-panel';
 import {
@@ -52,8 +57,10 @@ export const MediaPortal: FC<{
   return (
     // `agent-scope` keys the agents-only restyle of the shared Insert-Media
     // chip row (media.component.tsx is the composer's file — not touched);
-    // see agent.styles.scss
-    <div className="agent-scope pl-[14px] pr-[24px] whitespace-nowrap editor rm-bg">
+    // see agent.styles.scss. No horizontal padding of its own: the composer
+    // below it sits flush with the PageShell inset now, and the chips align
+    // with its edge.
+    <div className="agent-scope whitespace-nowrap editor rm-bg">
       <MultiMediaComponent
         allData={[{ content: value }]}
         text={value}
@@ -160,6 +167,85 @@ export const PropertiesContext = createContext({ properties: [] });
 export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
   const [properties, setProperties] = useState([]);
   const t = useT();
+  const user = useUser();
+  // Content segment is admin-only — the same gate ContentChatComponent (and
+  // its backend route) enforces; non-admins see no segmented at all
+  const isAdmin = !!(user as any)?.admin;
+  const searchParams = useSearchParams();
+  // /content redirects here with ?mode=content so old links preselect the
+  // Content segment (the (app) tree is force-dynamic — no Suspense needed)
+  const [mode, setMode] = useState<'assistant' | 'content'>(() =>
+    searchParams.get('mode') === 'content' ? 'content' : 'assistant'
+  );
+  useEffect(() => {
+    // this layout survives /agents/* client navigations — re-read the param
+    // when a navigation actually carries it (thread links never do)
+    if (searchParams.get('mode') === 'content') setMode('content');
+  }, [searchParams]);
+  const contentMode = isAdmin && mode === 'content';
+
+  // Admins: BOTH tabs are bridge panes now (Assistant runs the bridge's
+  // 'assistant' profile, Content its 'content' profile), kept mounted so a
+  // stream survives a tab flip; the segmented just swaps which one shows.
+  // Non-admins keep the CopilotKit chat (children) untouched — the bridge
+  // runs on the operator's Claude account.
+
+  // each pane registers its session-reset here so the header's (and rail's)
+  // New chat can drive the ACTIVE profile's pane
+  const resetRefs = useRef<Record<'assistant' | 'content', (() => void) | null>>(
+    { assistant: null, content: null }
+  );
+  const registerAssistantReset = useCallback(
+    (reset: (() => void) | null) => {
+      resetRefs.current.assistant = reset;
+    },
+    []
+  );
+  const registerContentReset = useCallback((reset: (() => void) | null) => {
+    resetRefs.current.content = reset;
+  }, []);
+  const newBridgeChat = useCallback(() => {
+    resetRefs.current[mode]?.();
+  }, [mode]);
+
+  // the page owns which bridge session is open per profile: the rail resumes
+  // one, the pane reports the ids the bridge mints (onSessionChange), New
+  // chat clears back to null
+  const [bridgeSessions, setBridgeSessions] = useState<{
+    assistant: string | null;
+    content: string | null;
+  }>({ assistant: null, content: null });
+  const onAssistantSession = useCallback(
+    (id: string | null) =>
+      setBridgeSessions((s) =>
+        s.assistant === id ? s : { ...s, assistant: id }
+      ),
+    []
+  );
+  const onContentSession = useCallback(
+    (id: string | null) =>
+      setBridgeSessions((s) => (s.content === id ? s : { ...s, content: id })),
+    []
+  );
+  const selectSession = useCallback(
+    (id: string) => setBridgeSessions((s) => ({ ...s, [mode]: id })),
+    [mode]
+  );
+
+  // bumped when a turn finishes so the rail refetches (new sessions appear,
+  // updatedAt reorders)
+  const [sessionsVersion, setSessionsVersion] = useState(0);
+  const bumpSessions = useCallback(() => setSessionsVersion((v) => v + 1), []);
+
+  const switchMode = useCallback((next: 'assistant' | 'content') => {
+    setMode(next);
+    // keep the URL shareable/refresh-stable without a Next navigation —
+    // same history.replaceState pattern as the launches filters
+    const url = new URL(window.location.href);
+    if (next === 'content') url.searchParams.set('mode', 'content');
+    else url.searchParams.delete('mode');
+    window.history.replaceState(null, '', url.pathname + url.search);
+  }, []);
 
   return (
     <PropertiesContext.Provider value={{ properties }}>
@@ -190,40 +276,162 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
           }
           title={t('agent', 'Agent')}
           actions={
-            <Link
-              href="/agents/new"
-              title={t('new_chat', 'New chat')}
-              data-cs
-              className="h-[40px] px-[12px] rounded-[8px] bg-btnPrimary flex items-center justify-center gap-[6px] text-[14px] font-[500] transition-colors duration-150 shrink-0 phone:w-[40px] phone:px-0"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="shrink-0"
-              >
-                <path d="M5 12h14" />
-                <path d="M12 5v14" />
-              </svg>
-              <span className="phone:hidden">{t('new_chat', 'New chat')}</span>
-            </Link>
+            <>
+              {/* [Assistant | Content] segmented — launches List|Calendar
+                  anatomy (32px band, 4px inset, hairline r8; active =
+                  boxFocused/textItemFocused). Admin-only: without the
+                  Content segment there is nothing to switch. */}
+              {isAdmin && (
+                <div
+                  data-cs
+                  className="flex h-[32px] p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] shrink-0"
+                >
+                  <button
+                    type="button"
+                    onClick={() => switchMode('assistant')}
+                    className={clsx(
+                      'flex items-center px-[8px] rounded-[6px] transition-colors duration-150',
+                      !contentMode
+                        ? 'bg-boxFocused text-textItemFocused'
+                        : 'text-newTextColor/60 hover:text-newTextColor'
+                    )}
+                  >
+                    {t('assistant', 'Assistant')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchMode('content')}
+                    className={clsx(
+                      'flex items-center px-[8px] rounded-[6px] transition-colors duration-150',
+                      contentMode
+                        ? 'bg-boxFocused text-textItemFocused'
+                        : 'text-newTextColor/60 hover:text-newTextColor'
+                    )}
+                  >
+                    {t('content', 'Content')}
+                  </button>
+                </div>
+              )}
+              {/* New chat lives HERE in both modes — quiet 32px hairline (S4:
+                  the segmented is the page focal point, so the old lime
+                  primary demotes). Admins: clears the ACTIVE profile's bridge
+                  pane to a fresh session; non-admins: a new copilot thread. */}
+              {isAdmin ? (
+                <button
+                  type="button"
+                  onClick={newBridgeChat}
+                  title={t('new_chat', 'New chat')}
+                  data-cs
+                  className="h-[32px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center gap-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 shrink-0 whitespace-nowrap phone:w-[32px] phone:px-0"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="shrink-0"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="M12 5v14" />
+                  </svg>
+                  <span className="phone:hidden">
+                    {t('new_chat', 'New chat')}
+                  </span>
+                </button>
+              ) : (
+                <Link
+                  href="/agents/new"
+                  title={t('new_chat', 'New chat')}
+                  data-cs
+                  className="h-[32px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center gap-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 shrink-0 whitespace-nowrap phone:w-[32px] phone:px-0"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="shrink-0"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="M12 5v14" />
+                  </svg>
+                  <span className="phone:hidden">
+                    {t('new_chat', 'New chat')}
+                  </span>
+                </Link>
+              )}
+            </>
           }
         />
-        <AgentList onChange={setProperties} />
-        {/* phone: rail + chat stack (Threads first); min-w-0 keeps the chat
+        {/* channel toggles feed PropertiesContext → the copilot chat only;
+            they mean nothing to the bridge chat, so admins (both tabs are
+            bridge panes) drop them */}
+        {!isAdmin && <AgentList onChange={setProperties} />}
+        {/* phone: rail + chat stack (rail first); min-w-0 keeps the chat
             pane from being crushed by the rail's intrinsic width. The row's
             own bg paints the 1px seam between chat and rail — the shell's
             white would otherwise swallow it. */}
         <div className="flex flex-1 gap-[1px] min-h-0 bg-newBgLineColor phone:flex-col">
           <div className="bg-newBgColorInner flex flex-1 min-w-0">
-            {children}
+            {isAdmin ? (
+              /* both bridge panes stay mounted (a stream survives a tab
+                 flip); the segmented hides the inactive one */
+              <>
+                <div
+                  className={clsx(
+                    'flex flex-1 min-w-0',
+                    contentMode && 'hidden'
+                  )}
+                >
+                  <ContentChatComponent
+                    profile="assistant"
+                    activeSessionId={bridgeSessions.assistant}
+                    onSessionChange={onAssistantSession}
+                    onTurnEnd={bumpSessions}
+                    registerReset={registerAssistantReset}
+                  />
+                </div>
+                <div
+                  className={clsx(
+                    'flex flex-1 min-w-0',
+                    !contentMode && 'hidden'
+                  )}
+                >
+                  <ContentChatComponent
+                    profile="content"
+                    activeSessionId={bridgeSessions.content}
+                    onSessionChange={onContentSession}
+                    onTurnEnd={bumpSessions}
+                    registerReset={registerContentReset}
+                  />
+                </div>
+              </>
+            ) : (
+              children
+            )}
           </div>
-          <Threads />
+          {/* admins: ONE sessions rail shared by both tabs, listing the
+              active profile's bridge sessions; non-admins keep the copilot
+              Threads rail */}
+          {isAdmin ? (
+            <SessionsRail
+              profile={mode}
+              activeId={bridgeSessions[mode]}
+              version={sessionsVersion}
+              onSelect={selectSession}
+              onNewChat={newBridgeChat}
+            />
+          ) : (
+            <Threads />
+          )}
         </div>
       </PageShell>
     </PropertiesContext.Provider>

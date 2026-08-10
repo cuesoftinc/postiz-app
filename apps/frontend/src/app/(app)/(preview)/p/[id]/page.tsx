@@ -54,7 +54,7 @@ export default async function Auth(
               <div className="min-w-[55px]">
                 <Link
                   href="/"
-                  className="text-2xl flex items-center justify-center gap-[10px] text-textColor order-1"
+                  className="text-2xl flex items-center justify-center gap-[10px] text-newTextColor order-1"
                 >
                   <div className="max-w-[160px]">
                     <SafeImage
@@ -69,7 +69,7 @@ export default async function Auth(
               </div>
             </div>
           </div>
-          <div className="text-sm text-gray-400 flex items-center gap-[20px]">
+          <div className="text-sm text-white/60 flex items-center gap-[20px]">
             {!!searchParams?.share && (
               <div>
                 <CopyClient />
@@ -115,7 +115,7 @@ export default async function Auth(
                       <h2 className="text-sm font-semibold">
                         {post[0].integration.name}
                       </h2>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-white/60">
                         @{post[0].integration.profile}
                       </span>
                       {index === 0 && (

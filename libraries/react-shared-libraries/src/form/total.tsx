@@ -31,7 +31,7 @@ export const Total: FC<{
       <div className={`text-[13px] text-newTextColor/60`}>{t('total', 'Total')}</div>
       <div
         className={clsx(
-          'bg-newBgColorInner h-[36px] border-newTableBorder border rounded-[6px] text-textColor items-center justify-center flex'
+          'bg-newBgColorInner h-[36px] border-newTableBorder border rounded-[6px] text-newTextColor items-center justify-center flex'
         )}
       >
         <div className="flex-1 px-[16px] text-[14px] select-none flex gap-[8px] items-center">
@@ -46,13 +46,13 @@ export const Total: FC<{
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={value === 1 ? 'text-slate-500' : undefined}
+              className={value === 1 ? 'text-newTextColor/40' : undefined}
             >
               <circle cx="12" cy="12" r="10" />
               <path d="M8 12h8" />
             </svg>
           </div>
-          <div className="flex-1 text-textColor text-[14px] text-center">
+          <div className="flex-1 text-newTextColor text-[14px] text-center">
             {value}
           </div>
           <div onClick={changeNumber(value + 1)}>

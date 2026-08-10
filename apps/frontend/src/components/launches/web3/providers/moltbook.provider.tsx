@@ -145,7 +145,7 @@ export const MoltbookProvider: FC<Web3ProviderInterface> = (props) => {
             </div>
             <Button onClick={copyClaimUrl}>{t('copy', 'Copy')}</Button>
           </div>
-          <div className="mt-[16px] text-sm opacity-70">
+          <div className="mt-[16px] text-[14px] text-newTextColor/60">
             {t('waiting_for_claim', 'Waiting for you to claim your agent...')}
           </div>
           <div className="mt-[8px]">

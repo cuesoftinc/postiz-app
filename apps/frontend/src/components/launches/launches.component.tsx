@@ -362,7 +362,7 @@ export const MenuComponent: FC<
           integration.disabled && 'text-newTextColor/40'
         )}
       >
-        <div className="whitespace-nowrap text-ellipsis overflow-hidden font-[600] text-[14px]">
+        <div className="whitespace-nowrap text-ellipsis overflow-hidden font-[550] text-[14px]">
           {integration.name}
         </div>
         <div className="whitespace-nowrap text-ellipsis overflow-hidden text-[13px] text-newTextColor/60 font-[400]">
@@ -610,7 +610,7 @@ export const LaunchesComponent = () => {
               className="bg-newBgColorInner border border-newTableBorder rounded-[16px] w-[520px] max-w-[calc(100vw-64px)] p-[20px] flex flex-col gap-[15px] relative phone:w-full phone:max-w-none phone:min-h-full phone:rounded-none phone:border-0"
             >
               <div className="flex items-center justify-between">
-                <div className="font-display text-[16px] font-[600]" data-cs>
+                <div className="text-[16px] font-[550]">
                   {t('channels', 'Channels')}
                 </div>
                 <ModalCloseButton

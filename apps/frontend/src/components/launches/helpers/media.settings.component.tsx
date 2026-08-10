@@ -247,7 +247,7 @@ export const CreateThumbnail: FC<{
                 }%, var(--new-table-border) 100%)`,
               }}
             />
-            <div className="flex justify-between text-sm text-textColor">
+            <div className="flex justify-between text-sm text-newTextColor">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
@@ -257,7 +257,7 @@ export const CreateThumbnail: FC<{
             <button
               onClick={captureFrame}
               disabled={isCapturing}
-              className="bg-btnPrimary h-[40px] px-[24px] text-[14px] font-[600] rounded-[6px] hover:bg-[#a9e662] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-btnPrimary h-[40px] px-[24px] text-[14px] font-[550] rounded-[6px] hover:bg-[#a9e662] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCapturing ? 'Capturing...' : 'Select This Frame'}
             </button>
@@ -376,7 +376,7 @@ export const MediaComponentInner: FC<{
           value={altText}
           onChange={(e) => setAltText(e.target.value)}
           placeholder="Describe the image/video content..."
-          className="w-full px-[16px] h-[36px] bg-newBgColorInner border border-newTableBorder rounded-[6px] text-[14px] text-textColor placeholder-textItemBlur outline-none focus:border-forth"
+          className="w-full px-[16px] h-[36px] bg-newBgColorInner border border-newTableBorder rounded-[6px] text-[14px] text-newTextColor placeholder-textItemBlur outline-none focus:border-forth"
         />
       </div>
       {hasExtension(media?.path, 'mp4') && (
@@ -485,7 +485,7 @@ export const MediaComponentInner: FC<{
           </button>
           <button
             onClick={save}
-            className="flex-1 bg-btnPrimary h-[40px] px-[24px] text-[14px] font-[600] rounded-[6px] hover:bg-[#a9e662] transition-all"
+            className="flex-1 bg-btnPrimary h-[40px] px-[24px] text-[14px] font-[550] rounded-[6px] hover:bg-[#a9e662] transition-all"
           >
             Save Changes
           </button>

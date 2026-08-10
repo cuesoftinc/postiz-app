@@ -1,14 +1,22 @@
-/* Agents-page-scoped overrides (Buffer parity r1). Imported by
-   agent.chat.tsx. Two scopes:
+/* Agents-page-scoped overrides (Buffer parity r1 + agent-page consistency r1).
+   Imported by agent.chat.tsx. Two scopes:
 
    - `.agent`       — the CopilotKit chat surface (classes CopilotKit owns);
                       complements the `.agent` block in app/global.scss.
+                      Everything below skins CopilotKit to the SAME in-pane
+                      language as content-chat.component.tsx: one composer
+                      anatomy, one bubble spec, one list rhythm.
    - `.agent-scope` — the shared Insert-Media chip row that MediaPortal mounts
                       from media.component.tsx (the composer's file — NOT
                       edited). Selectors are keyed on the row's current legacy
                       utility classes on purpose: if the composer's toolbar is
                       restyled at the source, these stop matching and the page
-                      inherits the new styling instead of double-applying. */
+                      inherits the new styling instead of double-applying.
+
+   Selector depth is deliberate: CopilotKit's stylesheet arrives via the
+   component import graph, so ordering against it is not guaranteed — every
+   rule here out-specifies the library rule it replaces instead of relying on
+   cascade order. */
 
 .agent {
   /* CopilotKit ships its own ui-sans-serif/system stack — everything else on
@@ -17,22 +25,376 @@
     font-family: inherit;
   }
 
-  /* default input: r20 (off the 6/8/12/999 radius scale) with a hard-coded
-     rgb(200,200,200) border */
-  .copilotKitInput {
-    border-radius: 12px;
-    border: 1px solid var(--new-table-border);
+  /* ========== composer — the ONE anatomy shared with the Content pane:
+     r12 hairline white container, borderless 14px ink textarea with muted
+     placeholder, 32px lime send square ========== */
+
+  /* global.scss pads this `0 24px !important` for the stock layout; the
+     converged composer sits flush with the PageShell inset exactly like the
+     Content composer (the .copilotKitChat hop out-specifies the !important) */
+  .copilotKitChat .copilotKitInputContainer {
+    padding: 0 !important;
   }
 
-  /* default bubble: r15; bg/ink now come from the
-     --copilot-kit-primary/contrast pair set in agent.chat.tsx */
-  .copilotKitUserMessage {
+  /* default: r20, hard 75px min-height, block layout with a controls row
+     under the textarea -> Content anatomy: flex row, textarea + send square */
+  .copilotKitInput {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
     border-radius: 12px;
+    border: 1px solid var(--new-table-border);
+    background: var(--new-bgColorInner);
+    padding: 8px;
+    min-height: 0;
+  }
+
+  /* default textarea: 0.875rem on a 14px root = 12.25px. 14px ink, 24px
+     line, 4px inner pad = the Content textarea; min-height 56px = Content's
+     rows={2} (2 x 24px + 8px padding, border-box) */
+  .copilotKitInput > textarea {
+    font-size: 14px;
+    line-height: 24px;
+    padding: 4px;
+    min-height: 56px;
+    color: rgb(var(--new-textColor));
+  }
+  .copilotKitInput > textarea::placeholder {
+    color: var(--new-textItemBlur);
+  }
+
+  /* past ~6 rows the textarea scrolls: the library pins a 9px pill thumb in
+     hardcoded rgb(200,200,200) — off-token and dark-mode-blind. Retoken the
+     thumb to the hairline; .cs-chat-textarea (bottom of this file) gives the
+     Content textarea the identical chrome. */
+  .copilotKitInput textarea::-webkit-scrollbar-thumb {
+    background-color: var(--new-table-border);
+  }
+
+  /* default send: 24px ghost glyph tinted with the primary color that
+     scales on hover -> the Content 32px lime square, black ink, disabled
+     at .4 opacity (no scale, no color swap) */
+  .copilotKitInputControlButton {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--new-btn-primary);
+    color: #000;
+    transition: opacity 0.15s;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+  .copilotKitInputControlButton:not([disabled]) {
+    color: #000;
+  }
+  .copilotKitInputControlButton:not([disabled]):hover {
+    color: #000;
+    transform: none;
+  }
+  .copilotKitInputControlButton[disabled] {
+    color: #000;
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  /* ========== messages — one list rhythm (py 16, 16 between messages,
+     no extra horizontal inset: the PageShell 32px is the inset) ========== */
+
+  /* default: 1rem 24px — the 24px sides pushed Assistant content out of
+     line with the Content pane */
+  .copilotKitMessagesContainer {
+    padding: 16px 0;
+  }
+
+  /* the library always renders an empty footer (the messagesEndRef scroll
+     anchor) as the scroller's last child and gives it padding 0.5rem 0.75rem
+     + margin 8px auto 0 — ~22px of dead space below the last message, where
+     the Content list ends at exactly py-[16px]. Zero the box but KEEP the
+     element in the DOM: useScrollToBottom null-checks messagesEndRef before
+     autoscrolling. */
+  .copilotKitMessagesFooter {
+    padding: 0;
+    margin: 0;
+  }
+
+  /* scrollbar: the library forces an always-visible 6px webkit bar with a
+     separator-colored pill thumb; the sibling kit panes (Threads rail,
+     AgentList, and now the Content list) all use the tailwind-scrollbar
+     `scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor` look —
+     plugin-default width (var(--scrollbar-width, 16px)), square fifth
+     thumb, newBgColor track. Mirror that here (plus the standards-track
+     scrollbar-color the plugin also emits) so flipping the segmented does
+     not swap scrollbar styles on the same pane. */
+  .copilotKitMessages {
+    scrollbar-color: var(--color-fifth) var(--new-bgColor);
+  }
+  .copilotKitMessages::-webkit-scrollbar {
+    width: var(--scrollbar-width, 16px);
+  }
+  .copilotKitMessages::-webkit-scrollbar-thumb {
+    background-color: var(--color-fifth);
+    border-radius: 0;
+    border: 0;
+  }
+  .copilotKitMessages::-webkit-scrollbar-track {
+    background-color: var(--new-bgColor);
+  }
+  .copilotKitMessages::-webkit-scrollbar-track-piece:start,
+  .copilotKitMessages::-webkit-scrollbar-track-piece:end {
+    background: var(--new-bgColor);
+  }
+
+  /* in-progress dots: the library paints the three activity dots with
+     --copilot-kit-primary-color, remapped here to boxFocused — a lime wash
+     that vanishes on the white pane. Match the Content pane's streaming
+     pulse (bg-newTextColor/40, content-chat.component.tsx). */
+  .copilotKitActivityDot {
+    background-color: rgb(var(--new-textColor) / 0.4);
+  }
+
+  /* default bubble: r15, 1rem type, 80% max, 8px bottom margin */
+  .copilotKitMessage {
+    font-size: 14px;
+    line-height: 1.5;
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    max-width: 70%;
+  }
+
+  /* user bubble: bg/ink already arrive via the --copilot-kit-primary/
+     contrast pair (boxFocused / textItemFocused) set in agent.chat.tsx;
+     the library pins 1rem/1.75 at equal specificity, so repeat the metrics.
+     Alignment goes logical: the library's physical margin-left: auto pins
+     the bubble visually right even under dir=rtl, while the Content bubble's
+     self-end flips — the logical auto margin flips with it (the messages
+     container is flex-column, so it aligns the same way). */
+  .copilotKitMessage.copilotKitUserMessage {
+    font-size: 14px;
+    line-height: 1.5;
+    margin-left: 0;
+    margin-inline-start: auto;
+  }
+
+  /* image attachments: the Message component injects h-[150px] w-[150px],
+     but global.scss's `.copilotKitMessage img { width: 200px }` (0,1,1)
+     out-specifies the w-[150px] utility (0,1,0) and stretches the img to
+     200x150. This compiles to 0,3,1 and restores the square videos already
+     get (no competing global rule on video). */
+  .copilotKitMessage.copilotKitUserMessage img {
+    width: 150px;
+    object-fit: cover;
+  }
+
+  /* assistant-message images: the same global.scss 200px rule also forces
+     images in assistant markdown to exactly 200px wide; the Content pane
+     renders markdown images at natural size capped by preflight's
+     max-width: 100% — match it. */
+  .copilotKitMessage.copilotKitAssistantMessage img {
+    width: auto;
+    max-width: 100%;
+  }
+
+  /* assistant: plain ink, no bubble chrome — same 85% cap as the Content
+     assistant column. Alignment goes logical for the same reason as the
+     user bubble above: the library's physical margin-right: auto pins the
+     bubble visually left even under dir=rtl, while the Content assistant
+     column's self-start flips. */
+  .copilotKitMessage.copilotKitAssistantMessage {
+    padding: 0;
+    max-width: 85%;
+    margin-right: 0;
+    margin-inline-end: auto;
+  }
+
+  /* assistant-message hover controls (regenerate + copy): the library inks
+     them with --copilot-kit-primary-color — remapped to boxFocused, a
+     background wash never used as icon ink, invisible on the white pane.
+     Kit quiet-control pattern instead: muted ink resting, full ink on
+     hover/active, no scale. */
+  .copilotKitMessageControlButton {
+    color: var(--new-textItemBlur);
+  }
+  .copilotKitMessageControlButton:hover,
+  .copilotKitMessageControlButton:active {
+    color: rgb(var(--new-textColor));
+    transform: none;
+  }
+
+  /* the default AssistantMessage appends an unclassed subComponent wrapper
+     div (inline margin-bottom: 0.5rem) after EVERY assistant bubble. In a
+     flex column nothing collapses, so it added 7px to every assistant gap
+     (16px rhythm became 23px) and broke both the assistant+user adjacency
+     the library special-cases and any bubble :last-child test. Author
+     !important beats the non-important inline style. */
+  .copilotKitMessagesContainer > div:not([class]) {
+    margin-bottom: 0 !important;
+  }
+
+  /* trailing rhythm: without a :last-child exception the last bubble sits
+     margin 16 + container padding 16 = 32px above the composer, where the
+     Content list (gap-[16px] + py-[16px], gaps only between items) leaves
+     exactly 16px. The :has() arm covers the normal resting case, where the
+     container's true last child is the unclassed wrapper div above. */
+  .copilotKitMessagesContainer > .copilotKitMessage:last-child,
+  .copilotKitMessagesContainer
+    > .copilotKitMessage:has(+ div:not([class]):last-child) {
+    margin-bottom: 0;
+  }
+
+  /* markdown inside assistant messages -> the Content pane's ReactMarkdown
+     metrics (14px body at 1.6, 16/15/14 semibold headings, 13px inline code
+     on the table-header wash). Code blocks keep CopilotKit's toolbar chrome —
+     that is functionality, not skin. */
+  .copilotKitAssistantMessage {
+    p.copilotKitMarkdownElement {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    /* block rhythm: Content's symmetric my-[6px] (my-[8px] on pre) is the
+       reference — both message wrappers are flex items (own BFC), so edge
+       margins paint identically on both sides. Plain element selectors on
+       purpose: the library class-tags p/pre/ul/blockquote but NOT ol, so
+       ol.copilotKitMarkdownElement never matches anything. */
+    p,
+    ol,
+    ul,
+    blockquote {
+      margin: 6px 0;
+    }
+    pre {
+      margin: 8px 0;
+    }
+
+    /* Content maps strong to font-[550] (the kit semibold); preflight's
+       `bolder` would render 700 on the 400 body here */
+    strong {
+      font-weight: 550;
+    }
+    h1.copilotKitMarkdownElement,
+    h2.copilotKitMarkdownElement,
+    h3.copilotKitMarkdownElement,
+    h4.copilotKitMarkdownElement,
+    h5.copilotKitMarkdownElement,
+    h6.copilotKitMarkdownElement {
+      font-weight: 600;
+      margin: 12px 0 4px;
+      /* the library pins heading line-height 1.2; Content headings inherit
+         the body's ~1.5 */
+      line-height: 1.5;
+    }
+    h1.copilotKitMarkdownElement {
+      font-size: 16px;
+    }
+    h2.copilotKitMarkdownElement {
+      font-size: 15px;
+    }
+    h3.copilotKitMarkdownElement,
+    h4.copilotKitMarkdownElement,
+    h5.copilotKitMarkdownElement,
+    h6.copilotKitMarkdownElement {
+      font-size: 14px;
+      /* Content h3 uses mt-[10px] */
+      margin-top: 10px;
+    }
+
+    /* lists: Tailwind preflight strips list-style/padding from ol and ul,
+       and CopilotKit's markdown.css restores only ul (disc, padding-left
+       20px) — ol renders flat and unnumbered while Content shows
+       list-decimal ps-[20px]. Plain `ol`/`ul`: the library never class-tags
+       ol (see the block-rhythm note above). Indents go logical (physical
+       padding-left zeroed first) so RTL bullets/numbers indent like
+       Content's ps-[20px]; the flex column + 2px gap mirrors Content's
+       `flex flex-col gap-[2px]` item spacing. */
+    ol {
+      list-style-type: decimal;
+      padding-left: 0;
+      padding-inline-start: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    ul {
+      padding-left: 0;
+      padding-inline-start: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    li.copilotKitMarkdownElement {
+      /* Content list items run leading-[1.55] */
+      line-height: 1.55;
+    }
+
+    /* blockquote: the library hardcodes border-left 2px rgb(142,142,160) +
+       line-height 1.2 + blockquote p padding 0.7em 0 — off-kit chrome that
+       tracks no token. Mirror the Content spec (border-s-[3px]
+       border-newTableBorder ps-[10px] text-newTextColor/70). The physical
+       left border/padding are zeroed FIRST so the logical declarations win
+       in LTR and don't double-paint in RTL. */
+    blockquote.copilotKitMarkdownElement {
+      border-left-width: 0;
+      border-inline-start: 3px solid var(--new-table-border);
+      padding-left: 0;
+      padding-inline-start: 10px;
+      color: rgb(var(--new-textColor) / 0.7);
+      line-height: 1.6;
+      p {
+        padding: 0;
+      }
+    }
+
+    /* hr: nothing styles it on this side, so preflight's border-top picks
+       up the DEFAULT border color — currentColor in this config (the gray
+       scale is overridden to a single string, killing the gray.200
+       fallback): a `---` painted a full-ink line with UA margins. Content
+       maps hr to a 1px newTableBorder div with my-[10px]. */
+    hr {
+      border: 0;
+      height: 1px;
+      background: var(--new-table-border);
+      margin: 10px 0;
+    }
+
+    .copilotKitInlineCode {
+      font-size: 13px;
+      border-radius: 4px;
+      background: var(--new-table-header);
+      border: 1px solid var(--new-table-border);
+      /* library padding is 0.05rem 0.4rem (0.7px/5.6px on the 14px root);
+         Content uses py-[1px] px-[4px] */
+      padding: 1px 4px;
+    }
+
+    /* links: the library underlines always-on; Content is hover:underline
+       only (colors already converge via global.scss's --new-btn-text
+       override) */
+    a.copilotKitMarkdownElement {
+      text-decoration: none;
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 }
 
+/* the chip row's .b1 wrapper keeps its source px-[12px], which indented the
+   chip boxes 12px from the pane edge while the converged composer below sits
+   flush (agent.tsx: "the chips align with its edge"). 0,2,0 beats the 0,1,0
+   utility; keyed on the same legacy-class contract as the chip rules below. */
+.agent-scope .b1 {
+  padding-inline: 0;
+}
+
 /* Insert-Media / Design-Media chips: h-30 r6 grey bg-newColColor with
-   11px/600 labels -> 32px r8 hairline white chip, 14px/500 label (S4).
+   12px/500 labels -> 32px r8 hairline white chip, 14px/500 label (S4).
    Glyphs stay the legacy SVGs — swapping them means editing the composer. */
 .agent-scope .b2 {
   .h-\[30px\].rounded-\[6px\] {
@@ -42,8 +404,23 @@
     background: var(--new-bgColorInner);
   }
 
-  .text-\[11px\] {
+  .text-\[12px\] {
     font-size: 14px;
     font-weight: 500;
   }
+}
+
+/* the shared composer-textarea overflow scrollbar (both chat panes): the
+   library pins the copilot textarea to a 9px pill thumb (retokened above);
+   .cs-chat-textarea gives the Content textarea (content-chat.component.tsx)
+   the same anatomy on the hairline token, so neither pane falls back to the
+   browser default once it scrolls past ~6 rows. */
+.cs-chat-textarea::-webkit-scrollbar {
+  width: 9px;
+}
+.cs-chat-textarea::-webkit-scrollbar-thumb {
+  background-color: var(--new-table-border);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }

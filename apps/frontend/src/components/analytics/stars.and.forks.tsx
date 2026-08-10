@@ -165,7 +165,7 @@ export const StarsAndForks: FC<StarsAndForksInterface> = (props) => {
               <div
                 className={clsx(
                   'text-[24px]',
-                  p === 0 ? 'text-customColor12' : 'text-customColor13'
+                  p === 0 ? 'text-newTextColor' : 'text-newTextColor/60'
                 )}
               >
                 <UtcToLocalDateRender
@@ -181,7 +181,7 @@ export const StarsAndForks: FC<StarsAndForksInterface> = (props) => {
               <div
                 className={clsx(
                   'text-[24px]',
-                  p === 0 ? 'text-customColor12' : 'text-customColor13'
+                  p === 0 ? 'text-newTextColor' : 'text-newTextColor/60'
                 )}
               >
                 <UtcToLocalDateRender

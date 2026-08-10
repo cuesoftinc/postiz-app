@@ -16,15 +16,15 @@ export const Testimonial: FC<{
         </div>
 
         <div className="flex flex-col -mt-[4px] min-w-0">
-          <div className="text-[16px] font-[700] truncate">{name}</div>
-          <div className="text-[11px] font-[400] text-[#D1D1D1]">
+          <div className="text-[16px] font-[550] truncate">{name}</div>
+          <div className="text-[12px] font-[400] text-[#D1D1D1]">
             {description}
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="text-[12px] font-[400] text-[#FFF] whitespace-pre-line w-full min-w-0">
+      <div className="text-[12px] font-[400] text-white whitespace-pre-line w-full min-w-0">
         {typeof content === 'string' ? content.replace(/\\n/g, '\n') : content}
       </div>
     </div>

@@ -49,7 +49,10 @@ export const ModalWrapperComponent: FC<{
         className="p-[32px] flex flex-col text-newTextColor bg-newBgColorInner rounded-[24px]"
       >
         <div className="flex items-start mb-[24px]">
-          <div className="flex-1 text-[24px]">{title}</div>
+          {/* modal titles: 18px/500 Inter (composer pattern), data-cs holds it */}
+          <div data-cs className="flex-1 text-[18px] font-[500]">
+            {title}
+          </div>
           <div className="cursor-pointer" onClick={closeModal}>
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -9,6 +9,7 @@ interface AutoResizingTextareaProps {
   onCompositionStart?: () => void;
   onCompositionEnd?: () => void;
   autoFocus?: boolean;
+  className?: string;
 }
 
 const AutoResizingTextarea = forwardRef<HTMLTextAreaElement, AutoResizingTextareaProps>(
@@ -22,6 +23,7 @@ const AutoResizingTextarea = forwardRef<HTMLTextAreaElement, AutoResizingTextare
       onCompositionStart,
       onCompositionEnd,
       autoFocus,
+      className,
     },
     ref,
   ) => {
@@ -34,8 +36,15 @@ const AutoResizingTextarea = forwardRef<HTMLTextAreaElement, AutoResizingTextare
       const calculateMaxHeight = () => {
         const textarea = internalTextareaRef.current;
         if (textarea) {
+          // agent.styles.scss floors the textarea at min-height: 56px, and
+          // scrollHeight can never be below clientHeight — measured with the
+          // floor in place, "one row" reads as 56px and the growth cap
+          // becomes ~13 lines. Clear the floor for the measurement only; the
+          // 56px resting height is untouched.
+          textarea.style.minHeight = "0";
           textarea.style.height = "auto";
           const singleRowHeight = textarea.scrollHeight;
+          textarea.style.minHeight = "";
           setMaxHeight(singleRowHeight * maxRows);
           if (autoFocus) {
             textarea.focus();
@@ -63,6 +72,7 @@ const AutoResizingTextarea = forwardRef<HTMLTextAreaElement, AutoResizingTextare
         onCompositionStart={onCompositionStart}
         onCompositionEnd={onCompositionEnd}
         placeholder={placeholder}
+        className={className}
         style={{
           overflow: "auto",
           resize: "none",

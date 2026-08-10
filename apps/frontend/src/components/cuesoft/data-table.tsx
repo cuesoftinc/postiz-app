@@ -10,8 +10,9 @@ import clsx from 'clsx';
  *
  *   card:   border border-newTableBorder rounded-[8px] overflow-hidden
  *   header: grid gap-[12px] px-[12px] py-[10px] bg-newBgColorInner
- *           text-[12px] uppercase tracking-[0.08em] text-newTextColor/60
- *           border-b border-newTableBorder (the contract micro-label ramp)
+ *           text-[13px] text-newTextColor/60 border-b border-newTableBorder
+ *           (sentence-case muted sub-label — the type scale bans
+ *           tracked-uppercase eyebrows)
  *   row:    grid gap-[12px] px-[12px] py-[10px] text-[13px]
  *           border-b border-newTableBorder last:border-b-0 items-start
  *   phone:  header hidden, rows collapse to a single column with gap-[6px]
@@ -31,7 +32,7 @@ import clsx from 'clsx';
 export interface DataTableColumn<T> {
   /** Stable identity for the column (used as the React key of its cells). */
   key: string;
-  /** Header cell content — the recipe uppercases it via CSS. */
+  /** Header cell content, rendered sentence-case (no CSS uppercase). */
   header: ReactNode;
   /** CSS grid track for this column, e.g. '170px', '220px', '1fr'. Default '1fr'. */
   width?: string;
@@ -88,7 +89,7 @@ export function DataTable<T>({
     >
       <div
         className={clsx(
-          'grid grid-cols-[var(--cs-table-cols)] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[12px] uppercase tracking-[0.08em] text-newTextColor/60 border-b border-newTableBorder',
+          'grid grid-cols-[var(--cs-table-cols)] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[13px] text-newTextColor/60 border-b border-newTableBorder',
           phoneStack && 'phone:hidden'
         )}
       >

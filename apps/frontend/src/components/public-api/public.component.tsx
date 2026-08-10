@@ -174,7 +174,7 @@ const CopyButton = ({
         copy(text);
         toaster.show(`${label} copied to clipboard`, 'success');
       }}
-      className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+      className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
     >
       <svg
         width="16"
@@ -228,7 +228,7 @@ const McpSection = ({
     <div className="bg-newBgColorInner rounded-[12px] border border-newBorder overflow-hidden">
       <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px]">
         <div>
-          <div className="text-[12px] uppercase tracking-[0.08em] font-[500] text-newTextColor/60">
+          <div className="text-[13px] font-[500] text-newTextColor/60">
             {t('mcp_client_configuration', 'MCP Client Configuration')}
           </div>
           <div className="text-[13px] text-textItemBlur mt-[2px]">
@@ -240,7 +240,7 @@ const McpSection = ({
         </div>
         <div className="flex gap-[6px] shrink-0 pt-[2px]">
           <a
-            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
             href="https://docs.postiz.com/mcp/introduction"
             target="_blank"
           >
@@ -251,7 +251,7 @@ const McpSection = ({
       </div>
       <div className="p-[20px] flex flex-col gap-[16px]">
         <div className="flex flex-col gap-[6px]">
-          <div className="text-[13px] font-[600] text-textItemBlur">
+          <div className="text-[13px] font-[550] text-textItemBlur">
             {t('auth_method', 'Authentication')}
           </div>
           <div className="flex gap-[6px]">
@@ -276,7 +276,7 @@ const McpSection = ({
         </div>
         {method === 'header' && (
           <div className="flex flex-col gap-[6px]">
-            <div className="text-[13px] font-[600] text-textItemBlur">
+            <div className="text-[13px] font-[550] text-textItemBlur">
               {t('mcp_client', 'Client')}
             </div>
             <div className="flex flex-wrap gap-[6px]">
@@ -314,7 +314,7 @@ const McpSection = ({
             <button
               type="button"
               onClick={() => setRevealed(!revealed)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
             >
               <svg
                 width="16"
@@ -417,7 +417,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
     <div className="bg-newBgColorInner rounded-[12px] border border-newBorder overflow-hidden">
       <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px]">
         <div>
-          <div className="text-[12px] uppercase tracking-[0.08em] font-[500] text-newTextColor/60">
+          <div className="text-[13px] font-[500] text-newTextColor/60">
             {t('cli_and_skills', 'CLI & AI Skills')}
           </div>
           <div className="text-[13px] text-textItemBlur mt-[2px]">
@@ -429,7 +429,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
         </div>
         <div className="flex gap-[6px] shrink-0 pt-[2px]">
           <a
-            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
             href="https://docs.postiz.com/cli/introduction"
             target="_blank"
           >
@@ -460,7 +460,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
         </div>
         {displaySteps.map((step, i) => (
           <div key={i} className="flex flex-col gap-[6px]">
-            <div className="text-[13px] font-[600] text-textItemBlur">
+            <div className="text-[13px] font-[550] text-textItemBlur">
               {i + 1}. {step.label}
             </div>
             <pre className="bg-newBgColor border border-newBorder rounded-[8px] p-[16px] text-[13px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.6]">
@@ -473,7 +473,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
             <button
               type="button"
               onClick={() => setRevealed(!revealed)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
             >
               <svg
                 width="16"
@@ -550,7 +550,7 @@ const PublicApiContent = () => {
 
   return (
     <div className="flex flex-col gap-[40px]">
-      <div className="text-[14px] text-textColor leading-[1.7]">
+      <div className="text-[14px] text-newTextColor leading-[1.7]">
         {t(
           'api_auth_note_line1',
           'Use your API Key to automate your own account.'
@@ -568,13 +568,13 @@ const PublicApiContent = () => {
         <br />
         {t(
           'api_auth_note_line4',
-          'and you will receive a pos_ prefixed token that works with the API, MCP, and CLI — just like an API Key.'
+          'and you will receive a pos_ prefixed token that works with the API, MCP, and CLI, just like an API Key.'
         )}
       </div>
       <div className="bg-newBgColorInner rounded-[12px] border border-newBorder overflow-hidden">
         <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px]">
           <div>
-            <div className="text-[12px] uppercase tracking-[0.08em] font-[500] text-newTextColor/60">
+            <div className="text-[13px] font-[500] text-newTextColor/60">
               {t('api_key', 'API Key')}
             </div>
             <div className="text-[13px] text-textItemBlur mt-[2px]">
@@ -586,7 +586,7 @@ const PublicApiContent = () => {
           </div>
           <div className="flex gap-[6px] shrink-0 pt-[2px]">
             <a
-              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
               href="https://docs.postiz.com/public-api"
               target="_blank"
             >
@@ -594,7 +594,7 @@ const PublicApiContent = () => {
             {t('read_the_docs', 'Docs')}
             </a>
             <a
-              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
               href="https://www.npmjs.com/package/n8n-nodes-postiz"
               target="_blank"
             >
@@ -622,7 +622,7 @@ const PublicApiContent = () => {
             <button
               type="button"
               onClick={() => setReveal(!reveal)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
             >
               <svg
                 width="16"
@@ -654,7 +654,7 @@ const PublicApiContent = () => {
             <button
               type="button"
               onClick={rotateKey}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
             >
               <svg
                 width="16"
@@ -683,7 +683,7 @@ const PublicApiContent = () => {
               onClick={() =>
                 window.open(`${frontEndUrl}/modal/dark/all`, '_blank')
               }
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
             >
               <svg
                 width="16"
@@ -721,7 +721,7 @@ export const PublicComponent = () => {
       <div className="flex flex-col">
         {/* settings pattern (same as Signatures): display-face title + muted 14
             helper. data-cs keeps the desktop ladder off the title size. */}
-        <h3 data-cs className="text-[24px] font-[500] font-display">
+        <h3 data-cs className="text-[20px] font-[400] font-display">
           {t('developers', 'Developers')}
         </h3>
         <div className="text-[14px] text-textItemBlur mt-[4px]">

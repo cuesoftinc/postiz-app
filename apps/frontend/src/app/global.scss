@@ -97,11 +97,11 @@ body * {
 }
 
 .swal2-modal * {
-  @apply text-textColor #{!important};
+  @apply text-newTextColor #{!important};
 }
 
 .swal2-icon {
-  @apply text-textColor bg-primary #{!important};
+  @apply text-newTextColor bg-primary #{!important};
 }
 
 .swal2-cancel {
@@ -187,7 +187,7 @@ body * {
 }
 
 .react-tags__tag:hover {
-  @apply text-textColor bg-customColor51;
+  @apply text-newTextColor bg-boxHover;
 }
 
 .react-tags__tag::after {
@@ -241,7 +241,7 @@ body * {
 }
 
 .react-tags__combobox-input::placeholder {
-  @apply text-customColor53;
+  @apply text-newTextColor/60;
   opacity: 1;
 }
 
@@ -270,11 +270,11 @@ body * {
 }
 
 .react-tags__listbox-option:not([aria-disabled='true']).is-active {
-  @apply text-textColor bg-customColor51;
+  @apply text-newTextColor bg-boxHover;
 }
 
 .react-tags__listbox-option[aria-disabled='true'] {
-  @apply text-customColor53;
+  @apply text-newTextColor/60;
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -285,7 +285,7 @@ body * {
 }
 
 .react-tags__listbox-option[aria-selected='true']:not(.is-active)::after {
-  @apply text-customColor51;
+  @apply text-newTextColor;
 }
 
 .react-tags__listbox-option-highlight {
@@ -321,7 +321,7 @@ body * {
 }
 
 .editor :not(.removeEditor *) {
-  @apply text-textColor;
+  @apply text-newTextColor;
 }
 
 .editor .polonto * {
@@ -385,7 +385,7 @@ body * {
 }
 
 .uppy-FileInput-container {
-  @apply cursor-pointer font-[500] flex justify-center items-center gap-[4px] text-[12px] rounded-[4px] w-[107px] h-[25px] text-textColor border-[2px];
+  @apply cursor-pointer font-[500] flex justify-center items-center gap-[4px] text-[12px] rounded-[4px] w-[107px] h-[25px] text-newTextColor border-[2px];
   @apply bg-customColor3 border-customColor21;
 }
 
@@ -547,7 +547,7 @@ html[dir='rtl'] [dir='ltr'] {
 }
 
 .uppy-Dashboard-inner * {
-  @apply text-textColor;
+  @apply text-newTextColor;
 }
 
 .uppy-Dashboard-inner,
@@ -1043,42 +1043,14 @@ button { white-space: nowrap; }
     color: #3f6c0e;
   }
 
-  /* Channels: a 260px vertical rail makes no sense on a phone — it burned 30vh
-     to show 1.5 rows. Becomes a horizontal, scrollable chip strip.
-
-     Keyed off [data-side-panel], set in side-panel.ts. It used to key off
-     `w-[260px]`, but collapsing the panel SWAPS that class for
-     `group sidebar w-[100px]` — so the moment the panel was collapsed none of
-     this matched, the inner pane stayed absolutely positioned, its parent
-     measured 0px tall, and the toolbar drew straight over the "Channels"
-     heading. The data attribute is on the element in every state.
-     `[data-side-panel]` scope matters for another reason too: `group/profile`
-     is also used by the Settings sub-nav rows, which must NOT become chips. */
-  [data-side-panel] .flex.flex-col.relative[class*="gap-[12px]"],
-  [data-side-panel] > .flex.flex-col:has(> [class*="group/profile"]) {
-    flex-direction: row !important;
-    overflow-x: auto; overflow-y: hidden;
-    gap: 8px !important; padding: 2px 0 8px !important;
-    flex: 0 0 auto !important;
-    scrollbar-width: none;
-  }
-  [data-side-panel] .flex.flex-col.relative[class*="gap-[12px]"]::-webkit-scrollbar,
-  [data-side-panel] > .flex.flex-col:has(> [class*="group/profile"])::-webkit-scrollbar { display: none; }
-  [data-side-panel] [class*="group/profile"] {
-    flex: 0 0 auto !important; width: auto !important;
-    padding: 5px 10px !important; gap: 8px !important;
-    white-space: nowrap;
-    /* converged chip: hairline token + r8 (was a 999px pill with a
-       hard-coded grey border — Buffer has no pill chips anywhere) */
-    border: 1px solid var(--new-table-border);
-    border-radius: 8px !important;
-    background: var(--new-bgColorInner) !important;
-  }
-  /* analytics keeps its "Channels" label + collapse chevron INSIDE that list, so
-     the row direction put them inline with the chips */
-  [data-side-panel] > .flex.flex-col:has(> [class*="group/profile"]) > .flex.items-center:not([class*="group/profile"]) {
-    display: none !important;
-  }
+  /* Channels: the old phone chip-strip rules (a [data-side-panel] +
+     group/profile combo that turned the analytics/plugs channel rails into
+     horizontal chip rows) are gone — those pages now select channels through
+     the shared new-layout/channels-dropdown.tsx (the calendar toolbar's
+     Buffer dropdown; bottom sheet on phones). The remaining [data-side-panel]
+     carriers don't render group/profile rows any more: launches' panel is
+     permanently `hidden` (channels live in the manage modal / global
+     sidebar) and the agents Threads rail has plain thread rows. */
   /* the version string burned a full centered row */
   [data-side-panel-footer] { display: none !important; }
 

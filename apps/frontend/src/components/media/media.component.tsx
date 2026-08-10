@@ -154,7 +154,7 @@ export const Pagination: FC<{
               className={clsx(
                 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[8px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border hover:bg-boxHover h-[32px] w-[32px] border-newBorder',
                 current === item - 1
-                  ? 'bg-newBorder text-newTextColor font-[600]'
+                  ? 'bg-newBorder text-newTextColor font-[550]'
                   : 'text-textItemBlur hover:text-newTextColor'
               )}
             >
@@ -197,7 +197,7 @@ export const ShowMediaBoxModal: FC = () => {
   }, []);
   if (!showModal) return null;
   return (
-    <div className="text-textColor">
+    <div className="text-newTextColor">
       <MediaBox setMedia={callBack!} closeModal={closeModal} />
     </div>
   );
@@ -490,7 +490,7 @@ export const MediaBox: FC<{
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('search_media_by_name', 'Search by file name')}
-              className="w-full h-[32px] px-[10px] rounded-[8px] bg-newBgColorInner border border-newTableBorder text-[14px] text-textColor outline-none focus:border-forth"
+              className="w-full h-[32px] px-[10px] rounded-[8px] bg-newBgColorInner border border-newTableBorder text-[14px] text-newTextColor outline-none focus:border-forth"
             />
           </div>
           <div className="flex-1" />
@@ -724,7 +724,7 @@ export const MediaBox: FC<{
               <button
                 onClick={standalone ? () => {} : addMedia}
                 disabled={selected.length === 0}
-                className="cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed h-[40px] px-[16px] text-[14px] font-[600] items-center justify-center bg-btnPrimary flex rounded-[8px]"
+                className="cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed h-[40px] px-[16px] text-[14px] font-[550] items-center justify-center bg-btnPrimary flex rounded-[8px]"
               >
                 {t('add_selected_media', 'Add selected media')}
               </button>
@@ -931,7 +931,7 @@ export const MultiMediaComponent: FC<{
             </ReactSortable>
           )}
         </div>
-        <div className="flex gap-[8px] px-[12px] border-t border-newTableBorder w-full b1 text-textColor">
+        <div className="flex gap-[8px] px-[12px] border-t border-newTableBorder w-full b1 text-newTextColor">
           {!mediaNotAvailable && (
             <div className="flex py-[10px] b2 items-center gap-[4px]">
               <div
@@ -942,7 +942,7 @@ export const MultiMediaComponent: FC<{
                   <div>
                     <InsertMediaIcon />
                   </div>
-                  <div className="text-[11px] font-[600] maxMedia:hidden block">
+                  <div className="text-[12px] font-[500] maxMedia:hidden block">
                     {t('insert_media', 'Insert Media')}
                   </div>
                 </div>
@@ -955,7 +955,7 @@ export const MultiMediaComponent: FC<{
                   <div>
                     <DesignMediaIcon />
                   </div>
-                  <div className="text-[11px] font-[600] iconBreak:hidden block">
+                  <div className="text-[12px] font-[500] iconBreak:hidden block">
                     {t('design_media', 'Design Media')}
                   </div>
                 </div>

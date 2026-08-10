@@ -90,7 +90,7 @@ export const ThirdPartyMenuComponent: FC<{
           className="p-[8px] min-w-[200px] !rounded-[6px]"
         >
           <div
-            className="flex gap-[12px] items-center h-[32px] px-[8px] rounded-[6px] text-[14px] font-[500] text-[#F97066] cursor-pointer hover:bg-boxHover transition-colors duration-150"
+            className="flex gap-[12px] items-center h-[32px] px-[8px] rounded-[6px] text-[14px] font-[500] text-[#FF3F3F] cursor-pointer hover:bg-boxHover transition-colors duration-150"
             onClick={deleteChannel(tParty.id)}
           >
             <svg
@@ -233,7 +233,7 @@ export const ThirdPartyComponent = () => {
                 roundedEnd={false}
                 tooltip={p.title}
                 className="px-[12px] py-[12px] border-b border-newTableBorder last:border-b-0 first:rounded-t-[12px] last:rounded-b-[12px]"
-                nameProps={{ className: 'text-[15px] font-[600]' }}
+                nameProps={{ className: 'text-[15px] font-[550]' }}
                 avatar={
                   <ChannelAvatar
                     picture={`/icons/third-party/${p.identifier}.png`}

@@ -1,6 +1,7 @@
 import {
   Logger,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Post,
@@ -79,6 +80,10 @@ export class CopilotController {
             typeof (req.body as any)?.sessionId === 'string'
               ? (req.body as any).sessionId
               : undefined,
+          // one bridge profile per web chat tab; anything unexpected falls
+          // back to the read-only default rather than erroring
+          profile:
+            (req.body as any)?.profile === 'assistant' ? 'assistant' : 'content',
         }),
         signal: controller.signal,
       });
@@ -96,6 +101,76 @@ export class CopilotController {
       emitError('Content bridge is offline');
     }
     return res.end();
+  }
+
+  // Bridge session index (ADMIN-ONLY, same gate as /content-chat): the
+  // sessions rail lists and prunes the per-profile session entries the
+  // bridge keeps in postiz/bridge/sessions.json. Plain JSON passthrough;
+  // any failure collapses to the same offline error shape the chat uses.
+  @Get('/content-sessions')
+  async contentSessions(
+    @GetUserFromRequest() user: User,
+    @Query('profile') profile?: string
+  ) {
+    if (!user?.isSuperAdmin) {
+      throw new ForbiddenException('Content chat is admin-only');
+    }
+    const bridgeUrl =
+      process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
+    const query =
+      profile === 'assistant' || profile === 'content'
+        ? `?profile=${profile}`
+        : '';
+    try {
+      const upstream = await fetch(`${bridgeUrl}/sessions${query}`, {
+        headers: {
+          ...(process.env.CONTENT_BRIDGE_TOKEN
+            ? { 'x-bridge-token': process.env.CONTENT_BRIDGE_TOKEN }
+            : {}),
+        },
+      });
+      if (!upstream.ok) {
+        return { error: 'Content bridge is offline' };
+      }
+      return await upstream.json();
+    } catch {
+      return { error: 'Content bridge is offline' };
+    }
+  }
+
+  @Delete('/content-sessions/:id')
+  async deleteContentSession(
+    @GetUserFromRequest() user: User,
+    @Param('id') id: string
+  ) {
+    if (!user?.isSuperAdmin) {
+      throw new ForbiddenException('Content chat is admin-only');
+    }
+    const bridgeUrl =
+      process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
+    try {
+      const upstream = await fetch(
+        `${bridgeUrl}/sessions/${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            ...(process.env.CONTENT_BRIDGE_TOKEN
+              ? { 'x-bridge-token': process.env.CONTENT_BRIDGE_TOKEN }
+              : {}),
+          },
+        }
+      );
+      if (!upstream.ok) {
+        return { error: 'Content bridge is offline' };
+      }
+      try {
+        return await upstream.json();
+      } catch {
+        return {};
+      }
+    } catch {
+      return { error: 'Content bridge is offline' };
+    }
   }
 
   @Post('/chat')

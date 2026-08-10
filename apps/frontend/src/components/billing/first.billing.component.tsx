@@ -117,7 +117,7 @@ export const FirstBillingComponent = () => {
   const JoinOver = () => {
     return (
       <>
-        <div className="text-[46px] font-[600] leading-[110%] tablet:text-[36px] mobile:!text-[30px] whitespace-pre-line text-balance">
+        <div className="text-[46px] font-[550] leading-[110%] tablet:text-[36px] mobile:!text-[30px] whitespace-pre-line text-balance">
           {t('billing_join_over', 'Join Over')}{' '}
           <span className="text-newTextColor">
             {t('billing_entrepreneurs_count', '20,000+ Entrepreneurs')}
@@ -130,7 +130,7 @@ export const FirstBillingComponent = () => {
         </div>
 
         <div className="flex" onClick={showYouTube}>
-          <div className="tablet:mb-[32px] cursor-pointer mt-[32px] flex gap-[10px] items-center underline hover:font-[700]">
+          <div className="tablet:mb-[32px] cursor-pointer mt-[32px] flex gap-[10px] items-center underline hover:font-[650]">
             <div>
               <SafeImage
                 className="text-[12px]"
@@ -180,7 +180,7 @@ export const FirstBillingComponent = () => {
   return (
     <div className="blurMe flex flex-1 flex-col bg-newBgColorInner pb-[60px] mobile:pb-[100px]">
       <div className="h-[92px] px-[80px] tablet:px-[32px] mobile:!px-[16px] py-[20px] flex border-b border-newColColor">
-        <div className="flex-1 flex items-center text-textColor">
+        <div className="flex-1 flex items-center text-newTextColor">
           <LogoTextComponent />
         </div>
         <div className="flex items-center">
@@ -232,7 +232,7 @@ export const FirstBillingComponent = () => {
               <JoinOver />
             </div>
             <div className="flex mb-[24px] mobile:flex-col">
-              <div className="flex-1 text-[24px] font-[700]">
+              <div className="flex-1 text-[24px] font-[650]">
                 {t('billing_choose_plan', 'Choose a Plan')}
               </div>
               <div className="h-[44px] px-[6px] mobile:px-0 flex items-center justify-center mobile:justify-start gap-[12px] border border-newColColor rounded-[12px] select-none">
@@ -276,11 +276,11 @@ export const FirstBillingComponent = () => {
                         : 'border border-newColColor'
                     )}
                   >
-                    <div className="text-[20px] mobile:text-[18px] font-[500]">
+                    <div className="text-[16px] font-[550]">
                       {capitalize(key)}
                     </div>
                     <div className="text-[24px] mobile:text-[18px] font-[400]">
-                      <span className="text-[44px] mobile:text-[30px] font-[600]">
+                      <span className="text-[44px] mobile:text-[30px] font-[550]">
                         $
                         {
                           value[
@@ -298,7 +298,7 @@ export const FirstBillingComponent = () => {
               )}
             </div>
             <div className="flex flex-col mt-[54px] gap-[24px] tablet:mt-[40px]">
-              <div className="text-[24px] font-[700]">
+              <div className="text-[24px] font-[650]">
                 {t('billing_features', 'Features')}
               </div>
               <BillingFeatures tier={tier} />

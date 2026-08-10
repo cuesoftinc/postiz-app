@@ -88,7 +88,7 @@ export const AgentChat: FC = () => {
         }
         // phone: the absolute pane contributes zero height once the page
         // stacks — the min-height here is what keeps the chat usable at 390
-        className="trz agent bg-newBgColorInner flex flex-col gap-[15px] transition-all flex-1 items-center relative phone:min-h-[65dvh]"
+        className="trz agent bg-newBgColorInner flex flex-col transition-all flex-1 items-center relative phone:min-h-[65dvh]"
       >
         {/* admin: the fixed bottom-center admin pill needs dead space under
             the input (S6) */}
@@ -102,26 +102,115 @@ export const AgentChat: FC = () => {
             className="w-full h-full"
             labels={{
               title: t('your_assistant', 'Your Assistant'),
-              // new key: 'agent_welcome_message' is pinned to the old Postiz
-              // copy in every locale's translation.json — a fresh key falls
-              // back to this string
-              initial: t('cuesoft_agent_welcome_message', `Hello, I am your Cuesoft agent 🙌🏻.
-
-I can schedule one post or many across your channels, and generate pictures and videos to go with them.
-
-Pick the channels you want to post to from the bar above.
-
-Your previous conversations live in the panel on the right.
-
-You can also use me as an MCP server — see Settings > Public API.
-`),
+              // the library default placeholder is untranslated English with
+              // a three-dot ellipsis; the Content composer localizes via useT
+              placeholder: t('agent_chat_placeholder', 'Ask your assistant…'),
+              // the remaining strings this pane renders would otherwise stay
+              // the library's raw English defaults (the error one with a
+              // leading emoji): the regenerate/copy tooltips on every
+              // assistant message, the stop button, the copy confirmation,
+              // and the error line
+              regenerateResponse: t(
+                'regenerate_response',
+                'Regenerate response'
+              ),
+              copyToClipboard: t('copy_to_clipboard', 'Copy to clipboard'),
+              stopGenerating: t('stop_generating', 'Stop generating'),
+              copied: t('copied', 'Copied!'),
+              error: t(
+                'agent_chat_error',
+                'Something went wrong. Please try again.'
+              ),
+            }}
+            icons={{
+              // the Content composer's send glyph (16px stroke-2.2
+              // arrow-right, content-chat.component.tsx) — the library
+              // default is a stroke-1.5 arrow-UP, a different glyph inside
+              // the "same" 32px lime square
+              sendIcon: (
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m5 12 14 0" />
+                  <path d="m13 6 6 6-6 6" />
+                </svg>
+              ),
             }}
             UserMessage={Message}
             Input={NewInput}
           />
         </div>
+        {/* the Cuesoft greeting used to ride in as labels.initial — a fake
+            assistant bubble. It is now the same empty-state shell the Content
+            pane uses (64px circle + glyph + 16/600 heading + muted subline),
+            gated on the real message list AND on thread identity: for
+            /agents/<id> the history loads asynchronously in LoadMessages, so
+            the context is transiently empty over an existing thread — only a
+            brand-new thread ('new') may show the welcome. */}
+        {params.id === 'new' && <EmptyState isAdmin={isAdmin} />}
       </div>
     </CopilotKit>
+  );
+};
+
+/** The shared empty-state pattern (content-chat.component.tsx renders the
+ *  identical shell): 64px bg-newTextColor/5 circle, 24px muted stroke-2.2
+ *  glyph, 16/600 heading, 14px muted subline. `labels.initial` messages are
+ *  display-only and never enter the messages context, so dropping the label
+ *  and gating on the context is behavior-neutral. The bottom padding keeps
+ *  the shell optically centered over the message area (composer ~74px plus
+ *  the pane's 56/20px admin-pill clearance). */
+const EmptyState: FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
+  const { messages } = useCopilotMessagesContext();
+  const t = useT();
+  if (messages.length) return null;
+  return (
+    <div
+      data-cs
+      className={clsx(
+        'absolute inset-0 z-[2] pointer-events-none flex flex-col items-center justify-center gap-[12px] text-center px-[24px]',
+        isAdmin ? 'pb-[130px]' : 'pb-[94px]'
+      )}
+    >
+      <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center">
+        {/* sparkle — the same glyph as the page-header chip */}
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-newTextColor/60"
+        >
+          <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+          <path d="M20 3v4" />
+          <path d="M22 5h-4" />
+        </svg>
+      </div>
+      <div className="text-[16px] font-[600] text-newTextColor">
+        {t('cuesoft_agent_welcome_title', 'Hello, I am your Cuesoft agent 🙌🏻')}
+      </div>
+      <div className="text-[14px] text-newTextColor/60 max-w-[420px] whitespace-pre-line">
+        {t(
+          'cuesoft_agent_welcome_description',
+          `I can schedule one post or many across your channels, and generate pictures and videos to go with them.
+
+Pick the channels you want to post to from the bar above. Your previous conversations live in the panel on the right.
+
+You can also use me as an MCP server: see Settings > Public API.`
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -188,7 +277,7 @@ const Message: FC<UserMessageProps> = (props) => {
         return `<video controls class="h-[150px] w-[150px] rounded-[8px] mb-[10px]"><source src="${p1.trim()}" type="video/mp4">Your browser does not support the video tag.</video>`;
       })
       .replace(/Image: (http.*\n)/g, (match, p1) => {
-        return `<img src="${p1.trim()}" class="h-[150px] w-[150px] max-w-full border border-newBgColorInner" />`;
+        return `<img src="${p1.trim()}" class="h-[150px] w-[150px] max-w-full rounded-[8px] border border-newTableBorder" />`;
       })
       .replace(/\[\-\-Media\-\-\](.*)\[\-\-Media\-\-\]/g, (match, p1) => {
         return `<div class="flex justify-center mt-[20px]">${p1}</div>`;
@@ -202,7 +291,9 @@ const Message: FC<UserMessageProps> = (props) => {
   }, [props.message?.content]);
   return (
     <div
-      className="copilotKitMessage copilotKitUserMessage min-w-[300px]"
+      // no min-width: the Content pane's user bubble hugs its text, so this
+      // one does too (converged bubble metrics live in agent.styles.scss)
+      className="copilotKitMessage copilotKitUserMessage"
       dangerouslySetInnerHTML={{ __html: convertContentToImagesAndVideo }}
     />
   );
@@ -261,8 +352,6 @@ Use the following social media platforms: ${JSON.stringify(
 };
 
 export const Hooks: FC = () => {
-  const modals = useModals();
-
   useCopilotAction({
     name: 'manualPosting',
     description:
@@ -344,6 +433,7 @@ const OpenModal: FC<{
   };
 }> = ({ args, respond }) => {
   const modals = useModals();
+  const t = useT();
   const { properties } = useContext(PropertiesContext);
   const startModal = useCallback(async () => {
     for (const integration of args.list) {
@@ -421,8 +511,11 @@ const OpenModal: FC<{
     startModal();
   }, []);
   return (
+    // quiet status line while the modal runs — the old text evaluated
+    // {JSON.stringify(args)} as JSX and dumped the raw args payload into the
+    // chat; the click-through respond('continue') escape hatch is preserved
     <div onClick={() => respond('continue')}>
-      Opening manually ${JSON.stringify(args)}
+      {t('opening_post_editor', 'Opening the post editor')}
     </div>
   );
 };

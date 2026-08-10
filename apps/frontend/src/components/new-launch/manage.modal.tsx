@@ -58,6 +58,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   // never unmounted — ShowAllProviders holds the provider refs the submit
   // flow validates through, so it must stay mounted.
   const [showPreview, setShowPreview] = useState(true);
+  // Phone-only preview overlay (Buffer phone composer): its own state so the
+  // phone sheet opens editor-first while the desktop pane keeps default-ON.
+  // Same rule as showPreview: visual only, the pane is never unmounted.
+  const [showPreviewPhone, setShowPreviewPhone] = useState(false);
   const { data: shortlinkPreferenceData } = useShortlinkPreference();
 
   const { addEditSets, mutate, customClose, dummy } = props;
@@ -396,7 +400,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           title: '',
           children: <DummyCodeComponent code={data} />,
           classNames: {
-            modal: 'w-[100%] bg-transparent text-textColor',
+            modal: 'w-[100%] bg-transparent text-newTextColor',
           },
           size: '100%',
           withCloseButton: false,
@@ -438,13 +442,16 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   );
 
   return (
-    <div className="w-full h-full flex-1 p-[40px] phone:p-0 flex relative">
+    <div
+      id="cs-composer-shell"
+      className="w-full h-full flex-1 p-[40px] phone:p-0 flex relative"
+    >
       {/* Buffer Create Post scoped skin: the legacy chip row + the footer
           controls live in files outside this rebuild's ownership (media/**,
-          launches/*), so their convergence to 32px/r8 hairline chips and the
-          40px quiet footer buttons is applied here, keyed on wrapper ids.
-          Attribute selectors dodge the bracket-escaping of arbitrary
-          Tailwind classes. */}
+          launches/*), so their convergence — 32px/r8 legacy chips, the 40px
+          r8 tags chip, and the 40px split date control — is applied here,
+          keyed on wrapper ids. Attribute selectors dodge the
+          bracket-escaping of arbitrary Tailwind classes. */}
       <style>
         {`
           #cs-composer [class*="h-[30px]"][class*="rounded-[6px]"] {
@@ -460,10 +467,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             width: 32px !important;
           }
           #cs-tags-chip > div {
-            height: 32px !important;
+            height: 40px !important;
             border-radius: 8px !important;
-            font-size: 14px !important;
+            border-color: var(--new-table-border) !important;
+            font-size: 15px !important;
             font-weight: 500 !important;
+            color: rgb(var(--new-textColor)) !important;
           }
           #cs-tags-chip > div > div:first-child {
             padding-inline: 12px;
@@ -485,12 +494,64 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           #cs-datetime > div,
           #cs-repeat > div {
             height: 40px !important;
-            font-size: 14px !important;
+            font-size: 15px !important;
             font-weight: 500 !important;
+            color: rgb(var(--new-textColor)) !important;
             flex: 0 1 auto !important;
           }
+          #cs-repeat > div {
+            border-radius: 12px !important;
+            border-color: var(--new-table-border) !important;
+          }
+          /* Buffer split date button: this restyles the existing DatePicker
+             trigger (launches/helpers, outside this rebuild's file list) into
+             the LEFT segment — start-only r12, px 12/8, 15/500 ink, hairline.
+             The attached chevron segment is JSX below; it carries the end
+             radius and no start border, so the two share one hairline. */
           #cs-datetime > div {
             border-color: var(--new-table-border) !important;
+            border-start-start-radius: 12px !important;
+            border-end-start-radius: 12px !important;
+            border-start-end-radius: 0 !important;
+            border-end-end-radius: 0 !important;
+            padding-inline: 12px 8px !important;
+            cursor: pointer;
+          }
+          #cs-datetime > div:hover {
+            background: var(--new-table-header);
+          }
+          /* Measured Buffer desktop leftovers (light theme only — dark stays
+             untouched): date-picker popover day-cell hover = #e6e5e2 wash
+             (newTableHeader is #f4f3f0, visibly lighter, so the raw hex);
+             composer text-input hover border darkens to #8a8a88 (Buffer's
+             --color-border-neutral). Hover only: the :not() guards keep
+             focus on border-forth, and the selected day keeps its
+             !bg-boxFocused lime (that rule is !important, this one is not).
+             Day cells are the only nodes carrying BOTH hover:bg-boxHover and
+             rounded-[6px] (header controls lack the radius, the time input
+             lacks the hover class). */
+          .light #cs-datetime [class*="hover:bg-boxHover"][class*="rounded-[6px]"]:hover {
+            background-color: #e6e5e2;
+          }
+          .light #cs-composer [class*="focus-within:border-forth"]:not(:focus-within):hover,
+          .light #cs-composer input[class*="border-newTableBorder"]:not(:focus):hover,
+          .light #cs-composer textarea[class*="border-newTableBorder"]:not(:focus):hover {
+            border-color: #8a8a88;
+          }
+          /* ≤1100px (tablet): Buffer's composer is a full-viewport sheet — no
+             radius, fills the window. The max-[1100px]: arbitrary variant does
+             NOT compile against this project's object-based screens config
+             (Tailwind 3.4 drops min-*/max-* with raw screens — verified), so
+             the full-bleed lives here instead. */
+          @media (max-width: 1100px) {
+            #cs-composer-shell {
+              padding: 0 !important;
+            }
+            #cs-composer {
+              border-radius: 0 !important;
+              width: 100%;
+              height: 100%;
+            }
           }
         `}
       </style>
@@ -499,12 +560,13 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         className="flex flex-1 bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col"
       >
         {/* HEADER — spans the full modal width above both panes. Title is
-            20px/400 Plus Jakarta (data-cs keeps the ladder off text-[20px]);
-            beside it the existing tags control restyled as the Buffer chip. */}
+            18px/500 Inter, the BODY face — measured on Buffer's composer
+            (data-cs keeps the ladder off text-[18px]); beside it the existing
+            tags control restyled as the Buffer chip. */}
         <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] px-[24px] phone:px-[16px]">
           <div
             data-cs
-            className="text-[20px] font-display font-[400] text-newTextColor whitespace-nowrap"
+            className="text-[18px] font-[500] text-newTextColor whitespace-nowrap"
           >
             {t('create_post_title', 'Create Post')}
           </div>
@@ -525,14 +587,31 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           )}
           <div className="flex-1" />
+          {/* Buffer header quiet control: 40px, 15/500, muted ink + hover
+              wash (borderless); active keeps the lime boxFocused pair.
+              data-cs pins h-[40px] past the ladder's 40->32 rule. */}
           <button
             type="button"
-            onClick={() => setShowPreview(!showPreview)}
+            data-cs
+            onClick={() => {
+              // 767px = the `phone` screen. At phone the toggle drives the
+              // full-width in-modal overlay; desktop keeps its own pane state.
+              if (window.matchMedia('(max-width: 767px)').matches) {
+                setShowPreviewPhone(!showPreviewPhone);
+                return;
+              }
+              setShowPreview(!showPreview);
+            }}
             className={clsx(
-              'phone:hidden h-[32px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors',
+              'h-[40px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[15px] font-[500] transition-colors',
               showPreview
                 ? 'bg-boxFocused text-textItemFocused'
-                : 'border border-newTableBorder text-newTextColor hover:bg-newTableHeader'
+                : 'text-textItemBlur hover:bg-newTableHeader',
+              // phone: overrides sit later in the cascade than the desktop
+              // pair above, so inside the media query they win
+              showPreviewPhone
+                ? 'phone:bg-boxFocused phone:text-textItemFocused'
+                : 'phone:bg-transparent phone:text-textItemBlur'
             )}
           >
             <svg
@@ -549,19 +628,28 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            {t('preview', 'Preview')}
+            {/* Buffer's phone header shows glyph-only controls */}
+            <span className="phone:hidden">{t('preview', 'Preview')}</span>
           </button>
           <div
+            data-cs
             onClick={askClose}
-            className="cursor-pointer flex items-center justify-center w-[32px] h-[32px] rounded-[8px] hover:bg-newTextColor/10 transition-colors"
+            className="cursor-pointer flex items-center justify-center w-[40px] h-[40px] rounded-[8px] hover:bg-newTableHeader transition-colors"
           >
-            <CloseIcon className="text-newTextColor/60" />
+            <CloseIcon className="text-textItemBlur" />
           </div>
         </div>
         <div className="flex-1 flex">
           {/* phone: the editor owns the full width — the fixed 420px preview
-              pane collapsed it to 1px (editor-first, like Buffer mobile) */}
-          <div className="flex flex-col flex-1 min-w-0">
+              pane collapsed it to 1px (editor-first, like Buffer mobile).
+              While the phone preview overlay is on, the editor column hides
+              (display only — its state and refs stay mounted). */}
+          <div
+            className={clsx(
+              'flex flex-col flex-1 min-w-0',
+              showPreviewPhone && 'phone:hidden'
+            )}
+          >
             <div className="flex-1 flex flex-col gap-[16px]">
               <div
                 className={clsx('flex-1 relative', showSettings && 'hidden')}
@@ -619,7 +707,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                       showSettings ? '!rounded-b-none' : ''
                     )}
                   >
-                    <div className="flex-1 text-[14px] font-[600] text-newTextColor">
+                    <div className="flex-1 text-[14px] font-[550] text-newTextColor">
                       {currentIntegrationText}
                     </div>
                     <div>
@@ -632,7 +720,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   <div
                     className={clsx(
                       !showSettings ? 'hidden' : 'flex-1',
-                      'text-[14px] text-textColor font-[500] relative'
+                      'text-[14px] text-newTextColor font-[500] relative'
                     )}
                   >
                     <div className="absolute left-0 top-0 w-full h-full flex flex-col overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-newBgColorInner scrollbar-track-newColColor">
@@ -651,14 +739,20 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           </div>
           {/* PREVIEW PANE — newTableHeader wash, hairline divider. Hidden
               (never unmounted — submit validates through the provider refs
-              inside) when the header Preview toggle is off. */}
+              inside) when the header Preview toggle is off. At phone the SAME
+              mounted pane becomes the full-width overlay when its toggle is
+              on: `phone:flex` is emitted after base `hidden` in the compiled
+              cascade, so it wins inside the media query. */}
           <div
             className={clsx(
-              'w-[420px] flex flex-col phone:hidden bg-newTableHeader border-s border-newTableBorder',
-              !showPreview && 'hidden'
+              'w-[420px] flex flex-col bg-newTableHeader border-s border-newTableBorder',
+              !showPreview && 'hidden',
+              showPreviewPhone
+                ? 'phone:flex phone:w-full phone:border-s-0'
+                : 'phone:hidden'
             )}
           >
-            <div className="pt-[16px] px-[16px] flex items-center gap-[8px] text-[16px] font-[600] text-newTextColor">
+            <div className="pt-[16px] px-[16px] flex items-center gap-[8px] text-[16px] font-[550] text-newTextColor">
               <div>{t('post_preview', 'Post Previews')}</div>
               <div
                 data-tooltip-id="tooltip"
@@ -697,7 +791,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         </div>
         {/* FOOTER — full width, hairline top, ~64px. Left keeps the repeat
             control (and delete when editing); right = the existing date/time
-            selector as a quiet 40px hairline button + the lime submit.
+            selector reshaped as Buffer's SPLIT button (label segment +
+            attached chevron segment, both open the picker) + the lime
+            submit. Footer family: h-40, r12.
             Wraps on phone so nothing runs past the viewport. */}
         <div className="select-none min-h-[64px] py-[12px] px-[24px] phone:px-[12px] border-t border-newTableBorder flex flex-wrap items-center gap-[8px]">
           <div className="flex-1 flex flex-wrap items-center gap-[8px]">
@@ -705,7 +801,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 in launches/*, outside this rebuild's file list — see the
                 #cs-repeat scoped style above) */}
             {!dummy && (
-              <div id="cs-repeat" className="contents [&>div]:rounded-[8px]">
+              <div id="cs-repeat" className="contents">
                 <RepeatComponent repeat={repeater} onChange={setRepeater} />
               </div>
             )}
@@ -722,8 +818,27 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-end phone:justify-start gap-[8px]">
-            <div id="cs-datetime" className="contents [&>div]:rounded-[8px]">
+            {/* Buffer split date button. Left segment = the existing
+                DatePicker trigger (scoped-CSS-reshaped above; opens the
+                picker). Right = the attached chevron segment: same action,
+                forwarded as a click on the trigger so the picker state,
+                popover and click-outside logic stay untouched. */}
+            <div id="cs-datetime" className="flex items-stretch">
               <DatePicker onChange={setDate} date={date} />
+              <button
+                type="button"
+                data-cs
+                aria-label={t('pick_date_and_time', 'Pick date and time')}
+                onClick={(e) => {
+                  (
+                    e.currentTarget.parentElement
+                      ?.firstElementChild as HTMLElement | null
+                  )?.click();
+                }}
+                className="h-[40px] w-[32px] shrink-0 cursor-pointer flex items-center justify-center border border-s-0 border-newTableBorder rounded-e-[12px] text-newTextColor hover:bg-newTableHeader transition-colors"
+              >
+                <ChevronDownIcon className="text-newTextColor" />
+              </button>
             </div>
             {!addEditSets && (
               <button
@@ -732,7 +847,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   selectedIntegrations.length === 0 || loading || locked
                 }
                 onClick={schedule('draft')}
-                className="relative cursor-pointer disabled:cursor-not-allowed px-[16px] h-[40px] bg-transparent border border-newTableBorder justify-center items-center flex rounded-[8px] text-[14px] font-[500] hover:bg-newTableHeader focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
+                className="relative cursor-pointer disabled:cursor-not-allowed px-[16px] h-[40px] bg-transparent border border-newTableBorder justify-center items-center flex rounded-[12px] text-[15px] font-[500] hover:bg-newTableHeader focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
               >
                 {loading && (
                   <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
@@ -744,13 +859,14 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 </div>
               </button>
             )}
-            {/* Primary submits: lime h-40 r8, 500 weight — data-cs opts them
-                out of the global h-[40px]->32 ladder. Ink comes from the
-                global bg-btnPrimary black-ink rule; text-black restates it. */}
+            {/* Primary submits: lime h-40 r12 (Buffer footer-family radius),
+                500 weight — data-cs opts them out of the global
+                h-[40px]->32 ladder. Ink comes from the global bg-btnPrimary
+                black-ink rule; text-black restates it. */}
             {addEditSets && (
               <button
                 data-cs
-                className="text-[14px] font-[500] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-[8px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
+                className="text-[14px] font-[500] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-[12px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
                 disabled={
                   selectedIntegrations.length === 0 || loading || locked
                 }
@@ -767,7 +883,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                     selectedIntegrations.length === 0 || loading || locked
                   }
                   onClick={schedule('schedule')}
-                  className="relative btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-[8px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
+                  className="relative btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-[12px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
                 >
                   {loading && (
                     <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
@@ -780,15 +896,31 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                       loading && 'invisible'
                     )}
                   >
-                    {selectedIntegrations.length === 0
-                      ? t('check_circles_above', 'Check the circles above')
-                      : dummy
-                      ? t('create_output', 'Create output')
-                      : !existingData?.integration
-                      ? t('add_to_calendar', 'Add to calendar')
-                      : existingData?.posts?.[0]?.state === 'DRAFT'
-                      ? t('schedule', 'Schedule')
-                      : t('update', 'Update')}
+                    {/* Buffer shortens the footer primary at phone
+                        ("Customize"); same swap here — full label on
+                        desktop, short one at phone. */}
+                    <span className="phone:hidden">
+                      {selectedIntegrations.length === 0
+                        ? t('check_circles_above', 'Check the circles above')
+                        : dummy
+                        ? t('create_output', 'Create output')
+                        : !existingData?.integration
+                        ? t('add_to_calendar', 'Add to calendar')
+                        : existingData?.posts?.[0]?.state === 'DRAFT'
+                        ? t('schedule', 'Schedule')
+                        : t('update', 'Update')}
+                    </span>
+                    <span className="hidden phone:inline">
+                      {selectedIntegrations.length === 0
+                        ? t('check_circles_above_short', 'Pick channels')
+                        : dummy
+                        ? t('create_output_short', 'Create')
+                        : !existingData?.integration
+                        ? t('add_to_calendar_short', 'Schedule')
+                        : existingData?.posts?.[0]?.state === 'DRAFT'
+                        ? t('schedule', 'Schedule')
+                        : t('update', 'Update')}
+                    </span>
                   </div>
                   {!dummy && (
                     <div className="flex justify-center items-center h-[20px] w-[20px] pt-[4px] arrow-change">
@@ -807,7 +939,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   >
                     <div
                       data-cs
-                      className="rounded-[8px] bg-btnPrimary text-black h-[40px] w-full flex justify-center items-center text-[14px] font-[500] post-now"
+                      className="rounded-[12px] bg-btnPrimary text-black h-[40px] w-full flex justify-center items-center text-[14px] font-[500] post-now"
                     >
                       {t('post_now', 'Post Now')}
                     </div>

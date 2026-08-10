@@ -202,7 +202,7 @@ export const AnalyticsChartSection: FC<{
   return (
     <div className="bg-newTableHeader rounded-[12px] p-[8px] flex flex-col gap-[12px]">
       <div className="flex flex-col gap-[2px] px-[8px] pt-[8px]">
-        <div className="text-[16px] font-[600]">{t('trends', 'Trends')}</div>
+        <div className="text-[16px] font-[550]">{t('trends', 'Trends')}</div>
         <div className="text-[14px] text-newTextColor/60">{subtitle}</div>
       </div>
       <div className="bg-newBgColorInner border border-newTableBorder rounded-[8px] p-[16px] flex flex-col gap-[12px]">

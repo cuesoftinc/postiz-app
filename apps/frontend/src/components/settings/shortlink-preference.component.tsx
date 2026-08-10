@@ -65,7 +65,7 @@ const ShortlinkPreferenceComponent = () => {
   );
 
   if (isLoading) {
-    // Skeleton shaped like the section below: 16/550 heading bar, then the
+    // Skeleton shaped like the section below: 16/600 heading bar, then the
     // label+description column with the select control on the trailing edge
     return (
       <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
@@ -83,7 +83,7 @@ const ShortlinkPreferenceComponent = () => {
 
   return (
     <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
-      {/* Buffer section H2s measure 16/550 (round-1 addendum) */}
+      {/* section headings: 16/600 ink (type scale) */}
       <div className="text-[16px] font-[550]">
         {t('shortlink_settings', 'Shortlink Settings')}
       </div>

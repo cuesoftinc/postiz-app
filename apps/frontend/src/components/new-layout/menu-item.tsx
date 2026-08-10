@@ -22,7 +22,7 @@ export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClic
   const isActive = currentPath.indexOf(path) === 0;
 
   const className = clsx(
-    'group w-full minCustom:h-[54px] custom:h-[44px] py-[8px] px-[6px] minCustom:gap-[4px] custom:gap-[2px] flex flex-col font-[600] items-center justify-center rounded-[12px] transition-colors',
+    'group w-full minCustom:h-[54px] custom:h-[44px] py-[8px] px-[6px] minCustom:gap-[4px] custom:gap-[2px] flex flex-col font-[550] items-center justify-center rounded-[12px] transition-colors',
     // as a bottom tab: share the row evenly and be allowed to shrink, so the
     // bar can never end up wider than the device. `relative` is what anchors
     // the active indicator below — without it the absolute pseudo-ish marker

@@ -51,7 +51,7 @@ export const TextArea: FC<{
           // Kit control chrome (class-only control): radius 6, newTableBorder
           // hairline, blue focus, kit bg token — replaces the legacy
           // customColor2/fifth pair, which had no focus state at all.
-          '!min-h-40 !max-h-80 p-[24px] overflow-hidden bg-newBgColorInner text-textColor outline-none rounded-[6px] border border-newTableBorder focus:border-[#325ea6]'
+          '!min-h-40 !max-h-80 p-[24px] overflow-hidden bg-newBgColorInner text-newTextColor outline-none rounded-[6px] border border-newTableBorder focus:border-[#325ea6]'
         )}
         onChange={(e) => {
           onChange({
@@ -213,7 +213,7 @@ export const PlugItem: FC<{
     >
       <div key={plug.title} className="p-[16px] h-full flex flex-col flex-1">
         <div className="flex">
-          <div className="text-[16px] font-[600] mb-[8px] flex-1">
+          <div className="text-[16px] font-[550] mb-[8px] flex-1">
             {plug.title}
           </div>
           {!!data && (

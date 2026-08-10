@@ -133,7 +133,7 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
         <div
           onClick={addApiKey(p.title, p.identifier)}
           key={p.identifier}
-          className="w-full h-full p-[16px] min-h-[100px] text-[14px] bg-newBgColorInner border border-newTableBorder hover:bg-boxHover rounded-[12px] transition-all text-textColor relative flex flex-col gap-[12px] cursor-pointer"
+          className="w-full h-full p-[16px] min-h-[100px] text-[14px] bg-newBgColorInner border border-newTableBorder hover:bg-boxHover rounded-[12px] transition-all text-newTextColor relative flex flex-col gap-[12px] cursor-pointer"
         >
           <div>
             <img
@@ -141,7 +141,7 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
               src={`/icons/third-party/${p.identifier}.png`}
             />
           </div>
-          <div className="whitespace-pre-wrap text-left text-[15px] font-[600]">
+          <div className="whitespace-pre-wrap text-left text-[15px] font-[550]">
             {p.title}
           </div>
           <div className="whitespace-pre-wrap text-left text-[14px] text-newTextColor/60">

@@ -196,7 +196,7 @@ export const CommentComponent: FC<{
   }, []);
   return (
     <div className="relative flex gap-[20px] flex-col flex-1 rounded-[8px] border border-newTableBorder bg-newBgColorInner p-[16px] pt-0">
-      <TopTitle title={`Comments — ${date.format('MMM D, h:mm A')}`} />
+      <TopTitle title={`Comments · ${date.format('MMM D, h:mm A')}`} />
       <ModalCloseButton onClick={closeAll} offset={{ top: 15 }} />
 
       <div className="flex flex-col gap-[16px]">
@@ -206,12 +206,12 @@ export const CommentComponent: FC<{
             className="flex gap-[10px]"
           >
             <div className="w-[32px] shrink-0">
-              <div className="rounded-full text-newTextColor text-[14px] font-[600] flex justify-center items-center w-[32px] h-[32px] bg-newTableHeader border border-newTableBorder">
+              <div className="rounded-full text-newTextColor text-[14px] font-[550] flex justify-center items-center w-[32px] h-[32px] bg-newTableHeader border border-newTableBorder">
                 {comment.user?.email?.[0]?.toUpperCase()}
               </div>
             </div>
             <div className="flex-1 flex flex-col gap-[2px] min-w-0">
-              <div className="text-[14px] font-[600] text-newTextColor">
+              <div className="text-[14px] font-[550] text-newTextColor">
                 {extractNameFromEmailAndCapitalize(comment.user?.email || '')}
               </div>
               <pre className="text-wrap font-sans text-[14px] text-newTextColor/80">

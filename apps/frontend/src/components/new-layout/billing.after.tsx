@@ -19,8 +19,11 @@ export const BillingAfter = () => {
       <div className="flex justify-center mb-[10px]">
         <Logo />
       </div>
-      <div className="text-center mb-[20px] text-xl [@media(max-width:1024px)]:text-xl">
-        <h1 className="text-3xl [@media(max-width:1024px)]:text-xl">
+      <div className="text-center mb-[20px]">
+        <h1
+          data-cs
+          className="font-display text-[20px] font-[400] text-newTextColor"
+        >
           {t(
             'join_10000_entrepreneurs_who_use_postiz',
             'Join 10,000+ Entrepreneurs Who Use Postiz'
@@ -35,7 +38,7 @@ export const BillingAfter = () => {
         {user?.allowTrial && (
           <div className="table mx-auto">
             <div className="flex gap-[5px] items-center">
-              <div className="text-[#06ff00]">
+              <div className="text-[#2f7d44]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -54,7 +57,7 @@ export const BillingAfter = () => {
               <div>{t('100_no_risk_trial', '100% no-risk trial')}</div>
             </div>
             <div className="flex gap-[5px] items-center">
-              <div className="text-[#06ff00]">
+              <div className="text-[#2f7d44]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -78,7 +81,7 @@ export const BillingAfter = () => {
               </div>
             </div>
             <div className="flex gap-[5px] items-center">
-              <div className="text-[#06ff00]">
+              <div className="text-[#2f7d44]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"

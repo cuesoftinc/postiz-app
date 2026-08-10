@@ -64,7 +64,7 @@ export const ApprovedAppsComponent: FC = () => {
       <div className="flex flex-col">
         {/* settings pattern: display-face title + muted 14 helper
             (data-cs keeps the desktop ladder off the title size) */}
-        <h3 data-cs className="text-[24px] font-[500] font-display">
+        <h3 data-cs className="text-[20px] font-[400] font-display">
           {t('approved_apps', 'Approved Apps')}
         </h3>
         <div className="text-[14px] text-textItemBlur mt-[4px]">
@@ -101,7 +101,7 @@ export const ApprovedAppsComponent: FC = () => {
                     </div>
                   )}
                   <div>
-                    <div className="text-[14px] font-[600]">
+                    <div className="text-[14px] font-[550]">
                       {app.oauthApp?.name}
                     </div>
                     {app.oauthApp?.description && (

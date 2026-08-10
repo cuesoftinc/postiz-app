@@ -5,10 +5,11 @@ import Link from 'next/link';
 import clsx from 'clsx';
 import dynamic from 'next/dynamic';
 import useCookie from 'react-use-cookie';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { orderBy } from 'lodash';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { expandPostsList } from '@gitroom/helpers/utils/posts.list.minify';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -23,6 +24,7 @@ import { LanguageComponent } from '@gitroom/frontend/components/layout/language.
 import { ChromeExtensionComponent } from '@gitroom/frontend/components/layout/chrome.extension.component';
 import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
+import { useLogout } from '@gitroom/frontend/components/layout/logout.component';
 
 // Same ssr:false pattern the top bar used: the toggle reads the 'mode' cookie
 // on mount, so server-rendering it would hydrate the wrong glyph.
@@ -108,45 +110,69 @@ const PanelLeftOpenIcon: FC = () => (
   </svg>
 );
 
-/** Single lightweight read of the scheduled queue (existing list endpoint,
- *  display-only): the exact org-wide total feeds the Publish nav badge, and
- *  grouping the first page (max the endpoint allows) by integration feeds the
- *  per-channel counts. Counts render only once data exists — a null count
- *  simply hides the badge slot. Per-channel numbers can undercount past 100
- *  queued posts; the total stays exact. */
-const useScheduledCounts = () => {
+/** Buffer-parity scheduled counts, ONE SWR key for the whole rail: a
+ *  Promise.all batch of feather-light list queries — page=1&limit=1&
+ *  state=scheduled against /posts/list, reading .total via expandPostsList
+ *  (the exact loadTabCounts pattern in launches/filters.tsx; the endpoint
+ *  minifies, so raw .total does not exist on the wire) — one per channel for
+ *  the per-row counts plus one unfiltered for the exact Publish nav total.
+ *  Skipped entirely while the rail is collapsed (no badge renders there),
+ *  refreshes every 60s. A null count simply hides its badge slot, so first
+ *  paint has no layout shift. Both call sites (Sidebar, SidebarChannels)
+ *  share the key, so SWR dedupes to a single request cycle. */
+const useScheduledCounts = (collapsed?: boolean) => {
   const fetch = useFetch();
-  const load = useCallback(async () => {
-    return await (
-      await fetch('/posts/list?state=scheduled&page=0&limit=100')
-    ).json();
-  }, []);
-  const { data } = useSWR('sidebar-scheduled-counts', load, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    refreshWhenHidden: false,
-    refreshWhenOffline: false,
-  });
+  const { data: integrations } = useIntegrationList();
+  const ids = useMemo<string[]>(
+    () => (integrations || []).map((i: any) => String(i.id)),
+    [integrations]
+  );
 
-  return useMemo(() => {
-    if (!data || !Array.isArray(data.posts)) {
-      return {
-        total: undefined as number | undefined,
-        perIntegration: undefined as Record<string, number> | undefined,
-      };
-    }
-    const perIntegration: Record<string, number> = {};
-    for (const post of data.posts) {
-      const id = post?.integration?.id;
-      if (id) {
-        perIntegration[id] = (perIntegration[id] || 0) + 1;
+  const load = useCallback(async () => {
+    const countFor = async (integration?: string) => {
+      const search = new URLSearchParams({
+        page: '1',
+        limit: '1',
+        state: 'scheduled',
+      });
+      if (integration) {
+        search.set('integration', integration);
       }
-    }
-    return {
-      total: typeof data.total === 'number' ? data.total : undefined,
-      perIntegration,
+      const raw = expandPostsList(
+        await (await fetch(`/posts/list?${search.toString()}`)).json()
+      );
+      return (raw as any)?.total ?? 0;
     };
-  }, [data]);
+    const [total, ...channelTotals] = await Promise.all([
+      countFor(),
+      ...ids.map((id) => countFor(id)),
+    ]);
+    return {
+      total,
+      perIntegration: Object.fromEntries(
+        ids.map((id, index) => [id, channelTotals[index]])
+      ) as Record<string, number>,
+    };
+  }, [ids]);
+
+  const { data } = useSWR(
+    collapsed ? null : `sidebar-scheduled-counts-${ids.join(',')}`,
+    load,
+    {
+      refreshInterval: 60_000,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      refreshWhenHidden: false,
+      refreshWhenOffline: false,
+    }
+  );
+
+  return {
+    total: data?.total as number | undefined,
+    perIntegration: data?.perIntegration as
+      | Record<string, number>
+      | undefined,
+  };
 };
 
 /** TopMenu's visibility rules, verbatim, so the sidebar and the phone bar can
@@ -270,10 +296,17 @@ const QUICK_CONNECT_POOL = [
   'mastodon',
 ];
 
-/** One expanded channel row: avatar + presence dot + name + a fixed 24px
- *  right slot. Buffer parity: the slot shows the muted scheduled-post count
- *  at rest and swaps to the manage kebab on row hover — both are absolutely
- *  stacked in the same box so nothing shifts. A null count simply hides. */
+/** One expanded channel row, Buffer's exact anatomy (its a11y tree): the LINK
+ *  is "avatar + presence + name + N scheduled posts" (count at the row end,
+ *  muted 14px), and on desktop row hover the count yields to an action
+ *  cluster — a 24px "New post" compose button (deep link into the composer,
+ *  queue pre-filtered to this channel) and a 24px "Submenu" kebab whose panel
+ *  holds only the two natural existing actions: Manage channels (the existing
+ *  deep link) and Channel analytics (/analytics?integration=<id>). The
+ *  cluster is a SIBLING of the link (no nested anchors) and phone:hidden, so
+ *  drawer rows stay one big tap target with the count always visible. The
+ *  count slot is constant-width (52px = two 24px buttons + 4px gap), so
+ *  hover/loading never shift layout; a null count simply renders empty. */
 const ChannelRow: FC<{
   integration: any;
   href: string;
@@ -281,68 +314,122 @@ const ChannelRow: FC<{
   count?: number;
 }> = ({ integration, href, active, count }) => {
   const t = useT();
-  const router = useRouter();
+  const { open, toggle, close, ref } = useDropdown<HTMLSpanElement>();
+
+  const menuItem =
+    'flex items-center gap-[8px] px-[10px] h-[32px] rounded-[8px] hover:bg-boxHover text-[14px] text-newTextColor transition-colors duration-150';
 
   return (
-    <Link
-      prefetch={true}
-      href={href}
-      title={integration.name}
+    <div
       className={clsx(
-        'group/chrow',
+        'group/chrow relative',
         channelRowClassName(integration.disabled),
         active && 'bg-newBorder text-newTextColor'
       )}
     >
-      {/* spec §Sidebar 5: presence dot top-left — green for healthy
-          channels, red-family when a refresh is needed, omitted for
-          disabled ones. Driven by fields already on this SWR row. */}
-      <span className="relative flex shrink-0">
-        <ChannelAvatar
-          picture={integration.picture}
-          identifier={integration.identifier}
-          name={integration.name}
-          size={32}
-          badgeSize={14}
-          badgeOffset="-bottom-[2px] -end-[2px]"
-          fallback="placeholder"
-          className="min-w-[32px] min-h-[32px]"
-        />
-        {!integration.disabled && (
-          <span
-            className={clsx(
-              'absolute -top-[2px] -start-[2px] z-10 w-[9px] h-[9px] rounded-full border-2 border-newBgColor',
-              integration.refreshNeeded ? 'bg-red-500' : 'bg-green-500'
-            )}
+      <Link
+        prefetch={true}
+        href={href}
+        title={integration.name}
+        className="flex flex-1 min-w-0 items-center gap-[8px]"
+      >
+        {/* spec §Sidebar 5: presence dot top-left — green for healthy
+            channels, red-family when a refresh is needed, omitted for
+            disabled ones. Driven by fields already on this SWR row. */}
+        <span className="relative flex shrink-0">
+          <ChannelAvatar
+            picture={integration.picture}
+            identifier={integration.identifier}
+            name={integration.name}
+            size={32}
+            badgeSize={14}
+            badgeOffset="-bottom-[2px] -end-[2px]"
+            fallback="placeholder"
+            className="min-w-[32px] min-h-[32px]"
           />
-        )}
-      </span>
-      <div className="flex-1 truncate">{integration.name}</div>
-      <span className="relative w-[24px] h-[24px] min-w-[24px]">
-        {count != null && (
-          <span className="absolute inset-0 flex items-center justify-end text-[14px] text-textItemBlur group-hover/chrow:opacity-0 transition-opacity duration-150">
-            {count}
-          </span>
-        )}
-        <span
-          role="button"
-          tabIndex={0}
-          title={t('manage_channels', 'Manage channels')}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            router.push('/launches?manageChannels=1');
-          }}
-          className="absolute inset-0 opacity-0 group-hover/chrow:opacity-100 focus-visible:opacity-100 flex items-center justify-center rounded-[6px] hover:bg-boxHover transition-opacity duration-150"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="1" />
-            <circle cx="12" cy="5" r="1" />
-            <circle cx="12" cy="19" r="1" />
-          </svg>
+          {!integration.disabled && (
+            <span
+              className={clsx(
+                'absolute -top-[2px] -start-[2px] z-10 w-[9px] h-[9px] rounded-full border-2 border-newBgColor',
+                integration.refreshNeeded ? 'bg-red-500' : 'bg-green-500'
+              )}
+            />
+          )}
         </span>
+        <div className="flex-1 truncate">{integration.name}</div>
+        <span className="w-[52px] min-w-[52px] flex items-center justify-end text-[14px] text-textItemBlur group-hover/chrow:opacity-0 phone:group-hover/chrow:opacity-100 transition-opacity duration-150">
+          {count != null && count}
+        </span>
+      </Link>
+      {/* hover action cluster — desktop only (phone rows in the drawer keep
+          the single big tap target); focus-within keeps it keyboard-usable */}
+      <span
+        ref={ref}
+        className="absolute inset-y-0 end-[8px] phone:hidden flex items-center"
+      >
+        <span className="opacity-0 group-hover/chrow:opacity-100 focus-within:opacity-100 flex items-center gap-[4px] transition-opacity duration-150">
+          {!integration.disabled && (
+            <Link
+              prefetch={true}
+              href={`/launches?newPost=1&integration=${integration.id}`}
+              title={t('new_post', 'New post')}
+              className="w-[24px] h-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .505-.853z" />
+              </svg>
+            </Link>
+          )}
+          <button
+            type="button"
+            title={t('submenu', 'Submenu')}
+            onClick={toggle}
+            className="w-[24px] h-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="12" cy="5" r="1" />
+              <circle cx="12" cy="19" r="1" />
+            </svg>
+          </button>
+        </span>
+        {open && (
+          <DropdownPanel
+            surface="panel"
+            anchor="end"
+            className="mt-[2px] w-[192px] p-[6px] flex flex-col gap-[2px]"
+          >
+            <Link
+              prefetch={true}
+              href="/launches?manageChannels=1"
+              onClick={close}
+              className={menuItem}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              {t('manage_channels', 'Manage channels')}
+            </Link>
+            <Link
+              prefetch={true}
+              href={`/analytics?integration=${integration.id}`}
+              onClick={close}
+              className={menuItem}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+                <path d="M18 17V9" />
+                <path d="M13 17V5" />
+                <path d="M8 17v-3" />
+              </svg>
+              {t('channel_analytics', 'Channel analytics')}
+            </Link>
+          </DropdownPanel>
+        )}
       </span>
-    </Link>
+    </div>
   );
 };
 
@@ -355,7 +442,7 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
   const t = useT();
   const { billingEnabled } = useVariables();
   const { data: integrations } = useIntegrationList();
-  const { perIntegration } = useScheduledCounts();
+  const { perIntegration } = useScheduledCounts(collapsed);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const activeIntegration = searchParams.get('integration');
@@ -495,8 +582,22 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
           type="text"
           value={channelFilter}
           onChange={(e) => setChannelFilter(e.target.value)}
+          // Buffer's dismissal contract: Esc closes (and clears), blurring
+          // an EMPTY field closes; a blurred non-empty filter stays applied.
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setSearchOpen(false);
+              setChannelFilter('');
+            }
+          }}
+          onBlur={() => {
+            if (!channelFilter.trim()) {
+              setSearchOpen(false);
+              setChannelFilter('');
+            }
+          }}
           placeholder={t('search_channels', 'Search channels')}
-          className="mx-[8px] mb-[4px] h-[28px] px-[8px] rounded-[6px] border border-newTableBorder bg-transparent text-[13px] text-newTextColor placeholder:text-textItemBlur outline-none"
+          className="mx-[8px] mb-[4px] h-[32px] px-[8px] rounded-[8px] border border-newTableBorder bg-transparent text-[13px] text-newTextColor placeholder:text-textItemBlur outline-none"
         />
       )}
       {visible.map((integration: any) => (
@@ -640,7 +741,7 @@ const ChannelsLimitCard: FC = () => {
   return (
     <div className="mb-[8px] p-[12px] rounded-[12px] border border-newTableBorder">
       <div className="flex items-start gap-[8px]">
-        <div className="flex-1 text-[13px] font-[600] text-newTextColor">
+        <div className="flex-1 text-[13px] font-[550] text-newTextColor">
           {`${Math.min(connected, limit)}/${limit} `}
           {t('channels_connected', 'channels connected')}
         </div>
@@ -780,15 +881,26 @@ const SidebarUtilities: FC<{ inDrawer?: boolean; collapsed?: boolean }> = ({
  *  so it does not drop in here; org SWITCHING lives in the SidebarUtilities
  *  row above. The name reuses OrganizationSelector's own SWR key, so no new
  *  request is made.
+ *  Buffer's pattern: the row is a MENU TRIGGER — click opens a compact
+ *  popover above it (white r8 hairline + the kit's soft shadow, same panel
+ *  recipe as the org-switcher popover) with 32px rows: Settings, hairline,
+ *  Log out in the kit's critical ink (#FF3F3F, the unified danger tone).
+ *  Log out reuses the EXACT existing flow via useLogout (confirm dialog +
+ *  cookie-clear / POST /user/logout oauth branch, hard redirect).
  *  `onCollapse` (desktop only — the drawer never collapses) appends the
- *  panel-left collapse control to the row, Buffer-style. */
-const SidebarOrganization: FC<{ onCollapse?: () => void }> = ({
-  onCollapse,
-}) => {
+ *  panel-left collapse control as a SIBLING of the trigger (no nested
+ *  buttons). `collapsed` renders the rail-bottom 24px mark as the same
+ *  trigger with the popover anchored start. */
+const SidebarOrganization: FC<{
+  onCollapse?: () => void;
+  collapsed?: boolean;
+}> = ({ onCollapse, collapsed }) => {
   const t = useT();
   const fetch = useFetch();
   const user = useUser();
   const { billingEnabled } = useVariables();
+  const logout = useLogout();
+  const { open, toggle, close, ref } = useDropdown();
 
   const load = useCallback(async () => {
     return await (await fetch('/user/organizations')).json();
@@ -811,42 +923,126 @@ const SidebarOrganization: FC<{ onCollapse?: () => void }> = ({
     ? tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase() + ' Plan'
     : '';
 
-  return (
-    <div className="flex items-center gap-[10px] px-[8px] py-[8px] rounded-[8px]">
-      <img
-        src="/cuesoft-mark-white.png"
-        alt=""
-        width={32}
-        height={32}
-        className="hidden dark:block object-contain shrink-0"
-      />
-      <img
-        src="/cuesoft-mark-primary.png"
-        alt=""
-        width={32}
-        height={32}
-        className="block dark:hidden object-contain shrink-0"
-      />
-      <div className="flex flex-col min-w-0 flex-1">
-        <div className="text-[14px] text-newTextColor truncate">
-          {current?.name || ''}
-        </div>
-        {billingEnabled && tierLabel && (
-          <div className="text-[12px] text-textItemBlur truncate">
-            {tierLabel}
-          </div>
-        )}
+  const menuRow =
+    'h-[32px] px-[8px] rounded-[6px] flex items-center gap-[8px] text-[14px] transition-colors duration-150';
+
+  const menu = open && (
+    <div
+      className={clsx(
+        'absolute bottom-[calc(100%+4px)] flex flex-col',
+        'min-w-[184px] p-[4px] gap-[2px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] z-[600]',
+        collapsed ? 'start-0' : 'start-0 end-0'
+      )}
+    >
+      <Link
+        prefetch={true}
+        href="/settings"
+        onClick={close}
+        className={clsx(menuRow, 'text-newTextColor hover:bg-boxHover')}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        {t('settings', 'Settings')}
+      </Link>
+      <div className="h-[1px] shrink-0 bg-newTableBorder my-[2px]" />
+      <button
+        type="button"
+        onClick={() => {
+          close();
+          logout();
+        }}
+        className={clsx(menuRow, 'w-full text-[#FF3F3F] hover:bg-boxHover')}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" xmlns="http://www.w3.org/2000/svg">
+          <path d="m16 17 5-5-5-5" />
+          <path d="M21 12H9" />
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        </svg>
+        {t('log_out', 'Log out')}
+      </button>
+    </div>
+  );
+
+  if (collapsed) {
+    return (
+      <div ref={ref} className="relative">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          title={current?.name || t('organization', 'Organization')}
+          className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] hover:bg-boxHover transition-colors"
+        >
+          <img
+            src="/cuesoft-mark-white.png"
+            alt=""
+            width={24}
+            height={24}
+            className="hidden dark:block object-contain"
+          />
+          <img
+            src="/cuesoft-mark-primary.png"
+            alt=""
+            width={24}
+            height={24}
+            className="block dark:hidden object-contain"
+          />
+        </button>
+        {menu}
       </div>
+    );
+  }
+
+  return (
+    <div ref={ref} className="relative flex items-center">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        title={current?.name || t('organization', 'Organization')}
+        className={clsx(
+          'flex flex-1 min-w-0 items-center gap-[10px] px-[8px] py-[8px] rounded-[8px] text-start transition-colors duration-150',
+          open ? 'bg-boxHover' : 'hover:bg-boxHover'
+        )}
+      >
+        <img
+          src="/cuesoft-mark-white.png"
+          alt=""
+          width={32}
+          height={32}
+          className="hidden dark:block object-contain shrink-0"
+        />
+        <img
+          src="/cuesoft-mark-primary.png"
+          alt=""
+          width={32}
+          height={32}
+          className="block dark:hidden object-contain shrink-0"
+        />
+        <div className="flex flex-col min-w-0 flex-1">
+          <div className="text-[14px] text-newTextColor truncate">
+            {current?.name || ''}
+          </div>
+          {billingEnabled && tierLabel && (
+            <div className="text-[12px] text-textItemBlur truncate">
+              {tierLabel}
+            </div>
+          )}
+        </div>
+      </button>
       {onCollapse && (
         <button
           type="button"
           onClick={onCollapse}
           title={t('collapse_sidebar', 'Collapse sidebar')}
-          className="w-[24px] h-[24px] shrink-0 flex items-center justify-center rounded-[6px] text-textItemBlur hover:bg-boxHover hover:text-newTextColor transition-colors"
+          className="w-[24px] h-[24px] me-[8px] shrink-0 flex items-center justify-center rounded-[6px] text-textItemBlur hover:bg-boxHover hover:text-newTextColor transition-colors"
         >
           <PanelLeftCloseIcon />
         </button>
       )}
+      {menu}
     </div>
   );
 };
@@ -876,7 +1072,7 @@ const NewMenu: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
         className={
           collapsed
             ? 'w-[32px] h-[32px] mx-auto flex items-center justify-center rounded-[8px] bg-btnPrimary text-textItemFocused transition-colors duration-150'
-            : 'h-[40px] w-full flex items-center justify-center gap-[8px] rounded-full bg-btnPrimary text-textItemFocused text-[14px] font-[600] transition-colors duration-150'
+            : 'h-[40px] w-full flex items-center justify-center gap-[8px] rounded-full bg-btnPrimary text-textItemFocused text-[14px] font-[550] transition-colors duration-150'
         }
       >
         {collapsed ? (
@@ -930,7 +1126,7 @@ const NewMenu: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
               </svg>
             </span>
             <span className="flex flex-col">
-              <span className="font-[600]">{t('post', 'Post')}</span>
+              <span className="font-[550]">{t('post', 'Post')}</span>
               <span className="text-[12px] text-newTextColor/60">
                 {t('publish_content_to_a_channel', 'Publish content to a channel')}
               </span>
@@ -971,10 +1167,22 @@ const NewMenu: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
  *  hairline at the bottom of the scroll block instead of leading the nav. */
 const UTILITY_PATHS = ['/plugs', '/third-party'];
 
+/** Buffer parity: the visual "New" pill Buffer ships after its Insights nav
+ *  label. Purely decorative — REMOVABLE by deleting this const and its single
+ *  call site (the '/analytics' trailing in Sidebar). data-cs opts the fixed
+ *  11px out of the global type ladder. */
+const InsightsNewBadge: FC = () => (
+  <span
+    data-cs
+    className="px-[6px] py-[2px] rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[12px] font-[550] leading-none"
+  >
+    New
+  </span>
+);
+
 export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
   const t = useT();
   const { first, second } = useVisibleMenu();
-  const { total: scheduledTotal } = useScheduledCounts();
 
   // Buffer parity: Publish leads and carries a plain muted scheduled count;
   // the non-Buffer utility rows drop below a hairline at the bottom of the
@@ -1016,6 +1224,10 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
   const collapsed =
     !inDrawer &&
     (sidebarCollapsed === '1' || (tabletRail && !railOverride));
+  // Counts fetch only for an expanded sidebar (the rail shows no badges);
+  // same SWR key as SidebarChannels, so the two subscriptions share one
+  // request cycle.
+  const { total: scheduledTotal } = useScheduledCounts(collapsed);
   const toggleCollapsed = useCallback(() => {
     if (tabletRail) {
       // tablet: the control toggles the auto-rail for this session only;
@@ -1133,6 +1345,8 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
                   <span className="text-[14px] text-textItemBlur">
                     {scheduledTotal}
                   </span>
+                ) : item.path === '/analytics' ? (
+                  <InsightsNewBadge />
                 ) : undefined
               }
             />
@@ -1172,7 +1386,8 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
         </div>
         {collapsed ? (
           /* rail footer: bell/theme/language stack, then the expand control
-             (panel-left) over the org mark */
+             (panel-left) over the org mark — the mark is the same org-menu
+             trigger as the expanded footer row (popover anchored start) */
           <div className="shrink-0 pb-[8px] flex flex-col items-center gap-[8px]">
             <SidebarUtilities collapsed />
             <button
@@ -1183,20 +1398,7 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
             >
               <PanelLeftOpenIcon />
             </button>
-            <img
-              src="/cuesoft-mark-white.png"
-              alt=""
-              width={24}
-              height={24}
-              className="hidden dark:block object-contain"
-            />
-            <img
-              src="/cuesoft-mark-primary.png"
-              alt=""
-              width={24}
-              height={24}
-              className="block dark:hidden object-contain"
-            />
+            <SidebarOrganization collapsed />
           </div>
         ) : (
           <div className="shrink-0 pb-[4px]">

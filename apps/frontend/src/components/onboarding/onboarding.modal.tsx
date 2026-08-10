@@ -131,8 +131,8 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
     <div className="flex flex-col gap-[24px]">
       <div className="flex gap-[4px] flex-col text-center">
         {/* Buffer replica: step titles in the display face, muted 14 helper.
-            data-cs keeps the desktop ladder off the 24px title. */}
-        <div data-cs className="text-[24px] font-[500] font-display">
+            data-cs holds the 20/400 page-title size exact. */}
+        <div data-cs className="text-[20px] font-[400] font-display">
           {t('connect_your_channels', 'Connect Your Channels')}
         </div>
         <div className="text-[14px] text-textItemBlur">
@@ -146,7 +146,7 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
       {/* Connected channels */}
       {sortedIntegrations.length > 0 && (
         <div className="bg-newBgColorInner border border-newTableBorder rounded-[12px] p-[16px]">
-          <div className="text-[12px] uppercase tracking-[0.08em] font-[500] text-newTextColor/60 mb-[12px]">
+          <div className="text-[13px] font-[500] text-newTextColor/60 mb-[12px]">
             {t('connected_channels', 'Connected Channels')} (
             {sortedIntegrations.length})
           </div>
@@ -198,7 +198,7 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
       <div className="flex justify-end pt-[24px] mt-[8px]">
         <button
           onClick={onNext}
-          className="group flex items-center gap-[12px] h-[44px] bg-btnPrimary hover:bg-[#a9e662] font-[600] px-[24px] rounded-[8px] text-[15px] transition-colors"
+          className="group flex items-center gap-[12px] h-[44px] bg-btnPrimary hover:bg-[#a9e662] font-[550] px-[24px] rounded-[8px] text-[15px] transition-colors"
         >
           {sortedIntegrations.length > 0
             ? t('continue', 'Continue')
@@ -233,7 +233,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onFinish: () => void }> = ({
   return (
     <div className="flex flex-col gap-[24px] flex-1">
       <div className="flex gap-[4px] flex-col text-center">
-        <div data-cs className="text-[24px] font-[500] font-display">
+        <div data-cs className="text-[20px] font-[400] font-display">
           {t('watch_tutorial_title', 'Learn How to Use Postiz')}
         </div>
         <div className="text-[14px] text-textItemBlur">
@@ -282,7 +282,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onFinish: () => void }> = ({
         </button>
         <button
           onClick={onFinish}
-          className="group flex items-center gap-[12px] h-[44px] bg-btnPrimary hover:bg-[#a9e662] font-[600] px-[24px] rounded-[8px] text-[15px] transition-colors"
+          className="group flex items-center gap-[12px] h-[44px] bg-btnPrimary hover:bg-[#a9e662] font-[550] px-[24px] rounded-[8px] text-[15px] transition-colors"
         >
           {t('get_started', 'Get Started')}
           <svg

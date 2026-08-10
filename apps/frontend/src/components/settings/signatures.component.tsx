@@ -62,9 +62,8 @@ export const SignaturesComponent: FC<{
 
   return (
     <div className="flex flex-col">
-      {/* data-cs: the desktop ladder would pin text-[24px] to 20px; the phone
-          ladder still steps it down to 18px */}
-      <h3 data-cs className="text-[24px] font-[500] font-display">
+      {/* page-title scale: display face 20/400 (data-cs holds it exact) */}
+      <h3 data-cs className="text-[20px] font-[400] font-display">
         {t('signatures', 'Signatures')}
       </h3>
       <div className="text-[14px] text-textItemBlur mt-[4px]">

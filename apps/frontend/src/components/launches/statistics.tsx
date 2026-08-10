@@ -254,7 +254,7 @@ export const StatisticsModal: FC<{
           {analyticsData && Array.isArray(analyticsData) && analyticsData.length > 0 && (
             <div className="flex flex-col gap-[14px]">
               <div className="flex items-center justify-between">
-                <h3 className="text-[16px] font-[600] text-newTextColor">
+                <h3 className="text-[16px] font-[550] text-newTextColor">
                   {t('post_analytics', 'Post Analytics')}
                 </h3>
                 <div className="max-w-[150px]">
@@ -307,7 +307,7 @@ export const StatisticsModal: FC<{
 
           {/* Short Links Statistics Section */}
           <div className="flex flex-col gap-[14px]">
-            <h3 className="text-[16px] font-[600] text-newTextColor">
+            <h3 className="text-[16px] font-[550] text-newTextColor">
               {t('short_links_statistics', 'Short Links Statistics')}
             </h3>
             {statisticsData?.clicks?.length === 0 ? (
@@ -318,13 +318,13 @@ export const StatisticsModal: FC<{
             ) : (
               // kit table: hairline r8 frame, header wash, hairline row rules
               <div className="grid grid-cols-3 border border-newTableBorder rounded-[8px] overflow-hidden text-[14px] text-newTextColor">
-                <div className="bg-newTableHeader px-[12px] py-[8px] font-[600] text-newTableText">
+                <div className="bg-newTableHeader px-[12px] py-[8px] font-[550] text-newTableText">
                   {t('short_link', 'Short Link')}
                 </div>
-                <div className="bg-newTableHeader px-[12px] py-[8px] font-[600] text-newTableText">
+                <div className="bg-newTableHeader px-[12px] py-[8px] font-[550] text-newTableText">
                   {t('original_link', 'Original Link')}
                 </div>
-                <div className="bg-newTableHeader px-[12px] py-[8px] font-[600] text-newTableText">
+                <div className="bg-newTableHeader px-[12px] py-[8px] font-[550] text-newTableText">
                   {t('clicks', 'Clicks')}
                 </div>
                 {statisticsData?.clicks?.map((p: any) => (

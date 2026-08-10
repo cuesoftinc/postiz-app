@@ -96,7 +96,7 @@ export function Login() {
               className="flex flex-col gap-[12px]"
               onSubmit={form.handleSubmit(onSubmit)}
             >
-              <div className="text-textColor">
+              <div className="text-newTextColor">
                 <Input
                   label="Email"
                   translationKey="label_email"
@@ -123,7 +123,7 @@ export function Login() {
                   </p>
                   <Link
                     href="/auth/activate"
-                    className="text-amber-400 underline hover:font-bold text-sm"
+                    className="text-amber-400 underline hover:font-[650] text-sm"
                   >
                     {t('resend_activation_email', 'Resend Activation Email')}
                   </Link>
@@ -141,7 +141,7 @@ export function Login() {
               <p className="text-sm text-center">
                 <Link
                   href="/auth/forgot"
-                  className="underline hover:font-bold cursor-pointer"
+                  className="underline hover:font-[650] cursor-pointer"
                 >
                   {t('forgot_password', 'Forgot password')}
                 </Link>
@@ -185,7 +185,7 @@ export function Login() {
               </div>
             </div>
             <div className="flex flex-col gap-[12px]">
-              <div className="text-textColor">
+              <div className="text-newTextColor">
                 <Input
                   label="Email"
                   translationKey="label_email"
@@ -212,7 +212,7 @@ export function Login() {
                   </p>
                   <Link
                     href="/auth/activate"
-                    className="text-amber-400 underline hover:font-bold text-sm"
+                    className="text-amber-400 underline hover:font-[650] text-sm"
                   >
                     {t('resend_activation_email', 'Resend Activation Email')}
                   </Link>
@@ -237,7 +237,7 @@ export function Login() {
                 <p className="mt-4 text-sm">
                   <Link
                     href="/auth/forgot"
-                    className="underline hover:font-bold cursor-pointer"
+                    className="underline hover:font-[650] cursor-pointer"
                   >
                     {t('forgot_password', 'Forgot password')}
                   </Link>

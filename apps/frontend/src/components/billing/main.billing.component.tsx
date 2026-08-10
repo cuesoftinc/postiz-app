@@ -327,7 +327,7 @@ export const MainBillingComponent: FC<{
                   title: 'Before you cancel',
                   withCloseButton: true,
                   classNames: {
-                    modal: 'text-textColor',
+                    modal: 'text-newTextColor',
                   },
                   children: <Accept resolve={res} />,
                 });
@@ -348,7 +348,7 @@ export const MainBillingComponent: FC<{
                 ),
                 withCloseButton: true,
                 classNames: {
-                  modal: 'text-textColor',
+                  modal: 'text-newTextColor',
                 },
                 children: <Info proceed={(e) => res(e)} />,
               });
@@ -456,18 +456,21 @@ export const MainBillingComponent: FC<{
   return (
     <div className="flex flex-col gap-[16px]">
       <div className="flex flex-row items-center">
-        <div className="flex-1 text-[20px] font-display">
+        <div
+          data-cs
+          className="flex-1 text-[20px] font-[400] font-display text-newTextColor"
+        >
           {t('plans', 'Plans')}
         </div>
         <div className="flex items-center gap-[16px]">
           <div className="text-[14px] text-newTableText">
-            {t('monthly', 'MONTHLY')}
+            {t('monthly', 'Monthly')}
           </div>
           <div>
             <Slider value={monthlyOrYearly} onChange={setMonthlyOrYearly} />
           </div>
           <div className="text-[14px] text-newTableText">
-            {t('yearly', 'YEARLY')}
+            {t('yearly', 'Yearly')}
           </div>
         </div>
       </div>
@@ -481,7 +484,7 @@ export const MainBillingComponent: FC<{
               key={name}
               className="flex-1 bg-sixth border border-newTableBorder rounded-[12px] p-[24px] gap-[16px] flex flex-col [@media(max-width:1024px)]:items-center"
             >
-              <div className="text-[18px] font-[600] font-display">{name}</div>
+              <div className="text-[16px] font-[550]">{name}</div>
               <div className="text-[38px] flex gap-[2px] items-center">
                 <div>
                   $

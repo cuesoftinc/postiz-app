@@ -74,7 +74,7 @@ export const SelectCustomer: FC<{
           style={pos}
           className="flex flex-col fixed pt-[12px] bg-newBgColorInner menu-shadow min-w-[250px]"
         >
-          <div className="text-[14px] font-[600] px-[12px] mb-[5px]">
+          <div className="text-[14px] font-[550] px-[12px] mb-[5px]">
             {t('customers', 'Customers')}
           </div>
           {uniqBy(integrations, (u) => u?.customer?.name)

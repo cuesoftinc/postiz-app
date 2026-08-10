@@ -34,7 +34,7 @@ export const UpDownArrow: FC<{
           'outline-none w-[20px] h-[20px] flex justify-center items-center',
           isUp
             ? 'cursor-pointer'
-            : 'pointer-events-none text-textColor opacity-50'
+            : 'pointer-events-none text-newTextColor opacity-50'
         )}
       >
         <Arrow flip={true} />
@@ -45,7 +45,7 @@ export const UpDownArrow: FC<{
           'outline-none rounded-bl-[20px] w-[20px] h-[20px] flex justify-center items-center',
           isDown
             ? 'cursor-pointer'
-            : 'pointer-events-none text-textColor opacity-50'
+            : 'pointer-events-none text-newTextColor opacity-50'
         )}
       >
         <Arrow flip={false} />

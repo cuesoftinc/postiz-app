@@ -1,19 +1,10 @@
 export const dynamic = 'force-dynamic';
-import { Metadata } from 'next';
-import { ContentChatComponent } from '@gitroom/frontend/components/content-agent/content-chat.component';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'Cuesoft Content',
-  description: '',
-};
-
+// The content chat merged into the agent page ([Assistant | Content]
+// segmented). Old /content links land on the Content segment. The target is
+// /agents/new (not /agents): /agents itself hard-redirects to '/agents/new'
+// and would drop the ?mode param on the way.
 export default async function Index() {
-  return (
-    <div
-      data-cs
-      className="bg-newBgColorInner flex-1 flex flex-col pt-[24px] px-[32px] pb-[20px] gap-[8px] phone:pt-[12px] phone:px-[12px] min-h-0"
-    >
-      <ContentChatComponent />
-    </div>
-  );
+  return redirect('/agents/new?mode=content');
 }

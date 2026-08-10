@@ -63,7 +63,7 @@ export const Webhooks: FC = () => {
       {/* settings pattern (same as Signatures): display-face title, muted 14
           helper, hairline-separated field group. data-cs keeps the desktop
           ladder off the title size. */}
-      <h3 data-cs className="text-[24px] font-[500] font-display">
+      <h3 data-cs className="text-[20px] font-[400] font-display">
         {t('webhooks', 'Webhooks')} ({data?.length || 0}/{user?.tier?.webhooks})
       </h3>
       <div className="text-[14px] text-textItemBlur mt-[4px]">

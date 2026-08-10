@@ -183,7 +183,7 @@ const FirstStep: FC = (props) => {
           askClose: true,
           fullScreen: true,
           classNames: {
-            modal: 'w-[100%] max-w-[1400px] text-textColor',
+            modal: 'w-[100%] max-w-[1400px] text-newTextColor',
           },
           children: (
             <AddEditModal
@@ -345,7 +345,7 @@ export const GeneratorComponent = () => {
         // 'bg-transparent' was a Mantine-era leftover: GeneratorPopup has no
         // self-chrome card, so honoring it would leave the form floating on
         // the backdrop. 'xl' now resolves to the chrome's 600px min-width.
-        modal: 'text-textColor',
+        modal: 'text-newTextColor',
       },
       size: 'xl',
       children: (

@@ -24,6 +24,187 @@ changelog line). Statuses:
 **The loop ends when no `NEEDS-WORK` or `NEEDS-BUFFER-MEASUREMENT` rows remain.**
 
 **Changelog**
+- 2026-08-10 — typography parity r4 (26 audited violations) + Buffer weight
+  calibration: admin-stats/admin-errors page titles ("Admin Stats", "Errors")
+  adopt the page-title spec (`data-cs font-display text-[20px] font-[400]
+  text-newTextColor`); danger ink unified — admin-errors `text-red-400`
+  (load-failure line + Unknown Error platform cell) → `text-[#FF3F3F]`; the
+  off-scale opacity rungs died: every `opacity-60/70` muting in admin-stats
+  (stat-card label, empty row, date-range, From/To labels), admin-errors
+  (detail sub-labels ×6, "{n} total" counter, empty state, org-name meta) and
+  moltbook waiting line (`text-sm opacity-70` → `text-[14px]
+  text-newTextColor/60`) → `text-newTextColor/60`; admin-errors table-cell
+  `opacity-90` and agent.media.modal body `opacity-80` (×3) → full body ink;
+  main.billing tier name 18/600 display → 16/600 body (matches
+  first.billing:279); notifications header + channels-modal heading drop
+  font-display (16/600 Inter ink; vestigial data-cs removed). WEIGHT
+  CALIBRATION (Buffer variable-Inter tokens: semibold 550, bold 650 — our
+  sweep had standardized on 600/700): kit chrome `font-[600]` → `font-[550]`
+  (137 across 53 files) and `font-[700]` → `font-[650]` (first.billing totals
+  ×2 + hover), plus kit-chrome `font-bold` → `font-[650]` (calendar count
+  badge, auth hover-links ×7, notification link HTML). Untouched per the
+  exception list: Fustat wordmark 20/700 (sidebar + layout.component),
+  platform-preview internals (instagram/facebook/linkedin/tiktok/pinterest/
+  youtube previews, reddit.provider preview card, general.preview X-style
+  name row), chart.js `weight:` configs, react-shared-libraries. Verified
+  Inter loads via next/font/google with NO fixed weight in all three layouts
+  ((app)/(provider)/(extension)) — variable wght axis 100–900 ships, so 550/
+  650 render true, no config change needed. tsc clean.
+- 2026-08-10 — typography parity r3 (16 audited violations): TopTitle
+  (launches/helpers/top.title.component.tsx) adopts the composer modal-title
+  pattern — `data-cs text-[18px] font-[500] text-newTextColor`, font-display
+  dropped — so every TopTitle header (Change Bot Picture, Select Company,
+  Comments, Connect Channel URL, ...) stops rendering 14px/400 display; last
+  grey utilities left the shared form kit (custom.select chevron + clear X
+  `text-slate-500` → `text-newTextColor/60`, total.tsx disabled decrement →
+  `text-newTextColor/40`); admin PerSocialTable header de-eyebrowed
+  (`uppercase opacity-70` → sentence-case `text-newTextColor/60`);
+  CreationMethodBadge type normalized to 12px/500 (no font-bold/uppercase/
+  tracking-wide — the WEB/API/MCP/CLI acronyms are uppercase content) at all
+  three sizes; time.table "Add Time Slot" → 16/600 ink section heading;
+  billing: "Plans" pane title → page-title spec (`data-cs` 20/400 display
+  ink), MONTHLY/YEARLY sub-labels sentence-cased (component defaults + en
+  locale), first.billing tier name → 16/600 (dead mobile:text-[18px]
+  removed); billing.after h1 → page-title spec (stock text-3xl + redundant
+  wrapper text-xl removed); public preview comments: textarea placeholder →
+  `placeholder:text-white/50` with dead shadcn token classes deleted
+  (ring-offset-background, muted-foreground, ring-ring), "Comments" h3 →
+  16/600; HeyGen busy overlay re-inked for its black/90 surface (headline
+  `data-cs` 18/500 `text-white`, meta `text-white/60`); channels-summary
+  empty-cell em dash glyph → hyphen. tsc clean.
+- 2026-08-10 — shared channels dropdown (user request: the calendar's Buffer
+  "Channels" dropdown replaces the phone chip strips on Insights and Plugs):
+  ChannelsFilter's presentation (32px transparent r8 trigger, 300px r12 panel
+  w/ search + Select all + 28px avatar checkbox rows) extracted verbatim into
+  `new-layout/channels-dropdown.tsx` with a clean prop API ({integrations,
+  selectedIds, onChange, multi?, label?, anchor?}); the calendar rewires onto
+  it byte-identically (same ?integration= comma-list replaceState plumbing).
+  Single-select mode (new): trigger = current channel avatar (20px) + name +
+  chevron, rows carry a check in a left 16px slot, picking closes. Insights
+  adopts it as the first control of its toolbar row (replaces the phone
+  [data-side-panel] chip strip; selection still URL-driven replaceState;
+  refresh-needed channels now selectable — the pane's existing refresh card
+  in render.analytics takes over, the same path the Channels table rows
+  already allowed). Plugs adopts it at every width (replaces the phone chip
+  strip AND the desktop ToolbarSelect; the selectIntegration refreshNeeded
+  toaster guard + router.push stay). Phone: trigger lifts to a 40px tap
+  target (`phone:h-[40px]`, prefixed so the ladder skips it) and the panel
+  renders as the standard bottom sheet (scrim/rounded-top/drag-handle,
+  z-[650], h-[100dvh] scrim). The global.scss [data-side-panel] chip-strip
+  rules became dead (remaining carriers: launches' permanently-hidden panel,
+  agents' Threads rail with no group/profile rows) and were removed; the
+  [data-side-panel-footer] hide + the collapse-chevron hide (still live for
+  agents) stay. tsc clean.
+- 2026-08-10 — composer phone parity (390x844, orchestrator-measured Buffer):
+  header Preview toggle now lives at phone too — glyph-only (label span
+  `phone:hidden`), quiet chip; it drives a NEW phone-only overlay state
+  (`showPreviewPhone`, default off so the sheet opens editor-first): the same
+  mounted 420px preview pane (provider refs must stay mounted for submit
+  validation) presents full-width inside the modal (`phone:flex phone:w-full
+  phone:border-s-0` beats base `hidden` inside the media query) while the
+  editor column display-hides; the toggle branches on
+  `matchMedia('(max-width: 767px)')` (= the `phone` screen) so desktop pane
+  state is untouched. Footer primary shortens at phone via span swap (Buffer
+  shows "Customize"): Add to calendar→Schedule, Check the circles
+  above→Pick channels, Create output→Create; desktop labels byte-identical.
+  Full-viewport sheet re-verified structurally (fullScreen host fixed
+  w-full/h-full + ≤1100px scoped @media p0/r0 — no page bleed); channels row
+  (40px tiles + `+` tile), emoji chip and dashed media zone already phone-safe.
+  Also folded in two measured desktop leftovers as light-only scoped CSS in
+  manage.modal: date-picker popover day-cell hover #e6e5e2 (day cells =
+  the only hover:bg-boxHover + rounded-[6px] nodes; selected day keeps lime)
+  and composer text-input hover border #8a8a88 (--color-border-neutral;
+  :not(:focus)/:not(:focus-within) guards keep focus on border-forth;
+  dark mode untouched). tsc clean.
+- 2026-08-10 — typography parity r2 (27 audited violations, shared-form layer +
+  global.scss + auth): the shared form kit dropped its last legacy ink —
+  Input/Textarea/Select/CustomSelect/Canonical/Total (`react-shared-libraries/src/form/`)
+  `text-textColor placeholder-textColor` → `text-newTextColor` with
+  `placeholder:text-newTextColor/50` (filters.tsx convention), Toaster body → ink;
+  global.scss de-legacied: `.editor` descendant ink, both SweetAlert2 rules
+  (`.swal2-modal *`, `.swal2-icon`), Uppy upload button + `.uppy-Dashboard-inner *`
+  → newTextColor; react-tags: tag hover + listbox is-active → `text-newTextColor
+  bg-boxHover` (system hover wash replaces customColor51 blue), combobox
+  placeholder + disabled option `customColor53` grey hex → `text-newTextColor/60`,
+  selected-checkmark accent → ink; instagram.preview engagement row (last tsx
+  `text-textColor`) → ink; admin-errors Users-cell '—' placeholders (x2) → '-';
+  auth titles calibrated — forgot/forgot-return/activate/login.with.oidc h1
+  30/700 → `text-[40px] font-[500] -tracking-[0.8px]` (login/register pattern;
+  oidc also dropped the conflicting `text-center`), activate h2 18/600 → 16/600
+  section rung. tsc clean.
+- 2026-08-10 — modern logout + org row menu: the sidebar footer org row is now a
+  menu trigger (Buffer pattern) — click opens a compact popover above it (kit
+  panel: white r8 hairline, p4, soft shadow, 32px r6 rows) with Settings (gear 16,
+  /settings), a hairline divider, and Log out (log-out glyph 16, critical #FF3F3F
+  ink); the collapse control moved to a sibling of the trigger (no nested buttons,
+  same 24px control); the collapsed 52px rail's bottom org mark opens the SAME
+  popover anchored start (32px hover square around the 24px mark). Logout flow
+  extracted VERBATIM from `logout.component.tsx` into an exported `useLogout`
+  (confirm dialog, cookie-clear vs POST /user/logout oauth branch, hard '/'
+  redirect — byte-identical body); LogoutComponent keeps both exports/render
+  sites working: `isIcon` untouched (first-billing header), text variant restyled
+  to a quiet 32px hairline button ("Log out from Cuesoft" 14/500, critical ink +
+  wash on hover) on settings/billing pages. tsc clean.
+- 2026-08-10 — typography parity r1 (full type-scale sweep, `components/**` and
+  `app/**` minus the agents/content-agent loops): legacy ink `text-textColor` (btn-text var,
+  light #0e0e0e) → calibrated `text-newTextColor` ink across 48 files;
+  settings-family page titles (Signatures/Teams/Developers/Autopost/Sets/Approved
+  Apps/Webhooks + onboarding step titles + desktop top-bar Title) unified on the
+  20/400 display data-cs pattern (were 24/500-600); generic modal chrome
+  (new-modal, modal.wrapper) → 18/500 Inter data-cs composer pattern; settings
+  section H2s 16/550 → 16/600; tracked-uppercase eyebrows (developer, public-api,
+  onboarding, DataTable header) → 13px sentence-case muted; composer char counters
+  10/600 → 12/500, editor-toolbar captions (AI Image/Video, Insert/Design Media,
+  Integrations) 10-11/600 → 12/500, calendar tag strip + media-library caption +
+  "New" pill + org monogram + channels-summary label 10-11 → 12; grey hexes/utilities
+  → tokens (`#A3A3A3`→newTextColor/60 in select.current, mention dropdown +
+  voice-loading greys → newTextColor ramp, dark interstitials continue.integration /
+  oauth-authorize / public p/[id] greys → white/60-80); forth accents out of text
+  (agent-media bullets → muted, TikTok legal links → #2f7d44 link green, DelayIcon →
+  ink, coupon code → ink); danger ink unified on #FF3F3F (#F97066 row, #FF3535
+  icons), success glyphs unified on #2f7d44 (#00FF00, #00EB75, #06ff00);
+  customColor12/13/16/17/18 out of text (stars trending → ink/muted, FAQ body →
+  muted, GitHub/OAuth auth buttons → the shared #0E0E0E button ink); billing
+  checkout H4s 24/700 → 16/600, "Due today" 700 → 600, stat numeral weight
+  render.analytics 700 → 600; em dashes out of user copy (impersonate switch/coupon
+  strings, billing trial line → '·', admin stats range → en dash); dead upstream
+  commented markup dropped (analytics News Feed block, embedded-billing/FAQ h4/h3).
+  Exceptions kept (intentional): platform preview mimicry (facebook/instagram/
+  linkedin/tiktok/youtube/reddit preview type + #A3A3A3/#1d9bf0 platform greys/blues),
+  chart inks #2f7d44/#c2410c, Fustat wordmark 20/700, lucide/icon glyph sizing,
+  micro-badges + monograms (7-11px counter bubbles, streak pill, creation-method
+  acronym pill incl. its uppercase tracking, avatar initials, 'i'/X glyphs), nav-rail
+  9-10px captions, stat/pricing display numerals (36-50px), dark OAuth interstitial
+  28/24 heroes, auth marketing surfaces (40px heroes, testimonial dark panel
+  #D1D1D1), first-billing paywall display type, lifetime-deal 30px headings,
+  on-lime #292928 today chip, auth provider button #0E0E0E, Discord bubble
+  #def0ff/#004781, brand-blue #325ea6 coupon check, empty-cell '—' glyphs. tsc clean.
+- 2026-08-10 — composer (Create Post) loop i1, from live-measured Buffer values:
+  title 18/500 Inter body face (was 20/400 display); header quiet controls (Preview
+  toggle, close X) 40px px12 r8 15/500 textItemBlur + wash hover, active Preview
+  keeps the boxFocused pair; Tags chip 40px r8 hairline 15/500 ink; channel avatars
+  r10→r12 (tile + image wrapper + `+` tile); footer date control reshaped into
+  Buffer's SPLIT button (existing DatePicker trigger = left segment via the
+  `#cs-datetime` scoped skin — h40, start-only r12, px 12/8, 15/500 ink, hairline —
+  plus an attached end-r12 chevron segment forwarding the same open action; picker
+  logic untouched); footer family h-40 r12 (lime primaries, draft, repeat, Post Now);
+  drop-zone "select a file" link → Buffer green #2f7d44 15/400 hover-underline;
+  ≤1100px tablet full-bleed sheet via scoped `@media` (verified: `max-[1100px]:`
+  does NOT compile against the raw/object `screens` config — Tailwind drops
+  min-*/max-* there). r1 leftovers re-verified in code: preview pane
+  bg-newTableHeader wash + hairline, "Post Previews" 16/600 + muted circle-i
+  (`data-tooltip-id="tooltip"`), PreviewEmptyState card + caption wired in
+  show.all.providers/high.order.provider, 64px header/footer bands. tsc clean.
+- 2026-08-10 — calendar loop i1 (orchestrator-measured diffs vs live Buffer): phone
+  7-day week keeps ~100px day columns (`minmax(100px,1fr)` when 'phone-week-span'='7')
+  and scrolls horizontally inside the existing week overflow-auto container — day
+  headers stay sticky-top, the 48px time gutter pins sticky-start (z-15), the corner
+  spacer pins both axes (z-30); 3-day span and desktop keep exact prior behavior.
+  Phone week chips 36→32px (Buffer measured 31; r8/18px icon/15-400 time kept).
+  Month-pill/week-card white+shadow hover wrapped in `[@media(hover:hover)]` so touch
+  taps never latch it (still covers both pill and card via the shared wrapper). Sheet
+  mini-picker lime today circle re-verified in code (isToday lime fill precedes the
+  boxFocused anchor fill; probe failure predates the 3a5dabbe deploy). tsc clean.
 - 2026-08-10 — initial full inventory (routes + components walk; cross-checked against
   spec, waves `f3c25aa4…fc0f3cdf`, and scratchpad round-1 measurements/gap audits).
 - 2026-08-10 — needs-work sweep (top rows): bell dropdown, org switcher popover, post
@@ -68,6 +249,33 @@ changelog line). Statuses:
   two owned files: card kebab menus, day-view badge ring, action-menu divider and
   SetSelectionModal footer move off legacy `bg-fifth`/`tableBorder`/`border-fifth` onto
   newBgColorInner/newTableBorder. tsc clean.
+- 2026-08-10 — content chat merged into the agent page (user: "why do we have an agent
+  and a content page?"): admin-only [Assistant | Content] segmented joins the agent
+  header actions (launches List|Calendar anatomy — 32px band, 4px inset, hairline r8,
+  boxFocused/textItemFocused active); Content mode renders the bridge chat in the chat
+  pane and hides the Threads rail + channel strip (bridge sessions aren't copilot
+  threads; channel toggles feed the copilot only). content-chat.component drops its
+  in-component page header for a slim in-pane 32px New chat strip (streaming/session
+  logic untouched). `/content` nav item removed; the route survives as a redirect to
+  `/agents/new?mode=content` (via /agents/new because /agents hard-redirects and drops
+  the param), which preselects the Content segment for admins. tsc clean.
+- 2026-08-10 — headers/nav loop iter 1 (sidebar): per-channel scheduled counts land on
+  every channel row (Buffer a11y-tree anatomy: count at row end, muted 14px) via ONE
+  batched SWR key of 1-row `/posts/list?page=1&limit=1&state=scheduled&integration=<id>`
+  count queries (the filters.tsx loadTabCounts pattern, `expandPostsList().total`),
+  60s refresh, skipped while the rail is collapsed — this also FIXES the Publish nav
+  count, which read raw `.total`/`.posts` off the minified payload and had never
+  rendered; channel-row hover actions become Buffer's pair: 24px "New post"
+  (`/launches?newPost=1&integration=<id>`) + "Submenu" kebab (Manage channels /
+  Channel analytics `/analytics?integration=<id>`), rendered as SIBLINGS of the row
+  link (no nested anchors, real focusables, `phone:hidden` keeps drawer rows one big
+  tap target; constant 52px trailing slot = zero hover/loading layout shift); channel
+  search input grows to the 32px hairline spec and gains the dismissal contract (Esc
+  closes+clears, blur-while-empty closes); Insights gets Buffer's visual "New" pill
+  (`InsightsNewBadge`, 11px #EDE9FE/#7C3AED rounded-full, data-cs, single-const
+  removable). Verified intact: 56px phone app bar (dot + streak only), push-down
+  drawer w/ hidden logo row, 768–1100 tablet auto-rail + session override, footer
+  utilities + org rows. tsc clean.
 
 ---
 
@@ -79,11 +287,12 @@ changelog line). Statuses:
 | `/schedule`, `/schedule/list`, `/schedule/calendar`, `/schedule/calendar/[view]` aliases | `app/(app)/(site)/schedule/**` | VERIFIED-PARITY | Buffer URL-shape aliases → /launches (de6ca24f) |
 | `/analytics` (Insights) | `app/(app)/(site)/analytics/page.tsx` → `platform-analytics/platform.analytics.tsx` | VERIFIED-PARITY | Measured vs buffer-insights-1440/390 + structure JSON |
 | `/agents` → redirect `/agents/new` | `app/(app)/(site)/agents/page.tsx` | POSTIZ-ONLY-KEEP | No Buffer counterpart |
-| `/agents/[id]` (AI agent chat) | `agents/agent.tsx` + `agents/agent.chat.tsx` | POSTIZ-ONLY-KEEP | Restyled to token system (de7f7dc3) |
+| `/agents/[id]` (AI agent chat + Content segment) | `agents/agent.tsx` + `agents/agent.chat.tsx` | POSTIZ-ONLY-KEEP | Restyled to token system (de7f7dc3); admin [Assistant \| Content] segmented hosts the bridge chat |
+| `/content` → redirect `/agents/new?mode=content` | `app/(app)/(site)/content/page.tsx` | POSTIZ-ONLY-KEEP | Content chat merged into /agents; route kept so old links land on the Content segment (target is /agents/new because /agents hard-redirects and drops the param) |
 | `/media` (Media library) | `app/(app)/(site)/media/page.tsx` → `new-layout/layout.media.component.tsx` | POSTIZ-ONLY-KEEP | Buffer has no media library page; chrome tokenized (de7f7dc3) |
 | `/settings` | `app/(app)/(site)/settings/page.tsx` → `layout/settings.component.tsx` (SettingsPopup) | VERIFIED-PARITY | Rail + content measured vs buffer-settings-structure.json |
 | `/third-party` (Integrations catalog) | `third-parties/third-party.component.tsx` | POSTIZ-ONLY-KEEP | No Buffer analog; fully tokenized in fleet (de7f7dc3) |
-| `/plugs` | `plugs/plugs.tsx` | POSTIZ-ONLY-KEEP | Postiz automation plugs; no Buffer analog; shared PageShell/PageHeader + compact phone channel chips |
+| `/plugs` | `plugs/plugs.tsx` | POSTIZ-ONLY-KEEP | Postiz automation plugs; no Buffer analog; shared PageShell/PageHeader + shared channels dropdown (single-select, replaced the phone chip strip + desktop ToolbarSelect) |
 | `/billing`, `/billing/lifetime` | `billing/billing.component.tsx`, `billing/lifetime.deal.tsx` | N/A-INTERNAL | Billing disabled on the internal SSO instance; capability preserved |
 | `/admin/errors`, `/admin/stats` | `admin/admin-errors.component.tsx`, `admin/admin-stats.component.tsx` | N/A-INTERNAL | Superadmin-only; restyled/skeletonized (bbe94a8c) |
 | `/err` | `app/(app)/(site)/err/page.tsx` | N/A-INTERNAL | Error landing |
@@ -140,20 +349,22 @@ changelog line). Statuses:
 | "+ New" pill (208×40, rounded-full, lime + black ink) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Geometry corrected in wave 2 |
 | "+ New" menu popover (New Post / channels / settings entries) | `new-layout/sidebar.tsx` + `dropdown-panel.tsx` | VERIFIED-PARITY | Panel surface retuned to r12 + shadow stack |
 | Nav rows (32px, r8, 16px icons, 4px gap) + trailing badge slot | `new-layout/sidebar.tsx` NavRow | VERIFIED-PARITY | Rhythm + badge slot landed |
-| Publish scheduled-count badge (muted right-aligned) | `new-layout/sidebar.tsx` (sidebar-scheduled-counts SWR) | VERIFIED-PARITY | Sums /posts/list scheduled |
+| Publish scheduled-count badge (muted right-aligned) | `new-layout/sidebar.tsx` (sidebar-scheduled-counts SWR) | VERIFIED-PARITY | Exact total via a 1-row /posts/list count query read through expandPostsList (old raw `.total` read never decoded the minified payload, so the badge silently never rendered); 60s refresh, skipped while the rail is collapsed |
+| Insights "New" nav badge (10–11px violet pill after the label) | `new-layout/sidebar.tsx` `InsightsNewBadge` | VERIFIED-PARITY | Purely visual Buffer-ships-one pill (#EDE9FE/#7C3AED, rounded-full, data-cs); removable by deleting the single const + its one call site |
 | Utility rows demoted below hairline (Plugs, Integrations, Settings) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Utilities-in-footer move (87488ff3) |
-| "Channels" section header + hover-revealed search/gear | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Hover pattern per Buffer DOM |
-| Channel rows (avatar 32 + platform badge, name, resting scheduled count, hover kebab) | `new-layout/sidebar.tsx` + `new-layout/channel-row.tsx` | VERIFIED-PARITY | Count at rest, kebab on hover |
+| "Channels" section header + hover-revealed search/gear + inline filter | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Search toggles a 32px hairline input filtering rows client-side (case-insensitive name match); Esc or blur-while-empty closes |
+| Channel rows (avatar 32 + platform badge, name, resting scheduled count, hover actions) | `new-layout/sidebar.tsx` + `new-layout/channel-row.tsx` | VERIFIED-PARITY | Buffer anatomy: link = name + per-channel scheduled count (exact, batched 1-row count queries in ONE SWR key, 60s refresh, rail-collapsed skip); hover swaps count for 24px "New post" (`/launches?newPost=1&integration=<id>`) + Submenu kebab (Manage channels / Channel analytics `/analytics?integration=<id>`), desktop-only (`phone:hidden` — drawer rows stay one tap target) |
 | Per-channel queue views (channel row opens its own queue) | `new-layout/sidebar.tsx` → `/launches?channel=` | VERIFIED-PARITY | a3311c74; additive nav behavior |
 | Connect-more quick icons (unconnected-only, 24px full-bleed tiles, + button) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Filtered to unconnected, cap 3 |
 | "Locked channels · N ›" expander | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Billing-gated; hidden when N=0 |
 | Channels-limit upsell card (progress dashes, Upgrade for More) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | FREE-tier gated, dismissable |
-| Org footer row (logo 32, org name + plan, collapse control) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | panel-left-close/open glyphs split |
+| Org footer row (logo 32, org name + plan, collapse control) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | panel-left-close/open glyphs split; 2026-08-10: row is now the org-menu trigger (Buffer pattern), hover wash, collapse control a sibling |
+| Org row menu (popover above the footer row: Settings, hairline, Log out in critical ink) | `new-layout/sidebar.tsx` + `layout/logout.component.tsx` (`useLogout`) | VERIFIED-PARITY | Added 2026-08-10: kit popover (white r8 hairline, p4, soft shadow, 32px r6 rows), opens above; Log out #FF3F3F reuses the exact existing flow via `useLogout` (confirm dialog + cookie/oauth branch); collapsed 52px rail: bottom org mark opens the same popover anchored start |
 | Org switcher popover (click org footer) | `layout/organization.selector.tsx` | NEEDS-BUFFER-MEASUREMENT | Restyled to kit 2026-08-10: white r8 hairline panel + soft shadow, 32px r6 rows, 24px initial avatar, check on active org, lime asOpenSelect CTA — legacy bg-third/tableBorder removed. Remaining: measure Buffer's org menu if one exists (see §Measure) |
 | Collapse rail (52px icon rail, expand control) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | b82cb93a + ada738e4 |
 | Notifications bell + dropdown (in sidebar utilities) | `notifications/notification.component.tsx` | POSTIZ-ONLY-KEEP | Postiz-only feature, kit-styled 2026-08-10: white r8 panel (shared panel shadow/hairline), 32px-min 14px ink rows, hairline dividers, unread = header wash + semibold (legacy seventh flash/tableBorder/fifth scrollbar removed) |
 | Menu item primitive | `new-layout/menu-item.tsx` | VERIFIED-PARITY | Shared row styling |
-| Side panel primitives (224px calibrated width, headers, collapse) | `new-layout/side-panel.ts`, `side-panel-header.tsx` | VERIFIED-PARITY | Used by launches/plugs/analytics/third-party/agents |
+| Side panel primitives (224px calibrated width, headers, collapse) | `new-layout/side-panel.ts`, `side-panel-header.tsx` | VERIFIED-PARITY | Used by launches/agents (analytics + plugs moved to the shared channels dropdown; their [data-side-panel] chip-strip scss removed as dead) |
 | Mobile integration row variant | `new-layout/mobile.integration.tsx` | VERIFIED-PARITY | Phone drawer channel rows |
 
 ## 4. Publish — page header & toolbar
@@ -168,8 +379,8 @@ changelog line). Statuses:
 | Calendar toolbar left group (‹ › adjacent 32×32, H2 16/500, Today chip, view combobox) | `launches/filters.tsx` | VERIFIED-PARITY | Measured order/geometry |
 | Week-view H2 shows "August 2026" (not a date range) | `launches/filters.tsx` getDisplayText | VERIFIED-PARITY | Gap fix landed |
 | View combobox menu (Week/Month only, check-left rows) | `launches/filters.tsx` | VERIFIED-PARITY | 200px r6 p8 panel; DESKTOP-only now — the phone view switch moved into the date chip's calendar sheet (user phone screenshots) |
-| Phone date chip + calendar bottom sheet ("August 10 ▾" → Calendar title, [3 Days\|Week\|Month] segmented, mini month picker, Today row) | `launches/filters.tsx` PhoneCalendarSheet | VERIFIED-PARITY | Per user phone screenshots: 40px r8 newTableHeader chip 16/500; sheet = PhoneFilterSheet shell; 44px segmented w/ boxFocused active; 40px day taps, lime today circle, boxFocused anchor fill; picking a day re-anchors the range (getDateRange anchored); 3-vs-7 week span via 'phone-week-span' cookie read by WeekView |
-| Channels filter dropdown (380 r12: search, Select all, 48px avatar+checkbox rows) | `launches/filters.tsx` | VERIFIED-PARITY | f67b9c9b + r1 measurements |
+| Phone date chip + calendar bottom sheet ("August 10 ▾" → Calendar title, [3 Days\|Week\|Month] segmented, mini month picker, Today row) | `launches/filters.tsx` PhoneCalendarSheet | VERIFIED-PARITY | Per user phone screenshots: 40px r8 newTableHeader chip 16/500; sheet = PhoneFilterSheet shell; 44px segmented w/ boxFocused active; 40px day taps, lime today circle, boxFocused anchor fill; picking a day re-anchors the range (getDateRange anchored); 3-vs-7 week span via 'phone-week-span' cookie read by WeekView. Loop i1 lime-today probe re-verified in code: isToday→bg-btnPrimary/text-black/rounded-full precedes the anchor boxFocused fill (filters.tsx PhoneCalendarSheet gridDays cells), both states per spec; the failing live probe predates the 3a5dabbe deploy — re-probe after next deploy |
+| Channels filter dropdown (380 r12: search, Select all, 48px avatar+checkbox rows) | `new-layout/channels-dropdown.tsx` via `launches/filters.tsx` ChannelsFilter | VERIFIED-PARITY | f67b9c9b + r1 measurements; presentation extracted to the shared ChannelsDropdown (multi mode) so Insights/Plugs reuse it — calendar behavior unchanged (same ?integration= replaceState plumbing) |
 | All Posts select (All/Drafts/Scheduled/Sent, check-left) | `launches/filters.tsx` | VERIFIED-PARITY | aa2ce4bc |
 | Tags filter dialog (256 r12: Untagged, colored pill rows, Clear all + Settings footer) | `launches/filters.tsx` | VERIFIED-PARITY | aa2ce4bc |
 | No Date toggle + Undated drafts right panel (~300px, empty state) | `launches/filters.tsx` UndatedDraftsPanel | VERIFIED-PARITY | de6ca24f |
@@ -191,7 +402,7 @@ changelog line). Statuses:
 | Cell wash model (weekend/other-month/past washed; today/future white; wash month-only) | `launches/calendar.tsx` + `global.scss` | VERIFIED-PARITY | Hatching removed; flat #f4f3f0-family |
 | Today marker (day number in 24px lime circle, black ink) | `launches/calendar.tsx` | VERIFIED-PARITY | Brand map of Buffer's green circle |
 | Day-number three-tone ink hierarchy | `launches/calendar.tsx` | VERIFIED-PARITY | current/past/other tones |
-| Month post pills (h33 r8 p4: 20px brand chip · h:mm A 13px ink · 23px r6 thumb, 8px insets) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3 chips pass; phone (user screenshots): 30×30 r6 hairline mini-tile, ALWAYS the centered 20px platform icon (never media), no time; past-day tiles dim to 0.55; desktop hover = white + soft shadow |
+| Month post pills (h33 r8 p4: 20px brand chip · h:mm A 13px ink · 23px r6 thumb, 8px insets) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3 chips pass; phone (user screenshots): 30×30 r6 hairline mini-tile, ALWAYS the centered 20px platform icon (never media), no time; past-day tiles dim to 0.55; desktop hover = white + soft shadow ([@media(hover:hover)]-guarded, loop i1) |
 | Pill media thumbnails (backend `image` field) | `launches/calendar.tsx` + backend posts payload | NEEDS-WORK | Code landed (aa2ce4bc) but live deploy predates the field — verify thumbnails render after next deploy (month/week/list all gated on this) |
 | Past pills never grayscale | `launches/calendar.tsx` | VERIFIED-PARITY | !grayscale removed |
 | "N More" expander / "Show less" (16px chevron, 14/500 ink, left-aligned) | `launches/calendar.tsx` | VERIFIED-PARITY | Glyph + collapse retreated; phone month (user screenshots): centered bordered "+N" pill (24px r8 hairline white, 13/500 ink), display-only — no expansion at 390; desktop click + Show less unchanged |
@@ -212,7 +423,7 @@ changelog line). Statuses:
 | Day headers ("Sunday 9" one line, 36px white; today green ink + 2px underline) | `launches/calendar.tsx` | VERIFIED-PARITY | Measured r1 |
 | Past-hour flat grey wash (week stays white otherwise) | `launches/calendar.tsx` + `global.scss` | VERIFIED-PARITY | Wash month-only+past-only rule (de7f7dc3) |
 | Auto-scroll to now on open | `launches/calendar.tsx` | VERIFIED-PARITY | Guard added 82563526 |
-| Week cards (natural height, r10 p10: 16px chip + h:mm A 14/500, 2-line 13px snippet, 44px thumb side-by-side) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3; desktop hover = white + soft shadow; phone (user screenshots): single-row 36px r8 px8 chip — 18px icon + 15/400 time only, snippet/thumb hidden |
+| Week cards (natural height, r10 p10: 16px chip + h:mm A 14/500, 2-line 13px snippet, 44px thumb side-by-side) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3; desktop hover = white + soft shadow (now [@media(hover:hover)]-guarded so touch taps never latch it); phone (loop i1, Buffer chip measured 31px): single-row 32px r8 px8 chip — 18px icon + 15/400 time only, snippet/thumb hidden |
 | Week card thumbnails | backend `image` field | NEEDS-WORK | Same deploy gate as month pills |
 | Sunday-first week ranges everywhere (context + filters) | `launches/calendar.context.tsx` | VERIFIED-PARITY | isoWeek → week |
 
@@ -221,6 +432,7 @@ changelog line). Statuses:
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
 | Phone 3-day rolling hour grid (~80px rows, 48px gutter, "Mon 10" headers) | `launches/calendar.tsx` WeekView machinery | VERIFIED-PARITY | Measured vs buffer-month-phone390.png; the calendar sheet's 3 Days option — its Week option shows all 7 days ('phone-week-span' cookie '3'\|'7', default '3', read fresh in visibleDays) — Month renders the real month grid, no more phone coercion in `Calendar` |
+| Phone 7-day week span (calendar sheet "Week"): ~100px day columns, grid scrolls sideways | `launches/calendar.tsx` WeekView (sevenSpan) | VERIFIED-PARITY | Loop i1, orchestrator-measured vs Buffer (chips 101x31 at 390, no page overflow): columns minmax(100px,1fr) when the cookie is '7'; sideways scroll lives on the existing overflow-auto grid container; day headers stay sticky-top, the 48px time gutter pins sticky-start (z-15) with the corner spacer pinned both axes (z-30); 3-day span and desktop untouched |
 | Desktop Day view (kept, not in the desktop combobox) | `launches/calendar.tsx` DayView | POSTIZ-ONLY-KEEP | Buffer desktop has Week/Month only; Day retained for phone + alias routes |
 | Phone full-bleed calendar card | `launches/calendar.tsx` + layout | VERIFIED-PARITY | r1 phone pass |
 
@@ -262,14 +474,14 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
 | Composer entry (store hydration, existing-data load, sets/onlyValues) | `new-launch/add.edit.modal.tsx` | N/A-INTERNAL | Logic only |
-| Modal shell (near-full-bleed, bg, radius, padding, backdrop) | `new-launch/manage.modal.tsx` | NEEDS-BUFFER-MEASUREMENT | Measure Buffer Create Post modal: outer size vs viewport, radius, bg, backdrop opacity, inner padding |
-| Header row ("Create Post" title, Tags chip, right cluster: Templates?, AI Assistant, Preview toggle, expand, X) | `new-launch/manage.modal.tsx` | NEEDS-BUFFER-MEASUREMENT | Measure title size/weight, each header button (h, radius, icon size, label 14/500?), Preview active pill tint, control order |
-| Channel avatar selector row (avatars 40 + badges, `+` tile, selected ring) | `new-launch/select.current.tsx`, `picks.socials.component.tsx` | NEEDS-BUFFER-MEASUREMENT | Measure avatar size/gap, selected state (ring? tint?), the `+` tile, disabled state, overflow behavior |
+| Modal shell (near-full-bleed, bg, radius, padding, backdrop) | `new-launch/manage.modal.tsx` | NEEDS-BUFFER-MEASUREMENT | Tablet done (composer r1): ≤1100px = full-viewport sheet, no radius (scoped `@media` — `max-[...]` variants don't compile against the raw `screens` config). Phone loop 2026-08-10 re-verified the fill chain: host opens `removeLayout+fullScreen` → `fixed w-full h-full` wrapper (new-modal), body scroll-locked, shell `h-full` + `phone:p-0`, so the sheet is x0 y0 viewport-sized with no page bleed. Still measure: backdrop opacity, desktop outer size/radius confirmation |
+| Header row ("Create Post" title, Tags chip, right cluster: Templates?, AI Assistant, Preview toggle, expand, X) | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | Composer r1 measured: title 18/500 Inter (body face, not display); quiet header buttons 40px px12 r8 15/500 textItemBlur + wash hover (Preview active keeps boxFocused pair); close X 40px; Tags chip 40px r8 hairline 15/500 ink. Phone loop 2026-08-10: header keeps title + Tags chip + Preview toggle (glyph-only, quiet; drives the phone overlay) + 40px close, matching Buffer 390 (Templates/AI omitted per no-dead-buttons) |
+| Channel avatar selector row (avatars 40 + badges, `+` tile, selected ring) | `new-launch/select.current.tsx`, `picks.socials.component.tsx` | VERIFIED-PARITY | Composer r1 measured: 40px rounded-[12px] tiles (was r10) on tile + image wrapper + `+` tile; lime ring selection kept |
 | Per-network customize tab strip (when customizing per channel) | `new-launch/select.current.tsx` + store | NEEDS-BUFFER-MEASUREMENT | In Buffer click "Customize for each network": tab strip anatomy (icon chips? underline?), per-network panel transitions |
 | Global vs per-channel editor split ("Customize for each network" flow) | `new-launch/store.ts` + `manage.modal.tsx` | VERIFIED-PARITY | Functional parity (Postiz global/internal values model preserved) |
 | Editor area (tiptap: placeholder, 15px body, min height) | `new-launch/editor.tsx` | NEEDS-BUFFER-MEASUREMENT | Measure "Start writing…" placeholder color/size, body line-height, editor padding, focused state |
 | Editor icon row (+ media, emoji, # tags position bottom-left) | `new-launch/editor.tsx` | NEEDS-BUFFER-MEASUREMENT | Measure icon row: order, 16px?, spacing, hover fills |
-| Media drag-drop zone (dashed, r8) | `new-launch/editor.tsx` + `media/media.component.tsx` MultiMediaComponent | NEEDS-BUFFER-MEASUREMENT | Measure Buffer's media zone: dashed border color/width, min height, icon + copy, drag-over state |
+| Media drag-drop zone (dashed, r8) | `new-launch/editor.tsx` + `media/media.component.tsx` MultiMediaComponent | NEEDS-BUFFER-MEASUREMENT | Composer r1: "select a file" link now Buffer green #2f7d44 15/400 hover-underline (links follow Buffer; buttons stay Cuesoft). Still measure: dashed border color/width, min height, icon + copy, drag-over state |
 | Attached-media thumbnails strip in editor | `media/media.component.tsx` MultiMediaComponent | NEEDS-BUFFER-MEASUREMENT | Measure thumb size/radius, remove-X, reorder affordance, video badge |
 | Bold / Underline text-style buttons (unicode styling) | `new-launch/bold.text.tsx`, `u.text.tsx` | POSTIZ-ONLY-KEEP | Unicode-trick styling; Buffer has none |
 | Emoji picker | `new-launch/editor.tsx` (emoji-picker-react) | POSTIZ-ONLY-KEEP | Third-party picker themed by mode |
@@ -285,26 +497,26 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Delay-between-posts control | `new-launch/delay.component.tsx` | POSTIZ-ONLY-KEEP | Tokenized |
 | Tags picker in composer (create/select tags) | `launches/tags.component.tsx` | VERIFIED-PARITY | Tokenized; tag colors → §Measure tags manager |
 | Tags manager (create/edit tag: name + color swatches) | `launches/tags.component.tsx` TagsComponentInner | NEEDS-BUFFER-MEASUREMENT | Open Buffer Tags settings/new tag: dialog geometry, name input, color swatch grid (swatch size, palette, selected ring), save/cancel row |
-| Date/time picker (schedule field) | `launches/helpers/date.picker.tsx` | NEEDS-BUFFER-MEASUREMENT | Open Buffer's schedule picker: mini-calendar geometry (cell size, today/selected states), time field, timezone hint |
-| "Next Available"-style schedule dropdown / footer split | `new-launch/manage.modal.tsx` footer | NEEDS-BUFFER-MEASUREMENT | Measure Buffer footer: Create Another checkbox, "🕒 Next Available ▾" quiet button + its menu options (Custom time / Share Now / Share Next?), primary CTA (h44? r8) |
-| Footer actions: Save as Draft / Add to calendar / Schedule / Update / Post Now | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | All Postiz semantics preserved; geometry re-check rides the footer measurement above |
+| Date/time picker (schedule field) | `launches/helpers/date.picker.tsx` | NEEDS-BUFFER-MEASUREMENT | Trigger done (composer r1): reshaped via `#cs-datetime` scoped skin + chevron segment in manage.modal into Buffer's split button — left calendar+label h40 start-r12 px12/8 15/500 ink hairline, attached end-r12 chevron (shared border, same action). Phone loop 2026-08-10: popover day-cell hover = measured #e6e5e2 wash (light only, scoped CSS in manage.modal; selected day keeps its lime). Still measure: popover mini-calendar geometry, time field, timezone hint |
+| "Next Available"-style schedule dropdown / footer split | `new-launch/manage.modal.tsx` footer | VERIFIED-PARITY | Composer r1 measured: split date button applied (see date picker row); footer family h-40 r12 (lime primaries + draft + repeat) so the row reads as one family; Postiz Post Now hover-dropdown semantics kept |
+| Footer actions: Save as Draft / Add to calendar / Schedule / Update / Post Now | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | All Postiz semantics preserved; composer r1: primaries/draft rounded-[12px] h-40 (draft 15/500) per Buffer footer family. Phone loop 2026-08-10: primary label shortens at phone via span swap (Buffer shows "Customize" at 390) — "Add to calendar"→"Schedule", "Check the circles above"→"Pick channels", "Create output"→"Create"; desktop labels untouched |
 | Repeat/recurring post control | `launches/repeat.component.tsx` | POSTIZ-ONLY-KEEP | intervalInDays; no Buffer analog |
 | Customer selector (agency per-customer posting) | `launches/select.customer.tsx`, `customer.modal.tsx` | POSTIZ-ONLY-KEEP | Explicitly keep |
 | Post-URL selector (link a repo/release URL) | `post-url-selector/post.url.selector.tsx` | POSTIZ-ONLY-KEEP | Postiz-only |
 | Web3 posting providers (Telegram/Nostr/Warpcast/Moltbook connect dialogs) | `launches/web3/**` | POSTIZ-ONLY-KEEP | Explicitly keep; wrapcaster spinner tokenized (fc0f3cdf) |
-| Right "Post Previews" panel (420px: header, per-network preview, hints) | `new-launch/manage.modal.tsx` + `provider-preview/preview.provider.component.tsx` | NEEDS-BUFFER-MEASUREMENT | Measure Buffer preview rail: width, "Post Previews" type, network switcher, preview card chrome (device frame? plain card?), skeleton |
+| Right "Post Previews" panel (420px: header, per-network preview, hints) | `new-launch/manage.modal.tsx` + `provider-preview/preview.provider.component.tsx` | NEEDS-BUFFER-MEASUREMENT | Phone loop 2026-08-10: at phone the same mounted pane (provider refs validate through it) presents full-width inside the modal via the header Preview toggle (`showPreviewPhone`, editor column display-hidden meanwhile). Still measure (desktop): width, "Post Previews" type, network switcher, preview card chrome (device frame? plain card?), skeleton |
 | Per-network preview renderers | `new-launch/providers/*/…preview…`, `provider-preview/**` | POSTIZ-ONLY-KEEP | Platform-accurate previews; keep all |
 | Composer comments (per-post comment thread) | `launches/comments/comment.component.tsx` | VERIFIED-PARITY | Rewired to per-post endpoints + restyled (de7f7dc3); quiet bordered Add-comment (ac9b7c33) |
 | Buffer comments UI reference | — | NEEDS-BUFFER-MEASUREMENT | Open a Buffer post's comment thread: panel placement (side? below?), avatar row, input geometry, timestamp style — confirm our dialog matches the pattern |
-| Phone composer (editor owns full width; preview hidden) | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | 02e62616 |
-| Buffer phone composer reference | — | NEEDS-BUFFER-MEASUREMENT | Open Create Post at 390 on Buffer: full-screen? header/footer stacking, channel row behavior, preview access |
+| Phone composer (editor owns full width; preview via header toggle overlay) | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | 02e62616, then phone parity loop 2026-08-10: full-viewport sheet (fixed fullScreen host + ≤1100px scoped `@media`, radius 0, p 0); header keeps title/Tags chip/Preview toggle (glyph-only at phone)/40px close; footer primary swaps to a short label at phone; preview = the mounted side pane shown full-width via the toggle |
+| Buffer phone composer reference | — | VERIFIED-PARITY | Measured 390x844 (orchestrator screenshot 2026-08-10): full-screen sheet r0; header "Create Post" (wraps) + Tags chip + glyph-only Templates/AI/Preview + X; channels row avatars + `+` tile; editor full-width w/ dashed drop zone + emoji row; footer "Create Another" + Next Available split + lime "Customize" short-label primary. Ours matches except Templates/AI Assistant (omitted per no-dead-buttons) and Create Another (no Postiz analog) |
 | Close-with-unsaved-changes confirm | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | Confirm dialog flow kept |
 | Editor helpers (headings, bullets, links) | `new-launch/heading.component.tsx`, `bullets.component.tsx`, `a.component.tsx` | POSTIZ-ONLY-KEEP | Long-form platforms (dev.to/Hashnode/WordPress) |
 | Dummy code block (API-created posts) | `new-launch/dummy.code.component.tsx` | POSTIZ-ONLY-KEEP | Debug/code display |
 | Set creation from composer (addEditSets) | `new-launch/manage.modal.tsx` + `sets/sets.tsx` | POSTIZ-ONLY-KEEP | Sets pipeline |
 | Information/help popover in composer | `launches/information.component.tsx` | POSTIZ-ONLY-KEEP | Contextual help |
 | Composer settings modal (per-channel Settings title row) | `launches/settings.modal.tsx` | POSTIZ-ONLY-KEEP | Wraps provider settings |
-| Provider settings shared form styling (inputs/selects inside per-network tabs) | `new-launch/providers/high.order.provider.tsx` | NEEDS-BUFFER-MEASUREMENT | In Buffer per-network customize: measure any per-channel fields (Instagram first comment, Pinterest board/title, YouTube title) — input geometry, labels, helper text — as the style reference for our provider forms |
+| Provider settings shared form styling (inputs/selects inside per-network tabs) | `new-launch/providers/high.order.provider.tsx` | NEEDS-BUFFER-MEASUREMENT | Phone loop 2026-08-10: composer text-input hover border = measured #8a8a88 (Buffer --color-border-neutral), scoped CSS in manage.modal (light only; focus keeps border-forth). Still measure: input geometry, labels, helper text (Instagram first comment, Pinterest board/title, YouTube title) |
 
 ## 10. Composer — per-platform settings (all POSTIZ-ONLY-KEEP: functionality has no 1:1 Buffer counterpart; styling follows the shared form spec)
 
@@ -386,8 +598,8 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Page header (bar-chart chip + title) | `new-layout/page-header.tsx` on `platform.analytics.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell`; ONE header at every width (separate 56px phone copy removed; phone strip moved under it inside the shell) |
-| Channel rail (desktop side panel 224px) + phone chip strip | `platform.analytics.tsx` + `new-layout/channel-row.tsx` | VERIFIED-PARITY | Ghosting/geometry fixed (S5) |
+| Page header (bar-chart chip + title) | `new-layout/page-header.tsx` on `platform.analytics.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell`; ONE header at every width (separate 56px phone copy removed) |
+| Channel selection (shared channels dropdown, single-select: avatar+name trigger, check-left rows) | `platform.analytics.tsx` + `new-layout/channels-dropdown.tsx` | VERIFIED-PARITY | Replaced the phone chip strip (user request: calendar-style dropdown at every width, first control of the Insights toolbar); phone = 40px trigger + bottom sheet; refresh-needed channels stay selectable — the pane's refresh card (render.analytics) takes over, same path the Channels table rows allow |
 | Date-range segmented (single hairline container, 24px segments, green-tint active) | `platform.analytics.tsx` | VERIFIED-PARITY | Fleet |
 | Phone date-range trigger + bottom sheet | `platform.analytics.tsx` | VERIFIED-PARITY | Fleet |
 | Summary section container (warm wash r12, title 16/600 + concrete date range subline) | `platform.analytics.tsx` | VERIFIED-PARITY | Fleet |
@@ -406,7 +618,8 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Page header (sparkle chip + title + New chat primary; phone icon-only) | `new-layout/page-header.tsx` on `agents/agent.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell` (48px row replaces the hand-rolled 64px bar); lime New chat kept as the actions slot |
+| Page header (sparkle chip + title + New chat primary; phone icon-only) | `new-layout/page-header.tsx` on `agents/agent.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell` (48px row replaces the hand-rolled 64px bar); lime New chat kept as the actions slot (Assistant mode only) |
+| [Assistant \| Content] header segmented (admin-only) | `agents/agent.tsx` | POSTIZ-ONLY-KEEP | Launches List\|Calendar anatomy (32px band, 4px inset, hairline r8; active boxFocused/textItemFocused); preselects from ?mode=content; mode written back via history.replaceState |
 | Threads rail ("Chats" header, 32px r8 rows, collapse, empty state) | `agents/agent.tsx` | VERIFIED-PARITY | Fleet; sidePanelRoot width calibrated |
 | Channel toggle bar (composer-style avatar toggles, 40px, ring on-state) | `agents/agent.tsx` AgentList | VERIFIED-PARITY | 7ce47dff + S5 sizing |
 | Chat pane (CopilotKit: Inter inherit, tokened bubbles/input, r12 input) | `agents/agent.chat.tsx`, `agent.styles.scss` | VERIFIED-PARITY | Fleet token pass |
@@ -416,7 +629,9 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Admin pill clearance over input | `agents/agent.chat.tsx` | VERIFIED-PARITY | S6 |
 | Auto-resizing textarea / input primitives | `agents/agent.textarea.tsx`, `agent.input.tsx` | POSTIZ-ONLY-KEEP | |
 | Whole surface (no Buffer counterpart) | `agents/**` | POSTIZ-ONLY-KEEP | Buffer has no agent chat; internal-consistency styling only |
-| NEW content chat (this wave) | in-flight — not yet in tree | NEEDS-WORK | Being built by a parallel agent this wave (with Approvals/Publish Now, which already landed in bbe94a8c). When it lands: add rows for its pane, entry point, and any new chrome; style with tokens; no Buffer counterpart expected → will become POSTIZ-ONLY-KEEP |
+| Content bridge chat pane (streamed Claude turns, session continuity, composer) | `content-agent/content-chat.component.tsx` | POSTIZ-ONLY-KEEP | Landed, then merged into the agent page as the Content segment: renders in the agents chat pane; Threads rail + channel strip hide (bridge sessions aren't copilot threads); streaming/session logic untouched; admin gate kept in-component |
+| Content pane New chat strip (in-pane session reset) | `content-agent/content-chat.component.tsx` | POSTIZ-ONLY-KEEP | Slim right-aligned strip replaces the removed in-component page header; 32px hairline r8 kit button |
+| Content entry point | header segmented on `agents/agent.tsx` (was a `/content` nav item) | POSTIZ-ONLY-KEEP | Nav item removed from `layout/top.menu.tsx`; `/content` route kept as a redirect to `/agents/new?mode=content` |
 
 ## 15. Settings
 
@@ -424,7 +639,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 |---|---|---|---|
 | Settings shell (generic title bar removed; rail carries title) | `layout.component.tsx` exclusion + `layout/settings.component.tsx` | VERIFIED-PARITY | Fleet S1 exception |
 | Rail (260px, icon 16 + 14px rows, r8, active fill; grouped) | `layout/settings.component.tsx` | VERIFIED-PARITY | Row geometry per Buffer rail |
-| Rail logout row ('Cuesoft' copy, quiet style) | `layout/logout.component.tsx` | VERIFIED-PARITY | S3 brand fix (de7f7dc3) |
+| Rail logout row ('Cuesoft' copy, quiet style) | `layout/logout.component.tsx` | VERIFIED-PARITY | S3 brand fix (de7f7dc3); 2026-08-10: restyled to a quiet 32px hairline button (log-out glyph 16 + "Log out from Cuesoft" 14/500, critical #FF3F3F ink on hover); logout flow extracted verbatim into exported `useLogout` for the sidebar org menu; `isIcon` variant untouched |
 | Content column (max-w constraint, centered) | `layout/settings.component.tsx` | VERIFIED-PARITY | Fleet |
 | Phone sub-nav (drill-down vs chip strip) | `layout/settings.component.tsx` + `global.scss` | VERIFIED-PARITY | Fleet phone pass |
 | Global Settings: profile (name, bio, avatar via media box) | `settings/global.settings.tsx` | VERIFIED-PARITY | H1 20/400 per structure JSON |
@@ -453,7 +668,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | API-key connect modal + function wrapper | `third-parties/third-party.function.tsx`, `third-party.wrapper.tsx` | POSTIZ-ONLY-KEEP | |
 | HeyGen provider UI (avatar/voice pickers, generate) | `third-parties/providers/heygen.provider.tsx` | POSTIZ-ONLY-KEEP | Skeleton tokenized (fc0f3cdf) |
 | Media slider picker | `third-parties/slider.component.tsx` | POSTIZ-ONLY-KEEP | |
-| Plugs page (per-channel plug cards, activate toggles, fields) | `plugs/plugs.tsx`, `plugs/plug.tsx`, `plugs.context.ts` | POSTIZ-ONLY-KEEP | Skeletons tokenized (bbe94a8c); side panel calibrated; shared PageShell/PageHeader, kit white plug cards (r12 hairline, 16/600 title), 32/14 phone chips |
+| Plugs page (per-channel plug cards, activate toggles, fields) | `plugs/plugs.tsx`, `plugs/plug.tsx`, `plugs.context.ts` | POSTIZ-ONLY-KEEP | Skeletons tokenized (bbe94a8c); shared PageShell/PageHeader, kit white plug cards (r12 hairline, 16/600 title); channel selection = shared channels dropdown (single-select; replaced the phone chip strip + desktop ToolbarSelect; refreshNeeded toaster guard kept) |
 
 ## 17. Billing & onboarding & misc member surfaces
 

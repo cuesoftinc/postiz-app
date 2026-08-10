@@ -88,7 +88,7 @@ export default function OAuthAuthorizePage() {
           <div className="flex justify-center mb-[24px]">
             <Logo />
           </div>
-          <div className="text-[16px] text-gray-400">
+          <div className="text-[16px] text-white/60">
             Please wait...
           </div>
           <div className="mt-[32px] flex justify-center gap-[8px]">
@@ -133,7 +133,7 @@ export default function OAuthAuthorizePage() {
           <div className="text-[28px] font-semibold mb-[12px]">
             Authorization Error
           </div>
-          <div className="text-[16px] text-gray-400 max-w-[400px]">
+          <div className="text-[16px] text-white/60 max-w-[400px]">
             {error}
           </div>
         </div>
@@ -166,7 +166,7 @@ export default function OAuthAuthorizePage() {
                 className="w-[64px] h-[64px] rounded-full object-cover"
               />
             ) : (
-              <div className="w-[64px] h-[64px] rounded-full bg-[#2A2929] flex items-center justify-center text-[24px] text-gray-400">
+              <div className="w-[64px] h-[64px] rounded-full bg-[#2A2929] flex items-center justify-center text-[24px] text-white/60">
                 {appInfo.app.name?.[0]?.toUpperCase() || '?'}
               </div>
             )}
@@ -174,14 +174,14 @@ export default function OAuthAuthorizePage() {
               {appInfo.app.name}
             </h2>
             {appInfo.app.description && (
-              <div className="text-gray-400 text-center text-[14px]">
+              <div className="text-white/60 text-center text-[14px]">
                 {appInfo.app.description}
               </div>
             )}
           </div>
 
           <div className="border-t border-[#2A2929] pt-[16px]">
-            <div className="text-[14px] text-gray-400 mb-[12px]">
+            <div className="text-[14px] text-white/60 mb-[12px]">
               This application is requesting access to your Postiz account. It
               will be able to:
             </div>

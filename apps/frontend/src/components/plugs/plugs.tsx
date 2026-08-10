@@ -11,8 +11,7 @@ import { PlugsContext } from '@gitroom/frontend/components/plugs/plugs.context';
 import { Plug } from '@gitroom/frontend/components/plugs/plug';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { SkeletonPage } from '@gitroom/frontend/components/layout/skeleton';
-import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
-import { ToolbarSelect } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
+import { ChannelsDropdown } from '@gitroom/frontend/components/new-layout/channels-dropdown';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import {
   PageHeader,
@@ -45,15 +44,12 @@ const PlugGlyph: FC<{ size: number }> = ({ size }) => (
  * full-width. Selection becomes URL-driven (`?integration=<id>`, fallback =
  * first plug-capable channel) so it survives the panel's removal.
  *
- * The panel itself stays PHONE-ONLY (`hidden phone:flex`): phones have no
- * sidebar, so the global.scss chip-strip (keyed off [data-side-panel]) remains
- * the phone's channel selector — tapping a chip now pushes the URL param
- * instead of setting a local index.
- *
- * Desktop caveat: the global sidebar's channel rows link to /launches from
- * /plugs (acceptable navigation, but NOT a selection affordance), so desktop
- * keeps a MINIMAL selector — a compact ToolbarSelect above the content, driving
- * the same URL setter. It is `phone:hidden`; the chip strip owns phones.
+ * Channel selection is the shared calendar-toolbar channels dropdown
+ * (new-layout/channels-dropdown.tsx, single-select: current channel avatar +
+ * name as the trigger), at EVERY width — it replaced both the old desktop
+ * ToolbarSelect and the phone [data-side-panel] chip strip (the user dislikes
+ * the chip strips; on phones the panel renders as the standard bottom sheet
+ * with a 40px trigger). Same URL setter, same refreshNeeded toaster guard.
  */
 export const Plugs = () => {
   const fetch = useFetch();
@@ -125,8 +121,9 @@ export const Plugs = () => {
     };
   }, [currentIntegration, plugList]);
 
-  // The one setter both selectors (phone chip strip, desktop ToolbarSelect)
-  // drive. Same refreshNeeded guard the old panel rows had.
+  // The one setter the channels dropdown drives. Same refreshNeeded guard the
+  // old panel rows had (a refresh-needed plug channel has no working pane, so
+  // selection stays blocked with the toast).
   const selectIntegration = useCallback(
     (integration: any) => {
       if (integration.refreshNeeded) {
@@ -189,70 +186,27 @@ export const Plugs = () => {
           every width, same anatomy as analytics/agents/media (48px band,
           40px r10 hairline chip, 20/400 display title). */}
       <PageHeader icon={<PlugGlyph size={20} />} title={t('plugs', 'Plugs')} />
-      {/* PHONE-ONLY channels panel. Desktop has no second panel (Buffer);
-          on a phone the global.scss [data-side-panel] rules turn this into
-          the horizontal chip strip, which stays the phone's selector. It
-          lives INSIDE the shell (under the single header) — the shell's
-          phone:px-[12px] supplies the inset, so the strip carries no padding
-          of its own. Compact 32/14 avatar density (sidebar precedent) keeps
-          the chips at analytics-strip scale. */}
-      <div
-        data-side-panel="flow"
-        className="hidden phone:flex bg-newBgColorInner flex-col gap-[15px] transition-all phone:w-full phone:min-w-0 phone:h-auto"
-      >
-        <div className="flex gap-[12px] flex-col">
-          {sortedIntegrations.map((integration: any) => (
-            <ChannelRow
-              key={integration.id}
-              integration={integration}
-              onClick={() => selectIntegration(integration)}
-              dimmed={currentIntegration.id !== integration.id}
-              avatarProps={{
-                size: 32,
-                badgeSize: 14,
-                badgeOffset: '-bottom-[2px] -end-[2px]',
-              }}
-              // Buffer never ghosts controls (same treatment as the analytics
-              // strip): dimmed's opacity-20 lifts to a legible .55 on phones,
-              // and the SELECTED chip gets an ink border instead of pure
-              // opacity contrast (! beats global.scss's chip border). This
-              // strip is hidden phone:flex, so neither acts on desktop.
-              className={
-                currentIntegration.id !== integration.id
-                  ? 'phone:opacity-[0.55]'
-                  : 'phone:!border-newTextColor'
-              }
-            />
-          ))}
-        </div>
-      </div>
-      {/* Minimal desktop selector (see header comment): the sidebar offers
-          no ?integration= affordance on /plugs, so without this a desktop
-          user could never leave the first channel. Kit control chrome comes
-          from ToolbarSelect itself (36px, radius 6, blue focus). */}
-      <div className="phone:hidden flex">
-        <ToolbarSelect
-          value={currentIntegration.id}
-          onChange={(e) => {
+      {/* Channel selector (see header comment): the sidebar offers no
+          ?integration= affordance on /plugs, so without this a desktop user
+          could never leave the first channel — and it is the phone selector
+          too (the shared dropdown bottom-sheets on phones; the old chip
+          strip is gone). refreshNeeded rows stay selectable in the panel;
+          selectIntegration keeps blocking them with the toast, exactly like
+          the old chips did. */}
+      <div className="flex">
+        <ChannelsDropdown
+          integrations={sortedIntegrations}
+          selectedIds={currentIntegration ? [currentIntegration.id] : []}
+          anchor="start"
+          onChange={(ids) => {
             const integration = sortedIntegrations.find(
-              (f: any) => f.id === e.target.value
+              (f: any) => f.id === ids[0]
             );
             if (integration) {
               selectIntegration(integration);
             }
           }}
-          className="min-w-[220px]"
-        >
-          {sortedIntegrations.map((integration: any) => (
-            <option
-              key={integration.id}
-              value={integration.id}
-              disabled={!!integration.refreshNeeded}
-            >
-              {integration.name}
-            </option>
-          ))}
-        </ToolbarSelect>
+        />
       </div>
       <PlugsContext.Provider value={currentIntegrationPlug}>
         <Plug />

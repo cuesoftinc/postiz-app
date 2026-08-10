@@ -12,7 +12,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
  *
  * Pixel parity contract: backdrop (`bg-primary/80 fixed start-0 top-0 w-full
  * h-full z-[998]`), panel (`absolute top-[100%] start-0 w-full bg-sixth
- * border border-customColor6 text-textColor z-[999]`) and rows (`p-[10px]
+ * border border-customColor6 text-newTextColor z-[999]`) and rows (`p-[10px]
  * border-b border-customColor6 hover:bg-tableBorder cursor-pointer`) are
  * verbatim from the sources. The call site provides the `relative` ancestor,
  * so per-site anchoring is unchanged.
@@ -57,7 +57,7 @@ export const UserSearchDropdown: FC<{
       />
       <div
         className={clsx(
-          'absolute top-[100%] start-0 w-full bg-sixth border border-customColor6 text-textColor z-[999]',
+          'absolute top-[100%] start-0 w-full bg-sixth border border-customColor6 text-newTextColor z-[999]',
           className
         )}
       >

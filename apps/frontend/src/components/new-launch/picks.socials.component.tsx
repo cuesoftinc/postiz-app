@@ -36,8 +36,9 @@ export const PicksSocialsComponent: FC<{ toolTip?: boolean }> = ({
     <div className={clsx('flex', locked && 'opacity-50 pointer-events-none')}>
       <div className="flex flex-1">
         <div className="innerComponent flex-1 flex">
-          {/* Buffer channels row: 40px r10 tiles, 16px platform badge
-              bottom-right; selected = lime ring, unselected = dimmed. */}
+          {/* Buffer channels row: 40px r12 tiles (measured on Buffer's
+              composer), 16px platform badge bottom-right; selected = lime
+              ring, unselected = dimmed. */}
           <div className="flex flex-wrap gap-[12px] flex-1 items-center">
             {integrations
               .filter((f) => {
@@ -69,17 +70,17 @@ export const PicksSocialsComponent: FC<{ toolTip?: boolean }> = ({
                         addOrRemoveSelectedIntegration(integration, {});
                       }}
                       className={clsx(
-                        'cursor-pointer relative w-[40px] h-[40px] rounded-[10px] flex justify-center items-center transition-all',
+                        'cursor-pointer relative w-[40px] h-[40px] rounded-[12px] flex justify-center items-center transition-all',
                         selected
                           ? 'ring-2 ring-btnPrimary'
                           : 'opacity-60 hover:opacity-100'
                       )}
                     >
-                      {/* SafeImage drops unknown props, so the r10 +
+                      {/* SafeImage drops unknown props, so the r12 +
                           data-cs (ladder opt-out) live on a wrapper div */}
                       <div
                         data-cs
-                        className="w-[40px] h-[40px] rounded-[10px] overflow-hidden"
+                        className="w-[40px] h-[40px] rounded-[12px] overflow-hidden"
                       >
                         <ImageWithFallback
                           fallbackSrc="/no-picture.jpg"
@@ -118,7 +119,7 @@ export const PicksSocialsComponent: FC<{ toolTip?: boolean }> = ({
                 onClick={addProvider}
                 data-tooltip-id="tooltip"
                 data-tooltip-content="Connect a new channel"
-                className="cursor-pointer w-[40px] h-[40px] rounded-[10px] border border-newTableBorder flex justify-center items-center text-newTextColor/60 hover:text-newTextColor hover:bg-newTableHeader transition-colors"
+                className="cursor-pointer w-[40px] h-[40px] rounded-[12px] border border-newTableBorder flex justify-center items-center text-newTextColor/60 hover:text-newTextColor hover:bg-newTableHeader transition-colors"
               >
                 <PlusIcon />
               </div>

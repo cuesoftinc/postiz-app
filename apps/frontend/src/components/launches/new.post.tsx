@@ -28,7 +28,7 @@ export const NewPost = () => {
             withCloseButton: false,
             onClose: () => resolve('exit'),
             classNames: {
-              modal: 'text-textColor',
+              modal: 'text-newTextColor',
             },
             children: (
               <SetSelectionModal
@@ -57,7 +57,7 @@ export const NewPost = () => {
       askClose: true,
       fullScreen: true,
       classNames: {
-        modal: 'w-[100%] max-w-[1400px] text-textColor',
+        modal: 'w-[100%] max-w-[1400px] text-newTextColor',
       },
       children: (
         <AddEditModal

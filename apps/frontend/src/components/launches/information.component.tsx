@@ -21,7 +21,7 @@ const Valid: FC = () => {
       strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-[#00EB75]"
+      className="text-[#2f7d44]"
     >
       <path d="M20 6 9 17l-5-5" />
     </svg>
@@ -171,12 +171,12 @@ export const InformationComponent: FC<{
       {isValid ? <Valid /> : <Invalid />}
 
       {!isGlobal && (
-        <div className={clsx("text-[10px] font-[600] flex justify-center items-center", !isValid && 'text-white')}>
+        <div className={clsx("text-[12px] font-[500] flex justify-center items-center", !isValid && 'text-white')}>
           {totalChars}/{totalAllowedChars}
         </div>
       )}
       {isGlobal && globalDisplayLimit !== null && (
-        <div className={clsx("text-[10px] font-[600] flex justify-center items-center", !isValid && 'text-white')}>
+        <div className={clsx("text-[12px] font-[500] flex justify-center items-center", !isValid && 'text-white')}>
           {totalChars}/{globalDisplayLimit}
         </div>
       )}

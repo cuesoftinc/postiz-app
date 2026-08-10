@@ -4,6 +4,7 @@ import { useCalendar, ListStateFilter } from '@gitroom/frontend/components/launc
 import clsx from 'clsx';
 import { useSearchParams } from 'next/navigation';
 import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
+import { ChannelsDropdown } from '@gitroom/frontend/components/new-layout/channels-dropdown';
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useClickAway } from '@uidotdev/usehooks';
 import dayjs from 'dayjs';
@@ -94,22 +95,18 @@ const SelectRow: FC<{
 
 /** Buffer's "Channels" toolbar filter: search, Select all, checkbox rows.
  *  Drives the existing ?integration= URL param (comma-list) — the calendar
- *  context and both repository queries already consume it. */
+ *  context and both repository queries already consume it. The presentation
+ *  (trigger + panel) now lives in the shared new-layout/channels-dropdown.tsx
+ *  so Insights and Plugs reuse it; only the URL plumbing stays here. */
 const ChannelsFilter: FC = () => {
-  const t = useT();
   const calendar = useCalendar();
   const searchParams = useSearchParams();
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const ref = useClickAway<HTMLDivElement>(() => setOpen(false));
 
-  const selected = useMemo(
+  const selectedIds = useMemo(
     () =>
-      new Set<string>(
-        (searchParams.get('integration') || '')
-          .split(',')
-          .filter(Boolean)
-      ),
+      (searchParams.get('integration') || '')
+        .split(',')
+        .filter(Boolean),
     [searchParams]
   );
 
@@ -120,106 +117,13 @@ const ChannelsFilter: FC = () => {
     window.history.replaceState(null, '', url.pathname + url.search);
   }, []);
 
-  const toggleChannel = useCallback(
-    (id: string) => {
-      const next = new Set<string>(selected);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      writeSelection([...next]);
-    },
-    [selected, writeSelection]
-  );
-
-  const list = useMemo(
-    () =>
-      (calendar.integrations || []).filter((i: any) =>
-        i.name.toLowerCase().includes(q.toLowerCase())
-      ),
-    [calendar.integrations, q]
-  );
-
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={ddTriggerCls}
-      >
-        {/* Buffer's channels glyph is four circles, not squares */}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10 6.5C10 8.433 8.433 10 6.5 10C4.567 10 3 8.433 3 6.5C3 4.567 4.567 3 6.5 3C8.433 3 10 4.567 10 6.5Z" />
-          <path d="M21 6.5C21 8.433 19.433 10 17.5 10C15.567 10 14 8.433 14 6.5C14 4.567 15.567 3 17.5 3C19.433 3 21 4.567 21 6.5Z" />
-          <path d="M10 17.5C10 19.433 8.433 21 6.5 21C4.567 21 3 19.433 3 17.5C3 15.567 4.567 14 6.5 14C8.433 14 10 15.567 10 17.5Z" />
-          <path d="M21 17.5C21 19.433 19.433 21 17.5 21C15.567 21 14 19.433 14 17.5C14 15.567 15.567 14 17.5 14C19.433 14 21 15.567 21 17.5Z" />
-        </svg>
-        {t('channels', 'Channels')}
-        <ChevronDown />
-      </button>
-      {open && (
-        <DropdownPanel
-          surface="panel"
-          anchor="end"
-          className="mt-[6px] w-[300px] p-[10px] flex flex-col gap-[8px]"
-        >
-          <div className="flex items-center gap-[8px] h-[36px] px-[10px] rounded-[6px] border border-newTableBorder focus-within:border-forth">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-newTextColor/60">
-              <path d="m21 21-4.34-4.34" />
-              <circle cx="11" cy="11" r="8" />
-            </svg>
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={t('search_channels', 'Search channels')}
-              className="flex-1 bg-transparent outline-none text-[14px] text-newTextColor placeholder:text-newTextColor/50"
-            />
-          </div>
-          <div className="flex items-center justify-between px-[6px]">
-            <span className="text-[13px] font-[600]">
-              {t('channels', 'Channels')}
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                writeSelection(
-                  selected.size === (calendar.integrations || []).length
-                    ? []
-                    : (calendar.integrations || []).map((i: any) => i.id)
-                )
-              }
-              className="text-[13px] text-newTextColor/70 hover:text-newTextColor"
-            >
-              {t('select_all', 'Select all')}
-            </button>
-          </div>
-          <div className="flex flex-col max-h-[280px] overflow-y-auto">
-            {list.map((integration: any) => (
-              <label
-                key={integration.id}
-                className="flex items-center gap-[10px] px-[6px] py-[6px] rounded-[6px] hover:bg-boxHover cursor-pointer"
-              >
-                <ChannelAvatar
-                  picture={integration.picture}
-                  identifier={integration.identifier}
-                  name={integration.name}
-                  size={28}
-                  badgeSize={12}
-                  fallback="placeholder"
-                />
-                <span className="flex-1 truncate text-[14px]">
-                  {integration.name}
-                </span>
-                <input
-                  type="checkbox"
-                  checked={selected.has(integration.id)}
-                  onChange={() => toggleChannel(integration.id)}
-                  className="accent-btnPrimary w-[16px] h-[16px]"
-                />
-              </label>
-            ))}
-          </div>
-        </DropdownPanel>
-      )}
-    </div>
+    <ChannelsDropdown
+      integrations={calendar.integrations || []}
+      selectedIds={selectedIds}
+      onChange={writeSelection}
+      multi
+    />
   );
 };
 
@@ -473,7 +377,7 @@ const TimezoneFilter: FC = () => {
                 className={clsx(
                   'flex items-center gap-[8px] px-[6px] py-[7px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150',
                   tz === calendar.displayTimezone
-                    ? 'text-newTextColor font-[600]'
+                    ? 'text-newTextColor font-[550]'
                     : 'text-newTextColor/80'
                 )}
               >
@@ -756,7 +660,7 @@ const PhoneFilterSheet: FC<{ open: boolean; onClose: () => void }> = ({
                     className={clsx(
                       'px-[12px] py-[9px] rounded-[8px] text-[15px] cursor-pointer hover:bg-boxHover',
                       tz === calendar.displayTimezone
-                        ? 'text-newTextColor font-[600]'
+                        ? 'text-newTextColor font-[550]'
                         : 'text-newTextColor/80'
                     )}
                   >
@@ -878,7 +782,7 @@ const PhoneCalendarSheet: FC<{
     >
       <div className="w-full bg-newBgColorInner rounded-t-[16px] px-[16px] pb-[20px] max-h-[85vh] overflow-y-auto">
         <div className="w-[36px] h-[4px] rounded-full bg-newTextColor/20 mx-auto my-[10px]" />
-        <div className="text-center text-[16px] font-[600] text-newTextColor mb-[12px]">
+        <div className="text-center text-[16px] font-[550] text-newTextColor mb-[12px]">
           {/* own key — the 'calendar' key is locale-mapped to the nav label */}
           {t('calendar_view', 'Calendar')}
         </div>
@@ -902,7 +806,7 @@ const PhoneCalendarSheet: FC<{
         </div>
         {/* mini month picker */}
         <div className="flex items-center mb-[8px]">
-          <div className="flex-1 text-[16px] font-[600] text-newTextColor text-start">
+          <div className="flex-1 text-[16px] font-[550] text-newTextColor text-start">
             {viewMonth.format('MMMM YYYY')}
           </div>
           <button
@@ -1100,7 +1004,7 @@ export const UndatedDraftsPanel: FC = () => {
   return (
     <div className="w-[300px] shrink-0 ms-[16px] flex flex-col gap-[6px] phone:hidden select-none">
       <div className="flex items-center justify-between">
-        <div className="text-[16px] font-[600] text-newTextColor" data-cs>
+        <div className="text-[16px] font-[550] text-newTextColor" data-cs>
           {t('undated_drafts', 'Undated drafts')}
         </div>
         <button
@@ -1131,7 +1035,7 @@ export const UndatedDraftsPanel: FC = () => {
             <path d="M16 17H8" />
           </svg>
         </div>
-        <div className="text-[16px] font-[600] text-newTextColor" data-cs>
+        <div className="text-[16px] font-[550] text-newTextColor" data-cs>
           {t('no_undated_drafts', 'No Undated Drafts')}
         </div>
         <div className="text-[13px] text-newTextColor/60">
@@ -1536,7 +1440,7 @@ export const Filters = () => {
   return (
     <div
       className={clsx(
-        'text-textColor flex flex-col !flex-row flex-wrap gap-[8px] items-center select-none',
+        'text-newTextColor flex flex-col !flex-row flex-wrap gap-[8px] items-center select-none',
         // Buffer's toolbar is a 48px band (32px controls centered in it)
         !isListView && 'min-h-[48px]',
         // Buffer's list tabs sit on a full-width hairline track
@@ -1678,7 +1582,7 @@ export const Filters = () => {
             <button
               type="button"
               onClick={() => setStateDdOpen((v) => !v)}
-              className="flex items-center gap-[6px] h-[36px] px-[10px] text-[16px] font-[600] text-newTextColor"
+              className="flex items-center gap-[6px] h-[36px] px-[10px] text-[16px] font-[550] text-newTextColor"
             >
               {listStateOptions.find((o) => o.value === calendar.listState)
                 ?.label || ''}
@@ -1705,7 +1609,7 @@ export const Filters = () => {
                     className={clsx(
                       'px-[10px] py-[8px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150',
                       calendar.listState === option.value
-                        ? 'text-newTextColor font-[600]'
+                        ? 'text-newTextColor font-[550]'
                         : 'text-newTextColor/70'
                     )}
                   >

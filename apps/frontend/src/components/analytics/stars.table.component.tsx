@@ -154,7 +154,7 @@ export const StarsTableComponent = () => {
   );
   return (
     <div className="flex flex-1 flex-col gap-[15px] min-h-[426px]">
-      <div className="text-textColor flex gap-[8px] items-center select-none">
+      <div className="text-newTextColor flex gap-[8px] items-center select-none">
         <PagerButton
           direction="prev"
           onClick={changePage('decrease')}
@@ -174,7 +174,7 @@ export const StarsTableComponent = () => {
             <path d="m15 18-6-6 6-6" />
           </svg>
         </PagerButton>
-        <h2 className="text-[24px]">{t('stars_per_day', 'Stars per day')}</h2>
+        <h2 className="text-[16px] font-[550]">{t('stars_per_day', 'Stars per day')}</h2>
         <PagerButton
           direction="next"
           onClick={changePage('increase')}

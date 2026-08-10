@@ -107,7 +107,7 @@ ${style}
               className={clsx(
                 'cursor-pointer rounded-[8px] px-[12px] h-[32px] flex items-center text-[13px] border transition-colors duration-150',
                 style === p
-                  ? 'bg-btnPrimary border-btnPrimary text-black font-[600]'
+                  ? 'bg-btnPrimary border-btnPrimary text-black font-[550]'
                   : 'bg-newBgColorInner border-newTableBorder text-newTextColor/60 hover:bg-newTableHeader hover:text-newTextColor'
               )}
             >
@@ -188,7 +188,7 @@ export const AiImage: FC<{
               <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
             </svg>
           </div>
-          <div className="text-[10px] font-[600] iconBreak:hidden block">
+          <div className="text-[12px] font-[500] iconBreak:hidden block">
             {t('ai', 'AI')} Image
           </div>
         </div>

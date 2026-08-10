@@ -9,19 +9,13 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { RenderAnalytics } from '@gitroom/frontend/components/platform-analytics/render.analytics';
 import { Button } from '@gitroom/react/form/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { AnalyticsPageSkeleton } from '@gitroom/frontend/components/platform-analytics/analytics.skeletons';
 import { AnalyticsChartSection } from '@gitroom/frontend/components/platform-analytics/analytics-chart';
 import { ChannelsSummarySection } from '@gitroom/frontend/components/platform-analytics/channels-summary';
 import { RecentPostsSection } from '@gitroom/frontend/components/platform-analytics/recent-posts';
-import { sidePanelRoot } from '@gitroom/frontend/components/new-layout/side-panel';
-import {
-  SidePanelHeader,
-  useSidePanelCollapse,
-} from '@gitroom/frontend/components/new-layout/side-panel-header';
-import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
+import { ChannelsDropdown } from '@gitroom/frontend/components/new-layout/channels-dropdown';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import {
   PageHeader,
@@ -69,8 +63,6 @@ export const PlatformAnalytics = () => {
 
   const [key, setKey] = useState(7);
   const [rangeSheetOpen, setRangeSheetOpen] = useState(false);
-  const { collapsed, toggle } = useSidePanelCollapse();
-  const toaster = useToaster();
   const load = useCallback(async () => {
     const int = (
       await (await fetch('/integrations/list')).json()
@@ -240,69 +232,40 @@ export const PlatformAnalytics = () => {
           every width, so Buffer's 390 order (app bar → title → selector →
           content) holds with a single header instance */}
       <PageHeader icon={<BarChartGlyph size={20} />} title={pageTitle} />
-      {/* Buffer has no second channel panel on desktop — the global sidebar's
-          channel rows drive selection via /analytics?integration=<id>. Phones
-          have no sidebar, so this strip stays as the phone-only selector (the
-          global.scss ladder renders it as a horizontal chip row). It now lives
-          INSIDE the shell (under the single header); the shell's phone:px-[12px]
-          supplies the inset, so the strip carries no padding of its own. */}
-      <div
-        data-side-panel="flow"
-        className={clsx(
-          'bg-newBgColorInner hidden phone:flex flex-col gap-[15px] transition-all',
-          sidePanelRoot(collapsed)
-        )}
-      >
-        <div className="flex gap-[12px] flex-col">
-          <SidePanelHeader title={t('channels')} onToggle={toggle} />
-          {sortedIntegrations.map((integration) => (
-            <ChannelRow
-              key={integration.id}
-              integration={integration}
-              onClick={() => {
-                if (integration.refreshNeeded) {
-                  toaster.show(
-                    'Please refresh the channel from Publish',
-                    'warning'
-                  );
+      {!!options.length && (
+        <div className="flex-1 flex flex-col gap-[14px]">
+          {/* Buffer Insights toolbar: the shared channels dropdown (single-
+              select — trigger shows the current channel's avatar + name;
+              replaces BOTH the phone chip strip and sidebar-only desktop
+              selection), then ONE white hairline container (32px, r8, 4px
+              padding) holding 24px r6 radio segments — lowercase labels,
+              active = green-tint fill, inactive borderless muted — separated
+              from content by a full-width hairline. Same setter (setKey) +
+              same bounded 7/30/90 per-platform option list the old chips
+              drove. */}
+          <div className="flex items-center gap-[10px] border-b border-newTableBorder pb-[12px]">
+            <ChannelsDropdown
+              integrations={sortedIntegrations}
+              selectedIds={currentIntegration ? [currentIntegration.id] : []}
+              anchor="start"
+              onChange={(ids) => {
+                if (!ids[0]) {
                   return;
                 }
-                // Presentation of the same URL-driven selection — Next syncs
-                // useSearchParams from native replaceState (same pattern as
-                // launches.component / calendar.context).
+                // Same URL-driven selection as the sidebar rows / Channels
+                // table — Next syncs useSearchParams from native replaceState
+                // (same pattern as launches.component / calendar.context).
+                // No refreshNeeded guard: a refresh-needed channel lands on
+                // the pane, where RenderAnalytics's refresh card (with the
+                // working Refresh Channel action) takes over — the same path
+                // the Channels table rows already allow.
                 window.history.replaceState(
                   null,
                   '',
-                  `/analytics?integration=${integration.id}`
+                  `/analytics?integration=${ids[0]}`
                 );
               }}
-              dimmed={currentIntegration.id !== integration.id}
-              // S5: Buffer never ghosts controls. ChannelRow's dimmed state is
-              // opacity-20 (near-invisible chips on the phone strip); the
-              // phone: variant is emitted after the base utility so it wins
-              // at 390 and lifts unselected chips to a legible .55. The
-              // SELECTED chip is marked with an ink border instead of pure
-              // opacity contrast (! beats global.scss's hard-coded
-              // rgba(128,128,128,.32) chip border). This strip is
-              // hidden phone:flex, so neither class ever acts on desktop.
-              className={
-                currentIntegration.id !== integration.id
-                  ? 'phone:opacity-[0.55]'
-                  : 'phone:!border-newTextColor'
-              }
             />
-          ))}
-        </div>
-      </div>
-      {!!options.length && (
-        <div className="flex-1 flex flex-col gap-[14px]">
-          {/* Buffer Insights toolbar: ONE white hairline container (32px,
-              r8, 4px padding) holding 24px r6 radio segments — lowercase
-              labels, active = green-tint fill, inactive borderless muted —
-              separated from content by a full-width hairline. Same setter
-              (setKey) + same bounded 7/30/90 per-platform option list the
-              old chips drove. */}
-          <div className="flex items-center border-b border-newTableBorder pb-[12px]">
             <div
               data-cs
               className="phone:hidden inline-flex items-center h-[32px] p-[4px] gap-[2px] rounded-[8px] border border-newTableBorder bg-newBgColorInner"
@@ -352,7 +315,7 @@ export const PlatformAnalytics = () => {
               "Summary" 16/600 body face + muted concrete date range. */}
           <div className="bg-newTableHeader rounded-[12px] p-[8px] flex flex-col gap-[12px]">
             <div className="flex flex-col gap-[2px] px-[8px] pt-[8px]">
-              <div className="text-[16px] font-[600]">
+              <div className="text-[16px] font-[550]">
                 {t('summary', 'Summary')}
               </div>
               <div className="text-[14px] text-newTextColor/60">

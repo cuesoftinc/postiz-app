@@ -87,7 +87,7 @@ export const MissingReleaseModal: FC<{
 
   return (
     <div className="flex flex-col gap-[16px]">
-      <div className="text-[14px] text-textColor/70">
+      <div className="text-[14px] text-newTextColor/70">
         {t(
           'select_matching_content',
           'Select the content that matches this post:'
@@ -116,7 +116,7 @@ export const MissingReleaseModal: FC<{
         <Button
           type="button"
           onClick={() => modal.closeAll()}
-          className="bg-transparent border border-tableBorder text-textColor"
+          className="bg-transparent border border-tableBorder text-newTextColor"
         >
           {t('cancel', 'Cancel')}
         </Button>

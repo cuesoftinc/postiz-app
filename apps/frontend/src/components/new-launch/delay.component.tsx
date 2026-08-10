@@ -133,7 +133,7 @@ export const DelayComponent: FC<{
                     setCustomValue('');
                   }
                 }}
-                className="h-[32px] px-[10px] rounded-[4px] bg-btnPrimary text-white text-[12px] font-[600] hover:bg-[#a9e662]"
+                className="h-[32px] px-[10px] rounded-[4px] bg-btnPrimary text-white text-[12px] font-[550] hover:bg-[#a9e662]"
               >
                 Set
               </button>

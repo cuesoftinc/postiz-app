@@ -40,13 +40,13 @@ export function Forgot() {
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div>
-            <h1 className="text-3xl font-bold text-start mb-4 cursor-pointer">
+            <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start mb-4 cursor-pointer">
               {t('forgot_password_1', 'Forgot Password')}
             </h1>
           </div>
           {!state ? (
             <>
-              <div className="space-y-4 text-textColor">
+              <div className="space-y-4 text-newTextColor">
                 <Input
                   label="Email"
                   translationKey="label_email"

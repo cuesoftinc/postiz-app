@@ -114,7 +114,7 @@ export const EmptyState: FC<{
           {icon}
           <div
             className={clsx(
-              'text-[16px] font-[600]',
+              'text-[16px] font-[550]',
               tone === 'error' && ERROR_TEXT_CLASS
             )}
           >

@@ -101,14 +101,14 @@ const VoiceSelector: FC = () => {
   if (isLoading || !data?.voices?.length) {
     return (
       <div className="flex items-center justify-center py-4">
-        <div className="text-sm text-gray-500">Loading voices...</div>
+        <div className="text-sm text-newTextColor/60">Loading voices...</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="text-sm font-medium text-textColor mb-4">
+      <div className="text-sm font-medium text-newTextColor mb-4">
         Select a Voice
       </div>
       <div className="space-y-2">
@@ -133,7 +133,7 @@ const VoiceSelector: FC = () => {
                 onChange={() => selectVoice(voice.id)}
               />
               <div>
-                <div className="text-sm font-medium text-textColor">
+                <div className="text-sm font-medium text-newTextColor">
                   {voice.name}
                 </div>
               </div>

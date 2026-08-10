@@ -223,7 +223,7 @@ export const Menu: FC<{
         askClose: true,
         fullScreen: true,
         classNames: {
-          modal: 'w-[100%] max-w-[1400px] text-textColor',
+          modal: 'w-[100%] max-w-[1400px] text-newTextColor',
         },
         children: (
           <AddEditModal
@@ -251,7 +251,7 @@ export const Menu: FC<{
     );
     modal.openModal({
       classNames: {
-        modal: 'w-[100%] max-w-[600px] bg-transparent text-textColor',
+        modal: 'w-[100%] max-w-[600px] bg-transparent text-newTextColor',
       },
       size: '100%',
       withCloseButton: false,

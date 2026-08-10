@@ -48,7 +48,7 @@ export const ThreadFinisher = () => {
         >
           <div>
             <div className="flex gap-[4px]">
-              <div className="flex-1 editor text-textColor">
+              <div className="flex-1 editor text-newTextColor">
                 <Editor
                   comments={true}
                   chars={{}}

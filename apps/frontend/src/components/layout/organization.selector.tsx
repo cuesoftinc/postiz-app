@@ -48,7 +48,7 @@ export const OrganizationSelector: FC<{ asOpenSelect?: boolean }> = ({
           {asOpenSelect && (
             <div
               data-cs
-              className="bg-btnPrimary text-black rounded-[8px] h-[40px] text-[14px] font-[600] items-center justify-center !flex !relative max-w-[500px] mx-auto px-[16px]"
+              className="bg-btnPrimary text-black rounded-[8px] h-[40px] text-[14px] font-[550] items-center justify-center !flex !relative max-w-[500px] mx-auto px-[16px]"
             >
               Select Organization
             </div>
@@ -95,7 +95,7 @@ export const OrganizationSelector: FC<{ asOpenSelect?: boolean }> = ({
                 >
                   <div
                     data-cs
-                    className="w-[24px] h-[24px] rounded-full bg-newTableHeader border border-newTableBorder flex items-center justify-center text-[11px] font-[600] uppercase shrink-0"
+                    className="w-[24px] h-[24px] rounded-full bg-newTableHeader border border-newTableBorder flex items-center justify-center text-[12px] font-[550] uppercase shrink-0"
                   >
                     {org.name?.trim()?.charAt(0) || '?'}
                   </div>

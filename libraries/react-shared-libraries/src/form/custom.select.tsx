@@ -92,7 +92,7 @@ export const CustomSelect: FC<{
       )}
       <div
         className={clsx(
-          'bg-newBgColorInner h-[36px] border-newTableBorder border rounded-[6px] text-textColor placeholder-textColor items-center justify-center flex'
+          'bg-newBgColorInner h-[36px] border-newTableBorder border rounded-[6px] text-newTextColor placeholder:text-newTextColor/50 items-center justify-center flex'
         )}
         onClick={changeOpen}
       >
@@ -117,7 +117,7 @@ export const CustomSelect: FC<{
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-slate-500"
+              className="text-newTextColor/60"
             >
               <path d="m6 9 6 6 6-6" />
             </svg>
@@ -134,7 +134,7 @@ export const CustomSelect: FC<{
                 strokeWidth="2.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-slate-500"
+                className="text-newTextColor/60"
               >
                 <path d="M18 6 6 18" />
                 <path d="m6 6 12 12" />

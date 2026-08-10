@@ -95,7 +95,7 @@ const PostStats: FC<{ post: RecentPost; date: number }> = ({ post, date }) => {
           key={`${post.id}-${item.label}`}
           className="text-[12px] text-newTextColor/60 whitespace-nowrap"
         >
-          <span className="text-[13px] font-[600] text-newTextColor">
+          <span className="text-[13px] font-[550] text-newTextColor">
             {metricTotal(item)}
           </span>{' '}
           {item.label}
@@ -153,7 +153,7 @@ export const RecentPostsSection: FC<{
   return (
     <div className="bg-newTableHeader rounded-[12px] p-[8px] flex flex-col gap-[12px]">
       <div className="flex flex-col gap-[2px] px-[8px] pt-[8px]">
-        <div className="text-[16px] font-[600]">
+        <div className="text-[16px] font-[550]">
           {t('recent_posts', 'Recent posts')}
         </div>
         <div className="text-[14px] text-newTextColor/60">{subtitle}</div>

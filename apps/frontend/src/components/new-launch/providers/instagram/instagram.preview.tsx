@@ -87,7 +87,7 @@ export const InstagramPreview: FC<{
           __html: renderContent?.[0]?.text,
         }}
       />
-      <div className="py-[8px] text-textColor flex text-[14px] font-[700] gap-[10.5px]">
+      <div className="py-[8px] text-newTextColor flex text-[14px] font-[700] gap-[10.5px]">
         <div className="flex gap-[4px] items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"

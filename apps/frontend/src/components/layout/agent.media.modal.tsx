@@ -31,20 +31,20 @@ export const AgentMediaModal: FC = () => {
 
   return (
     <ModalBody gap={20} maxWidth={520}>
-      <div className="text-[14px] leading-[22px] text-newTextColor opacity-80">
+      <div className="text-[14px] leading-[22px] text-newTextColor">
         {t(
           'agent_media_different_company',
-          'UGC videos are powered by AgentMedia (agent-media.ai), a separate product with its own account and pricing — not part of your Postiz subscription.'
+          'UGC videos are powered by AgentMedia (agent-media.ai), a separate product with its own account and pricing, not part of your Postiz subscription.'
         )}
       </div>
 
       <div className="flex flex-col gap-[12px]">
-        <div className="text-[14px] font-[600] text-newTextColor">
+        <div className="text-[14px] font-[550] text-newTextColor">
           {t('agent_media_what_you_get', 'What you get with AgentMedia')}
         </div>
-        <ul className="flex flex-col gap-[8px] text-[14px] leading-[20px] text-newTextColor opacity-80">
+        <ul className="flex flex-col gap-[8px] text-[14px] leading-[20px] text-newTextColor">
           <li className="flex gap-[8px]">
-            <span className="text-forth">•</span>
+            <span className="text-newTextColor/60">•</span>
             <span>
               {t(
                 'agent_media_feature_videos',
@@ -53,7 +53,7 @@ export const AgentMediaModal: FC = () => {
             </span>
           </li>
           <li className="flex gap-[8px]">
-            <span className="text-forth">•</span>
+            <span className="text-newTextColor/60">•</span>
             <span>
               {t(
                 'agent_media_feature_quality',
@@ -62,7 +62,7 @@ export const AgentMediaModal: FC = () => {
             </span>
           </li>
           <li className="flex gap-[8px]">
-            <span className="text-forth">•</span>
+            <span className="text-newTextColor/60">•</span>
             <span>
               {t(
                 'agent_media_feature_publish',
@@ -74,18 +74,18 @@ export const AgentMediaModal: FC = () => {
       </div>
 
       <div className="flex flex-col gap-[12px]">
-        <div className="text-[14px] font-[600] text-newTextColor">
+        <div className="text-[14px] font-[550] text-newTextColor">
           {t('agent_media_pricing', 'Separate pricing')}
         </div>
-        <div className="flex flex-col gap-[6px] text-[14px] leading-[20px] text-newTextColor opacity-80">
+        <div className="flex flex-col gap-[6px] text-[14px] leading-[20px] text-newTextColor">
           <div>
-            {t('agent_media_plan_creator', 'Creator — $39/mo · 3,900 credits')}
+            {t('agent_media_plan_creator', 'Creator: $39/mo · 3,900 credits')}
           </div>
-          <div>{t('agent_media_plan_pro', 'Pro — $69/mo · 6,900 credits')}</div>
+          <div>{t('agent_media_plan_pro', 'Pro: $69/mo · 6,900 credits')}</div>
           <div>
             {t(
               'agent_media_plan_pro_plus',
-              'Pro Plus — $129/mo · 12,900 credits + early access'
+              'Pro Plus: $129/mo · 12,900 credits + early access'
             )}
           </div>
         </div>

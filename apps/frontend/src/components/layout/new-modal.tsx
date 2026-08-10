@@ -256,7 +256,12 @@ export const Component: FC<{
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center">
-                <div className="text-[24px] font-[600] font-display flex-1">
+                {/* modal titles: 18px/500 Inter, the body face — the composer
+                    pattern (data-cs keeps the ladder off text-[18px]) */}
+                <div
+                  data-cs
+                  className="text-[18px] font-[500] text-newTextColor flex-1"
+                >
                   {modal.title}
                 </div>
                 {typeof modal.withCloseButton === 'undefined' ||

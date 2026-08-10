@@ -14,7 +14,7 @@ function replaceLinks(text: string) {
     /(\bhttps?:\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/gi;
   return text.replace(
     urlRegex,
-    '<a class="cursor-pointer underline font-bold" target="_blank" href="$1">$1</a>'
+    '<a class="cursor-pointer underline font-[650]" target="_blank" href="$1">$1</a>'
   );
 }
 export const ShowNotification: FC<{
@@ -38,7 +38,7 @@ export const ShowNotification: FC<{
         // the header wash + semibold instead of the legacy seventh/third
         // keyframe flash
         `min-h-[32px] px-[16px] py-[8px] text-[14px] text-newTextColor border-b border-newTableBorder last:border-b-0 transition-colors`,
-        newNotification && 'font-[600] bg-newTableHeader'
+        newNotification && 'font-[550] bg-newTableHeader'
       )}
     >
       <div
@@ -78,7 +78,7 @@ export const NotificationOpenComponent = () => {
       className="opacity-0 animate-normalFadeDown mt-[10px] !rounded-[8px] w-[420px] max-w-[calc(100vw-48px)] min-h-[200px] flex flex-col"
     >
       <div
-        className={`p-[16px] border-b border-newTableBorder font-display text-[16px] font-[600] text-newTextColor`}
+        className={`p-[16px] border-b border-newTableBorder text-[16px] font-[550] text-newTextColor`}
       >
         {t('notifications', 'Notifications')}
       </div>

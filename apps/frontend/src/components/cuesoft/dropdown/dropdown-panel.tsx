@@ -25,10 +25,10 @@ import clsx from 'clsx';
 
 const SURFACES = {
   panel:
-    'absolute top-[100%] bg-newBgColorInner text-textColor rounded-[12px] shadow-[0_0_0_1px_rgba(0,0,0,.08),0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] dark:border dark:border-tableBorder z-[600]',
+    'absolute top-[100%] bg-newBgColorInner text-newTextColor rounded-[12px] shadow-[0_0_0_1px_rgba(0,0,0,.08),0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] dark:border dark:border-tableBorder z-[600]',
   menu: 'absolute top-[100%] p-[8px] px-[20px] bg-fifth flex flex-col gap-[16px] rounded-[8px] border border-tableBorder text-nowrap z-[100]',
   legacy:
-    'absolute top-[100%] bg-sixth border border-customColor6 text-textColor z-[999]',
+    'absolute top-[100%] bg-sixth border border-customColor6 text-newTextColor z-[999]',
 } as const;
 
 export const DropdownPanel: FC<{

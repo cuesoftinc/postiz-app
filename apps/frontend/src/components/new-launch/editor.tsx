@@ -375,7 +375,7 @@ export const EditorWrapper: FC<{
               </div>
               <div className="w-[54px] h-[54px] rounded-full bg-newSettings opacity-80" />
             </div>
-            <div className="text-[14px] font-[600] text-white">
+            <div className="text-[14px] font-[550] text-white">
               {t(
                 'cant_edit_networks_when_creating_set',
                 "You can't edit networks when creating a set"
@@ -400,7 +400,7 @@ export const EditorWrapper: FC<{
               </div>
               <div className="w-[54px] h-[54px] rounded-full bg-newSettings opacity-80" />
             </div>
-            <div className="text-[14px] font-[600] text-white">
+            <div className="text-[14px] font-[550] text-white">
               {t(
                 'click_to_exit_global_editing',
                 'Click this button to exit global editing and customize the post for this channel'
@@ -472,7 +472,7 @@ export const EditorWrapper: FC<{
                           >
                             <div className="flex gap-[6px] items-center">
                               <div className="w-[8px] h-[8px] rounded-full bg-btnPrimary" />
-                              <div className="text-[14px] font-[600]">
+                              <div className="text-[14px] font-[550]">
                                 {t(
                                   'editing_a_specific_network',
                                   'Editing a Specific Network'
@@ -483,7 +483,7 @@ export const EditorWrapper: FC<{
                               <div>
                                 <ResetIcon />
                               </div>
-                              <div className="text-[13px] font-[600]">
+                              <div className="text-[13px] font-[550]">
                                 {t('back_to_global', 'Back to global')}
                               </div>
                             </div>
@@ -801,9 +801,11 @@ export const Editor: FC<{
                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                     <circle cx="9" cy="9" r="2" />
                   </svg>
-                  <div className="text-[14px] text-newTextColor/60">
+                  {/* Links follow Buffer (green #2f7d44, 15/400, hover
+                      underline) — only buttons stay Cuesoft lime. */}
+                  <div className="text-[15px] text-newTextColor/60">
                     {t('drag_and_drop_or', 'Drag & drop or')}{' '}
-                    <span className="text-newTextColor font-[500]">
+                    <span className="text-[#2f7d44] font-[400] hover:underline">
                       {t('select_a_file', 'select a file')}
                     </span>
                   </div>

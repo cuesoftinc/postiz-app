@@ -10,7 +10,7 @@ export const CheckIconComponent = () => {
       strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-[#00FF00]"
+      className="text-[#2f7d44]"
     >
       <circle cx="12" cy="12" r="10" />
       <path d="m9 12 2 2 4-4" />

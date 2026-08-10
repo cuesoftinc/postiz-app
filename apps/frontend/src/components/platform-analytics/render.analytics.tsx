@@ -89,7 +89,7 @@ const AnalyticsCard: FC<{
         </span>
       </div>
       <div className="flex items-center gap-[10px]">
-        <span className="text-[20px] leading-[24px] font-[700] tracking-tight text-newTextColor">
+        <span className="text-[20px] leading-[24px] font-[550] tracking-tight text-newTextColor">
           {total}
         </span>
         {item.percentageChange !== undefined && (
@@ -127,7 +127,7 @@ const EmptyState: FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
           <path d="M12 6v6l4 2" />
         </svg>
       </div>
-      <div className="text-[16px] font-[600] mb-[4px]">
+      <div className="text-[16px] font-[550] mb-[4px]">
         {t('channel_needs_a_refresh', 'Channel needs a refresh')}
       </div>
       <p className="text-[14px] text-newTextColor/60 text-center mb-[16px]">

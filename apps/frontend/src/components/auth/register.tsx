@@ -206,7 +206,7 @@ export function RegisterAfter({
           </h1>
           <div className="text-red-400 text-[14px]">{String(providerError)}</div>
           <p className="text-sm">
-            <Link href="/auth/login" className="underline hover:font-bold">
+            <Link href="/auth/login" className="underline hover:font-[650]">
               {t('back_to_sign_in', 'Back to sign in')}
             </Link>
           </p>
@@ -253,7 +253,7 @@ export function RegisterAfter({
               </div>
             )}
             <div className="flex flex-col gap-[12px]">
-              <div className="text-textColor">
+              <div className="text-newTextColor">
                 {!isAfterProvider && (
                   <>
                     <Input
@@ -290,7 +290,7 @@ export function RegisterAfter({
                 &nbsp;
                 <a
                   href={`https://postiz.com/terms`}
-                  className="underline hover:font-bold"
+                  className="underline hover:font-[650]"
                   rel="nofollow"
                 >
                   {t('terms_of_service', 'Terms of Service')}
@@ -300,7 +300,7 @@ export function RegisterAfter({
                 <a
                   href={`https://postiz.com/privacy`}
                   rel="nofollow"
-                  className="underline hover:font-bold"
+                  className="underline hover:font-[650]"
                 >
                   {t('privacy_policy', 'Privacy Policy')}
                 </a>

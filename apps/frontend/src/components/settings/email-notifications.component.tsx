@@ -98,7 +98,7 @@ const EmailNotificationsComponent = () => {
   );
 
   if (isLoading) {
-    // Skeleton shaped like the section below: 16/550 heading bar + three
+    // Skeleton shaped like the section below: 16/600 heading bar + three
     // label/description rows each with a slider-sized block on the end
     return (
       <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
@@ -118,7 +118,7 @@ const EmailNotificationsComponent = () => {
 
   return (
     <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
-      {/* Buffer section H2s measure 16/550 (round-1 addendum) */}
+      {/* section headings: 16/600 ink (type scale) */}
       <div className="text-[16px] font-[550]">
         {t('email_notifications', 'Email Notifications')}
       </div>

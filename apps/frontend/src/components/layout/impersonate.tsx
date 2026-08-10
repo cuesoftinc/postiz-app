@@ -206,7 +206,7 @@ const ApplyCouponModal: FC<{ close: () => void }> = ({ close }) => {
       <div className="text-newTextColor/60 text-[13px]">
         {t(
           'apply_coupon_subtitle',
-          "The coupon applied here is simply a deduction from the user's next billing cycle(s) — one or more, depending on how many months you choose to apply it for. It is NOT a refund; we use Stripe's built-in coupon mechanism and that's how it works."
+          "The coupon applied here is simply a deduction from the user's next billing cycle(s): one or more, depending on how many months you choose to apply it for. It is NOT a refund; we use Stripe's built-in coupon mechanism and that's how it works."
         )}
       </div>
       {!info ? (
@@ -894,7 +894,7 @@ const SwitchUser = () => {
       !(await deleteDialog(
         t(
           'switch_user_confirm',
-          `This will replace the current account's login with ${selected.email}. All data and the subscription stay with the account — only the login changes, and the new login gains its full access. Switch back to revert.`
+          `This will replace the current account's login with ${selected.email}. All data and the subscription stay with the account; only the login changes, and the new login gains its full access. Switch back to revert.`
         ),
         t('yes_switch', 'Yes, switch'),
         t('switch_user_title', 'Switch User?'),
@@ -1030,12 +1030,12 @@ export const Impersonate = () => {
   // post, announcements, errors/stats, switch/billing) expands into a
   // DropdownPanel popover above it. The outer strip is pointer-events-none so
   // only the pill/popover intercept clicks.
-  // Phone: a bottom-CENTER pill sits right on top of page content (Set Plug
-  // buttons, chat inputs), so at ≤767 the pill shrinks (28px, 12px text) and
-  // docks bottom-END with a 12px inset — phone: classes only, desktop
-  // unchanged. The popover right-aligns with it (same items-end).
+  // A bottom-CENTER pill sat right on top of page content (calendar cells,
+  // Set Plug buttons, chat inputs) at every width, so it now docks small in
+  // the bottom-START corner on ALL breakpoints (bottom-end is reserved for
+  // the help bubble slot, like Buffer). The popover left-aligns with it.
   return (
-    <div className="fixed bottom-[16px] inset-x-0 z-[600] flex flex-col items-center gap-[8px] pointer-events-none phone:bottom-[12px] phone:items-end phone:pe-[12px]">
+    <div className="fixed bottom-[12px] inset-x-0 z-[600] flex flex-col items-start gap-[8px] pointer-events-none ps-[12px]">
       {open && (
         <>
           {/* click-away layer — painted under the panel/pill (source order) */}
@@ -1047,7 +1047,7 @@ export const Impersonate = () => {
             <DropdownPanel className="!static w-full p-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
               {user?.impersonate ? (
                 <div className="flex flex-col gap-[12px]">
-                  <div className="text-[14px] font-[600]">
+                  <div className="text-[14px] font-[550]">
                     {t('currently_impersonating', 'Currently Impersonating')}
                   </div>
                   <div className="flex flex-wrap items-center gap-[8px]">
@@ -1059,7 +1059,7 @@ export const Impersonate = () => {
                 </div>
               ) : (
                 <div className="flex flex-col gap-[12px]">
-                  <div className="text-[14px] font-[600]">
+                  <div className="text-[14px] font-[550]">
                     {t('admin_tools', 'Admin tools')}
                   </div>
                   <div className="relative">
@@ -1136,7 +1136,7 @@ export const Impersonate = () => {
               type="button"
               onClick={stopImpersonating}
               aria-label={t('stop_impersonating', 'Stop impersonating')}
-              className="h-full ps-[12px] pe-[14px] text-[13px] font-[600] hover:bg-white/10 transition-colors duration-150 shrink-0 phone:ps-[10px] phone:pe-[10px] phone:text-[12px]"
+              className="h-full ps-[12px] pe-[14px] text-[13px] font-[550] hover:bg-white/10 transition-colors duration-150 shrink-0 phone:ps-[10px] phone:pe-[10px] phone:text-[12px]"
             >
               {t('stop', 'Stop')}
             </button>

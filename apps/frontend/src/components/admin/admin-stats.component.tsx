@@ -91,8 +91,8 @@ const SummaryCard: FC<{ label: string; value: number }> = ({
   value,
 }) => (
   <div className="border border-newTableBorder rounded-[8px] p-[16px] bg-newBgColorInner">
-    <div className="text-[12px] opacity-70">{label}</div>
-    <div className="text-[28px] font-[600]">{value.toLocaleString()}</div>
+    <div className="text-[12px] text-newTextColor/60">{label}</div>
+    <div className="text-[28px] font-[550]">{value.toLocaleString()}</div>
   </div>
 );
 
@@ -101,12 +101,12 @@ const PerSocialTable: FC<{ title: string; block: StatsBlock }> = ({
   block,
 }) => (
   <div className="border border-newTableBorder rounded-[8px] overflow-hidden">
-    <div className="grid grid-cols-[1fr_120px] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[12px] uppercase opacity-70 border-b border-newTableBorder">
+    <div className="grid grid-cols-[1fr_120px] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[12px] text-newTextColor/60 border-b border-newTableBorder">
       <div>{title}</div>
       <div className="text-right">Count</div>
     </div>
     {block.perSocial.length === 0 ? (
-      <div className="px-[12px] py-[10px] text-[13px] opacity-70">
+      <div className="px-[12px] py-[10px] text-[13px] text-newTextColor/60">
         No data for this timeframe.
       </div>
     ) : (
@@ -141,19 +141,21 @@ export const AdminStatsComponent: FC = () => {
 
   if (!user?.isSuperAdmin) {
     return (
-      <div className="text-textColor p-[20px]">
+      <div className="text-newTextColor p-[20px]">
         You do not have access to this page.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-[16px] text-textColor">
+    <div className="flex flex-col gap-[16px] text-newTextColor">
       <div className="flex items-center justify-between">
-        <div className="text-[20px] font-[600]">Admin Stats</div>
+        <div data-cs className="font-display text-[20px] font-[400] text-newTextColor">
+          Admin Stats
+        </div>
         {data && (
-          <div className="text-[13px] opacity-70">
-            {new Date(data.from).toLocaleDateString()} —{' '}
+          <div className="text-[13px] text-newTextColor/60">
+            {new Date(data.from).toLocaleDateString()} –{' '}
             {new Date(data.to).toLocaleDateString()}
           </div>
         )}
@@ -171,7 +173,7 @@ export const AdminStatsComponent: FC = () => {
               className={`h-[32px] px-[12px] rounded-[8px] text-[13px] border cursor-pointer whitespace-nowrap ${
                 active
                   ? 'bg-forth text-white border-forth'
-                  : 'bg-newBgColorInner text-textColor border-newTableBorder hover:bg-tableBorder'
+                  : 'bg-newBgColorInner text-newTextColor border-newTableBorder hover:bg-tableBorder'
               }`}
             >
               {preset.label}
@@ -182,24 +184,24 @@ export const AdminStatsComponent: FC = () => {
 
       <div className="flex flex-wrap gap-[12px] items-end bg-newBgColorInner border border-newTableBorder rounded-[8px] p-[12px]">
         <div className="flex flex-col gap-[6px]">
-          <div className="text-[12px] opacity-70">From</div>
+          <div className="text-[12px] text-newTextColor/60">From</div>
           <input
             type="date"
             value={fromInput}
             max={toInput}
             onChange={(e) => setFromInput(e.target.value)}
-            className="bg-newBgColorInner h-[38px] border border-newTableBorder rounded-[8px] px-[10px] text-[14px] text-textColor"
+            className="bg-newBgColorInner h-[38px] border border-newTableBorder rounded-[8px] px-[10px] text-[14px] text-newTextColor"
           />
         </div>
         <div className="flex flex-col gap-[6px]">
-          <div className="text-[12px] opacity-70">To</div>
+          <div className="text-[12px] text-newTextColor/60">To</div>
           <input
             type="date"
             value={toInput}
             min={fromInput}
             max={today()}
             onChange={(e) => setToInput(e.target.value)}
-            className="bg-newBgColorInner h-[38px] border border-newTableBorder rounded-[8px] px-[10px] text-[14px] text-textColor"
+            className="bg-newBgColorInner h-[38px] border border-newTableBorder rounded-[8px] px-[10px] text-[14px] text-newTextColor"
           />
         </div>
         <Button
@@ -238,7 +240,7 @@ export const AdminStatsComponent: FC = () => {
           </div>
         </>
       ) : error || !data ? (
-        <div className="text-red-400">Failed to load stats.</div>
+        <div className="text-[#FF3F3F]">Failed to load stats.</div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px]">

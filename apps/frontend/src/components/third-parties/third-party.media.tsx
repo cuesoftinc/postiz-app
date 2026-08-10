@@ -104,7 +104,7 @@ export const ThirdPartyPopup: FC<{
                 setThirdParty(p);
               }}
               key={p.identifier}
-              className="w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[12px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer"
+              className="w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[12px] transition-all text-newTextColor relative flex flex-col gap-[15px] cursor-pointer"
             >
               <div>
                 <img
@@ -112,7 +112,7 @@ export const ThirdPartyPopup: FC<{
                   src={`/icons/third-party/${p.identifier}.png`}
                 />
               </div>
-              <div className="whitespace-pre-wrap text-left text-[15px] font-[600]">
+              <div className="whitespace-pre-wrap text-left text-[15px] font-[550]">
                 {p.title}: {p.name}
               </div>
               <div className="whitespace-pre-wrap text-left text-[14px] text-newTextColor/60">
@@ -224,7 +224,7 @@ export const ThirdPartyMedia: FC<{
                 <rect width="7" height="7" x="3" y="14" rx="1" />
               </svg>
             </div>
-            <div className="text-[11px] font-[600] iconBreak:hidden block">
+            <div className="text-[12px] font-[500] iconBreak:hidden block">
               {t('integrations', 'Integrations')}
             </div>
           </div>

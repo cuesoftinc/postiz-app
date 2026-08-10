@@ -138,16 +138,9 @@ const StripeInputs: FC<{
   const [ready, setReady] = useState(false);
   return (
     <>
-      {/*<div>*/}
-      {/*  <h4 className="mb-[32px] text-[24px] font-[700]">*/}
-      {/*    {checkout.type === 'loading'*/}
-      {/*      ? ''*/}
-      {/*      : t('billing_billing_address', 'Billing Address')}*/}
-      {/*  </h4>*/}
-      {/*  <BillingAddressElement />*/}
-      {/*</div>*/}
       <div>
-        <h4 className="mb-[32px] text-[24px] font-[700]">
+        {/* section headings: 16/600 ink (type scale) */}
+        <h4 className="mb-[32px] text-[16px] font-[550]">
           {checkout.type === 'loading' ? '' : t('billing_payment', 'Payment')}
         </h4>
         <PaymentElement
@@ -164,7 +157,7 @@ const StripeInputs: FC<{
         )}
         {ready && <SubmitBar loading={loading} />}
         {checkout.type === 'loading' ? null : (
-          <div className="mt-[24px] text-[16px] font-[600] flex gap-[4px] items-center">
+          <div className="mt-[24px] text-[16px] font-[550] flex gap-[4px] items-center">
             <div>
               {t('billing_powered_by_stripe', 'Secure payments processed by')}
             </div>
@@ -220,24 +213,25 @@ const PriceBreakdown: FC = () => {
 
   return (
     <div className="mt-[40px]">
-      <h4 className="mb-[16px] text-[24px] font-[700]">
+      {/* section headings: 16/600 ink (type scale) */}
+      <h4 className="mb-[16px] text-[16px] font-[550]">
         {t('billing_order_summary', 'Order Summary')}
       </h4>
       <div className="rounded-[12px] border border-newColColor p-[20px] flex flex-col gap-[12px]">
         {/* Plan */}
         <div className="flex justify-between items-center">
           <div className="flex flex-col">
-            <span className="font-[600] text-textColor">{planName}</span>
+            <span className="font-[550] text-newTextColor">{planName}</span>
             <span className="text-[13px] text-newTextColor/60">
               {billingInterval}
             </span>
           </div>
-          <span className="font-[500] text-textColor">{unitAmount}</span>
+          <span className="font-[500] text-newTextColor">{unitAmount}</span>
         </div>
 
         {/* Discount */}
         {discountDisplay && (
-          <div className="flex justify-between items-center font-[600]">
+          <div className="flex justify-between items-center font-[550]">
             <div className="flex items-center gap-[6px]">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -272,10 +266,10 @@ const PriceBreakdown: FC = () => {
 
         {/* Due today */}
         <div className="flex justify-between items-center">
-          <span className="font-[600] text-textColor">
+          <span className="font-[550] text-newTextColor">
             {t('billing_due_today', 'Due today')}
           </span>
-          <span className="font-[700] text-[18px] text-textColor">
+          <span className="font-[550] text-[18px] text-newTextColor">
             {dueToday}
           </span>
         </div>
@@ -393,7 +387,7 @@ const AppliedCouponDisplay: FC<{
               <circle cx="12" cy="12" r="10" />
               <path d="m9 12 2 2 4-4" />
             </svg>
-            <span className="font-[600] text-forth">{appliedCode}</span>
+            <span className="font-[550] text-newTextColor">{appliedCode}</span>
             <span className="text-[14px] text-newTextColor/70">
               {t('billing_discount_applied', 'applied')}
               {discountDisplay && ` (${discountDisplay})`}
@@ -551,7 +545,7 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
   return (
     <div className="mt-[40px]">
       <div className="flex items-center gap-[12px] mb-[12px]">
-        <h4 className="text-[18px] font-[600] text-textColor">
+        <h4 className="text-[18px] font-[550] text-newTextColor">
           {t('billing_discount_coupon', 'Discount Coupon')}
         </h4>
         <button
@@ -573,7 +567,7 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
           placeholder={t('billing_enter_coupon_code', 'Enter coupon code')}
           disabled={isApplying}
           autoFocus
-          className="flex-1 h-[44px] px-[16px] rounded-[8px] border border-newColColor bg-newBgColor text-textColor placeholder:text-newTextColor/50 focus:outline-none focus:border-boxFocused disabled:opacity-50"
+          className="flex-1 h-[44px] px-[16px] rounded-[8px] border border-newColColor bg-newBgColor text-newTextColor placeholder:text-newTextColor/50 focus:outline-none focus:border-boxFocused disabled:opacity-50"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
@@ -589,7 +583,7 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
           type="button"
           onClick={() => handleApplyCoupon()}
           disabled={isApplying || !couponCode.trim()}
-          className="h-[44px] px-[24px] rounded-[8px] bg-boxFocused text-textItemFocused font-[600] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="h-[44px] px-[24px] rounded-[8px] bg-boxFocused text-textItemFocused font-[550] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {isApplying
             ? t('billing_applying', 'Applying...')
@@ -613,18 +607,18 @@ const SubmitBar: FC<{ loading: boolean }> = ({ loading }) => {
         {checkout.checkout.recurring?.trial?.trialEnd ? (
           <div>
             {t('billing_your_7_day_trial_is', 'Your 7-day trial is')}{' '}
-            <span className="text-textColor font-[600]">
+            <span className="text-newTextColor font-[550]">
               {t('billing_100_percent_free', '100% free')}
             </span>{' '}
             {t('billing_ending', 'ending')}{' '}
             <br className="hidden mobile:block" />
-            <span className="text-textColor font-[600]">
+            <span className="text-newTextColor font-[550]">
               {dayjs(
                 checkout.checkout.recurring?.trial?.trialEnd * 1000
               ).format('MMMM D, YYYY')}{' '}
-              —{' '}
+              ·{' '}
             </span>
-            <span className="text-textColor font-[600]">
+            <span className="text-newTextColor font-[550]">
               {t(
                 'billing_cancel_anytime_short',
                 'Cancel anytime from settings'

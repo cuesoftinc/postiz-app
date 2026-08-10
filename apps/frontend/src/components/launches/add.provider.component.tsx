@@ -434,7 +434,7 @@ export const AddProviderComponent: FC<{
             withCloseButton: true,
             ...(isMobile ? { removeLayout: true, fullScreen: true } : {}),
             classNames: {
-              modal: 'text-textColor',
+              modal: 'text-newTextColor',
             },
             children: (
               <div
@@ -622,7 +622,7 @@ export const AddProviderComponent: FC<{
             withCloseButton: true,
             ...(isMobile ? { removeLayout: true, fullScreen: true } : {}),
             classNames: {
-              modal: 'text-textColor',
+              modal: 'text-newTextColor',
             },
             children: (
               <UrlModal gotoUrl={gotoIntegration} isMobile={isMobile} />
@@ -636,7 +636,7 @@ export const AddProviderComponent: FC<{
             withCloseButton: true,
             ...(isMobile ? { removeLayout: true, fullScreen: true } : {}),
             classNames: {
-              modal: 'text-textColor',
+              modal: 'text-newTextColor',
             },
             children: (
               <div
@@ -709,7 +709,7 @@ export const AddProviderComponent: FC<{
                     : 'flex-col p-[10px] h-[100px] justify-center',
                   // Buffer replica: platform tiles are elevated cards — radius
                   // 12 + hairline border, white-alpha hover fill (both themes)
-                  'w-full text-[14px] rounded-[12px] bg-newBgColorInner border border-newTableBorder hover:bg-boxHover transition-colors text-textColor relative items-center flex gap-[10px] cursor-pointer'
+                  'w-full text-[14px] rounded-[12px] bg-newBgColorInner border border-newTableBorder hover:bg-boxHover transition-colors text-newTextColor relative items-center flex gap-[10px] cursor-pointer'
                 )}
               >
                 <div>

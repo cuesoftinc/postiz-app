@@ -88,7 +88,7 @@ export const ToolbarField: FC<{
  * (contract control radius), brand-blue focus border.
  */
 const controlClassName =
-  'bg-newBgColorInner h-[36px] border border-newTableBorder rounded-[6px] px-[10px] text-[14px] text-textColor outline-none focus:border-[#325ea6]';
+  'bg-newBgColorInner h-[36px] border border-newTableBorder rounded-[6px] px-[10px] text-[14px] text-newTextColor outline-none focus:border-[#325ea6]';
 
 /** ToolbarSelect — a styled native <select>; pass min-width etc. via className. */
 export const ToolbarSelect: FC<
@@ -162,7 +162,7 @@ export const SegmentedControl: FC<{
               'h-[36px] px-[12px] rounded-[6px] text-[13px] border cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
               value === option.value
                 ? 'bg-forth text-white border-forth'
-                : 'bg-newBgColorInner text-textColor border-newTableBorder hover:bg-tableBorder',
+                : 'bg-newBgColorInner text-newTextColor border-newTableBorder hover:bg-tableBorder',
               itemClassName
             )}
           >

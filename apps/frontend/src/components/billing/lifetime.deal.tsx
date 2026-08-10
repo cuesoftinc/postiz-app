@@ -112,7 +112,7 @@ export const LifetimeDeal = () => {
           {user?.totalChannels > 8 ? 'EXTRA' : user?.tier?.current}
         </div>
 
-        <div className="flex flex-col gap-[10px] justify-center text-[16px] text-customColor18">
+        <div className="flex flex-col gap-[10px] justify-center text-[16px] text-newTextColor">
           {features.map((feature) => (
             <div key={feature} className="flex gap-[20px]">
               <div>
@@ -126,7 +126,7 @@ export const LifetimeDeal = () => {
                   strokeWidth="2.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-[#06ff00]"
+                  className="text-[#2f7d44]"
                 >
                   <circle cx="12" cy="12" r="10" />
                   <path d="m9 12 2 2 4-4" />
@@ -150,7 +150,7 @@ export const LifetimeDeal = () => {
             : 'STANDARD'}
         </div>
 
-        <div className="flex flex-col gap-[10px] justify-center text-[16px] text-customColor18">
+        <div className="flex flex-col gap-[10px] justify-center text-[16px] text-newTextColor">
           {(user?.tier?.current === 'PRO'
             ? [`${(user?.totalChannels || 0) + 5} channels`]
             : nextFeature
@@ -167,7 +167,7 @@ export const LifetimeDeal = () => {
                   strokeWidth="2.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-[#06ff00]"
+                  className="text-[#2f7d44]"
                 >
                   <circle cx="12" cy="12" r="10" />
                   <path d="m9 12 2 2 4-4" />

@@ -23,15 +23,17 @@ export const CreationMethodBadge: FC<Props> = ({
 
   const sizeClasses =
     size === 'xs'
-      ? 'h-[12px] px-[4px] text-[7px]'
+      ? 'h-[12px] px-[4px]'
       : size === 'md'
-      ? 'h-[22px] px-[10px] text-[12px]'
-      : 'h-[18px] px-[8px] text-[10px]';
+      ? 'h-[22px] px-[10px]'
+      : 'h-[18px] px-[8px]';
 
   return (
     <div
       className={clsx(
-        'inline-flex items-center justify-center rounded-full text-white font-bold uppercase tracking-wide leading-none cursor-default',
+        // small-meta type: 12px/500; the WEB/API/MCP/CLI acronyms are
+        // uppercase content, no CSS uppercase/tracking needed
+        'inline-flex items-center justify-center rounded-full text-white text-[12px] font-[500] leading-none cursor-default',
         sizeClasses,
         creationMethod === 'WEB' && 'bg-[#6b7280]',
         creationMethod === 'API' && 'bg-[#2563eb]',

@@ -230,7 +230,7 @@ const usePostActions = (onMutate?: () => void) => {
         askClose: true,
         fullScreen: true,
         classNames: {
-          modal: 'w-[100%] max-w-[1400px] text-textColor',
+          modal: 'w-[100%] max-w-[1400px] text-newTextColor',
         },
         children: (
           <ExistingData value={data}>
@@ -476,6 +476,13 @@ export const WeekView = () => {
     typeof document === 'undefined'
       ? '3'
       : getCookie('phone-week-span') || '3';
+  // Buffer's phone 7-day week does NOT squeeze seven columns into 390: it
+  // keeps ~100px day columns and scrolls HORIZONTALLY inside the grid
+  // (measured chips 101x31 at 390 with no page overflow). The sideways
+  // overflow lives on the existing overflow-auto scroll container below —
+  // never the page — so position:fixed overlays stay safe. The 3-day span
+  // and desktop keep the exact fit-to-width behavior.
+  const sevenSpan = isPhone && phoneWeekSpan === '7';
   const visibleDays = useMemo(() => {
     if (!isPhone || phoneWeekSpan === '7') {
       return localizedDays.slice(0, 7);
@@ -507,19 +514,32 @@ export const WeekView = () => {
 
   const today = newDayjs();
   return (
-    <div className="flex flex-col text-textColor flex-1">
+    <div className="flex flex-col text-newTextColor flex-1">
       <div className="flex-1 relative">
         <div
           ref={scrollRef}
           className="grid gap-[1px] bg-newGridLine border border-newGridLine rounded-[12px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
           style={{
+            // 7-span phone columns get a 100px floor (7×100 + 48px gutter =
+            // 748px → the overflow-auto container scrolls sideways); 3-day
+            // and desktop stay minmax(0,1fr) fit-to-width
             gridTemplateColumns: isPhone
-              ? `48px repeat(${visibleDays.length}, minmax(0, 1fr))`
+              ? `48px repeat(${visibleDays.length}, ${
+                  sevenSpan ? 'minmax(100px, 1fr)' : 'minmax(0, 1fr)'
+                })`
               : `repeat(${visibleDays.length}, minmax(0, 1fr))`,
           }}
         >
           {isPhone && (
-            <div className="z-[20] bg-newBgColorInner h-[36px] sticky top-0" />
+            // 7-span: the corner spacer pins on BOTH axes (sticky top+start)
+            // and sits above the z-20 day headers so they slide under it
+            // during sideways scroll
+            <div
+              className={clsx(
+                'bg-newBgColorInner h-[36px] sticky top-0 border-b border-newGridLine',
+                sevenSpan ? 'start-0 z-[30]' : 'z-[20]'
+              )}
+            />
           )}
           {visibleDays.map((day) => {
             const isToday = day.date.isSame(today, 'day');
@@ -527,7 +547,7 @@ export const WeekView = () => {
               <div
                 key={day.date.format('YYYY-MM-DD')}
                 className={clsx(
-                  'text-center bg-newBgColorInner flex justify-center items-center gap-[8px] h-[36px] sticky top-0 z-[20] text-[14px]',
+                  'text-center bg-newBgColorInner flex justify-center items-center gap-[8px] h-[36px] sticky top-0 z-[20] text-[14px] border-b border-newGridLine',
                   isToday
                     ? 'font-[500] text-newTableTextFocused border-b-[2px] border-newTableTextFocused'
                     : 'text-newTextColor'
@@ -541,9 +561,19 @@ export const WeekView = () => {
           {hours.map((hour) => (
             <Fragment key={hour}>
               {isPhone && (
-                <div className="relative bg-newBgColorInner">
+                // 7-span: the 48px time gutter pins to the start edge so the
+                // hour labels keep working while the days scroll sideways —
+                // under the z-20 sticky day headers, over the day cells
+                <div
+                  className={clsx(
+                    'bg-newBgColorInner',
+                    sevenSpan ? 'sticky start-0 z-[15]' : 'relative'
+                  )}
+                >
                   {hour % 2 === 0 && (
-                    <div className="absolute end-[6px] top-0 -translate-y-1/2 z-[10] text-[12px] font-[500] text-newTableText pointer-events-none">
+                    // Buffer masks the grid line behind the label with the
+                    // cell background
+                    <div className="absolute end-[6px] top-0 -translate-y-1/2 z-[10] text-[12px] font-[500] text-newTableText pointer-events-none bg-newBgColorInner px-[4px] leading-[16px] rounded-[3px]">
                       {formatHourLabel(hour)}
                     </div>
                   )}
@@ -559,7 +589,8 @@ export const WeekView = () => {
                   className="relative bg-newBgColorInner flex flex-col"
                 >
                   {!isPhone && indexDay === 0 && hour % 2 === 0 && (
-                    <div className="absolute start-[10px] top-0 -translate-y-1/2 z-[10] text-[12px] font-[500] text-newTableText pointer-events-none">
+                    // same line-mask treatment as the phone rail labels
+                    <div className="absolute start-[10px] top-0 -translate-y-1/2 z-[10] text-[12px] font-[500] text-newTableText pointer-events-none bg-newBgColorInner px-[4px] leading-[16px] rounded-[3px]">
                       {formatHourLabel(hour)}
                     </div>
                   )}
@@ -654,7 +685,7 @@ export const MonthView = () => {
   }, [calendarDays]);
 
   return (
-    <div className="flex flex-col text-textColor flex-1">
+    <div className="flex flex-col text-newTextColor flex-1">
       <div className="flex-1 flex relative">
         {/* Buffer rounds the grid corners at 12px (border-separate table w/
             per-corner cell radii — measured 12px 0 0 on the first cell) */}
@@ -674,7 +705,7 @@ export const MonthView = () => {
           {localizedDays.map((day) => (
             <div
               key={day.full}
-              className="z-[20] p-2 bg-newBgColorInner flex justify-center items-center flex-col h-full sticky top-0 min-w-0 overflow-hidden"
+              className="z-[20] p-2 bg-newBgColorInner flex justify-center items-center flex-col h-full sticky top-0 min-w-0 overflow-hidden border-b border-newGridLine"
             >
               <div className="text-[14px] font-[500] text-newTextColor/70">
                 <span className="phone:hidden">{day.full}</span>
@@ -710,7 +741,35 @@ export const ListView = () => {
   const t = useT();
   const user = useUser();
   const modal = useModals();
-  const { integrations, loading, listPosts, listState } = useCalendar();
+  const fetch = useFetch();
+  const { integrations, loading, listPosts, listState, reloadCalendarView } =
+    useCalendar();
+  // Approvals: schedule the whole feed behind one confirm (user-requested
+  // "approve all"); each post goes through the same status route the
+  // per-card Approve uses
+  const approveAll = useCallback(async () => {
+    if (
+      !(
+        await deleteDialog(
+          t(
+            'approve_all_description',
+            `Approve all ${listPosts.length} posts? They will be scheduled at their planned times.`
+          ),
+          t('yes_approve_all', 'Yes, approve all!'),
+          t('approve_all', 'Approve all')
+        )
+      )
+    ) {
+      return;
+    }
+    for (const post of listPosts) {
+      await fetch(`/posts/${post.id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'schedule' }),
+      });
+    }
+    reloadCalendarView();
+  }, [listPosts, fetch, reloadCalendarView, t]);
   const emptyMessage =
     listState === 'scheduled'
       ? t('no_upcoming_posts', 'No posts in your queue')
@@ -785,7 +844,7 @@ export const ListView = () => {
   if (loading) {
     return (
       <div className="flex flex-col flex-1 items-center justify-center">
-        <div className="text-textColor">{t('loading', 'Loading...')}</div>
+        <div className="text-newTextColor">{t('loading', 'Loading...')}</div>
       </div>
     );
   }
@@ -813,7 +872,7 @@ export const ListView = () => {
             <path d="M16 17H8" />
           </svg>
         </div>
-        <div className="text-[16px] font-[600] text-newTextColor">
+        <div className="text-[16px] font-[550] text-newTextColor">
           {emptyMessage}
         </div>
         <div className="text-[14px] text-newTextColor/60">{emptySubline}</div>
@@ -826,12 +885,37 @@ export const ListView = () => {
     // min-w-0: as a flex item this column's min-width:auto otherwise pins it
     // at content width (573px measured at 390) and the right side clips
     <div className="flex flex-col flex-1 min-w-0">
+      {listState === 'approvals' && listPosts.length > 0 && (
+        <div className="flex justify-end mb-[8px]">
+          <button
+            type="button"
+            onClick={approveAll}
+            data-cs
+            className="h-[32px] px-[12px] rounded-[8px] bg-btnPrimary text-black flex items-center gap-[6px] text-[14px] font-[500] hover:opacity-90 transition-opacity duration-150"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6 7 17l-5-5" />
+              <path d="m22 10-7.5 7.5L13 16" />
+            </svg>
+            {t('approve_all', 'Approve all')} ({listPosts.length})
+          </button>
+        </div>
+      )}
       {groupedPosts.map(([dateKey, datePosts]) => (
         <Fragment key={dateKey}>
           {/* Buffer §Queue two-tone header: weekday prefix bold/bright, date
               muted. Today/Tomorrow is pure presentation of the same date. */}
           <div className="text-start text-[16px] mt-[32px] first:mt-[8px] mb-[16px] px-[10px]">
-            <span className="font-[600] text-newTextColor">
+            <span className="font-[550] text-newTextColor">
               {(newDayjs(dateKey).isSame(displayNow, 'day')
                 ? t('today', 'Today')
                 : newDayjs(dateKey).isSame(displayNow.add(1, 'day'), 'day')
@@ -1155,7 +1239,7 @@ export const CalendarColumn: FC<{
       askClose: true,
       fullScreen: true,
       classNames: {
-        modal: 'w-[100%] max-w-[1400px] text-textColor',
+        modal: 'w-[100%] max-w-[1400px] text-newTextColor',
       },
       children: (
         <AddEditModal
@@ -1225,7 +1309,9 @@ export const CalendarColumn: FC<{
       ref={drop as any}
     >
       {display === 'month' && (
-        <div className="pt-[6px] px-[8px] text-[14px] font-[500] text-start flex items-center">
+        // Buffer month cell (measured): number sits 12px from the top in a
+        // 24px line box, 13px left inset, 4px gap to the first chip
+        <div className="pt-[12px] px-[12px] h-[36px] text-[14px] font-[500] text-start flex items-center">
           {/* Buffer three-tone day numbers; today = filled circle (their green
               -> our lime; the global primary-surface rule paints black ink) */}
           <span
@@ -1248,7 +1334,15 @@ export const CalendarColumn: FC<{
         // cell's top-right, visible only while the cell is hovered
         <div
           onClick={integrations.length ? addModal : addProvider}
-          className="phone:hidden absolute top-[6px] end-[6px] z-[30] w-[24px] h-[24px] rounded-[6px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center cursor-pointer opacity-0 pointer-events-none group-hover/cell:opacity-100 group-hover/cell:pointer-events-auto transition-opacity duration-150"
+          className={clsx(
+            // Buffer week cells (user-verified): + rides TOP-right while the
+            // cell is empty, BOTTOM-right once the cell has content; month
+            // cells keep it top-right
+            display === 'week' && postList.length > 0
+              ? 'bottom-[6px]'
+              : 'top-[6px]',
+            'phone:hidden absolute end-[6px] z-[30] w-[24px] h-[24px] rounded-[6px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center cursor-pointer opacity-0 pointer-events-none group-hover/cell:opacity-100 group-hover/cell:pointer-events-auto hover:bg-boxHover transition-all duration-150'
+          )}
         >
           <svg
             width="14"
@@ -1293,7 +1387,7 @@ export const CalendarColumn: FC<{
             <div
               key={post.id}
               className={clsx(
-                'text-textColor relative flex flex-col justify-center items-center',
+                'text-newTextColor relative flex flex-col justify-center items-center',
                 display === 'week' ? 'py-[4px] px-[10px]' : 'py-[2px] px-[6px]'
               )}
             >
@@ -1332,14 +1426,17 @@ export const CalendarColumn: FC<{
                 </span>
               </div>
               {display === 'month' && (
-                // Buffer phone month overflow: a bordered '+N' pill centered
-                // in the ~51px column — display-only, NOT clickable (no
-                // Show less at 390); pointer-events-none keeps taps falling
-                // through to nothing rather than expanding
-                <div className="hidden phone:flex justify-center py-[2px] pointer-events-none">
+                // phone month overflow: bordered '+N' pill (Buffer anatomy)
+                // that EXPANDS the cell on tap (user-requested; the cell
+                // grows in flow like desktop)
+                <div className="hidden phone:flex justify-center py-[2px]">
                   <span
                     data-cs
-                    className="h-[24px] px-[8px] flex items-center justify-center rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[13px] font-[500] text-newTextColor"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      showAllFunc();
+                    }}
+                    className="h-[24px] px-[8px] flex items-center justify-center rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[13px] font-[500] text-newTextColor cursor-pointer hover:bg-boxHover transition-colors duration-150"
                   >
                     +{postList.length - 3}
                   </span>
@@ -1348,18 +1445,34 @@ export const CalendarColumn: FC<{
             </>
           )}
           {showAll && postList.length > 3 && (
-            <div
-              className={clsx(
-                'h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer',
-                // phone month never expands — hide the collapse row too
-                // (reachable only by resizing an expanded desktop view)
-                display === 'month' && 'phone:hidden'
+            <>
+              <div
+                className={clsx(
+                  'h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer',
+                  // phone month collapses via the compact pill below (the
+                  // full label overflows a ~51px column)
+                  display === 'month' && 'phone:hidden'
+                )}
+                onClick={showLessFunc}
+              >
+                <ExpandChevron up />
+                <span>{t('show_less', 'Show less')}</span>
+              </div>
+              {display === 'month' && (
+                <div className="hidden phone:flex justify-center py-[2px]">
+                  <span
+                    data-cs
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      showLessFunc();
+                    }}
+                    className="h-[24px] w-[32px] flex items-center justify-center rounded-[8px] border border-newTableBorder bg-newBgColorInner cursor-pointer hover:bg-boxHover transition-colors duration-150"
+                  >
+                    <ExpandChevron up />
+                  </span>
+                </div>
               )}
-              onClick={showLessFunc}
-            >
-              <ExpandChevron up />
-              <span>{t('show_less', 'Show less')}</span>
-            </div>
+            </>
           )}
         </div>
         {!isBeforeNow && (
@@ -1726,7 +1839,7 @@ const CalendarItem: FC<{
     >
       {state === 'ERROR' && (
         <div
-          className="absolute -top-[6px] -left-[6px] z-20 w-[18px] h-[18px] rounded-full bg-red-500 flex items-center justify-center text-white text-[11px] font-bold cursor-pointer"
+          className="absolute -top-[6px] -left-[6px] z-20 w-[18px] h-[18px] rounded-full bg-red-500 flex items-center justify-center text-white text-[11px] font-[650] cursor-pointer"
           data-tooltip-id="tooltip"
           data-tooltip-content={post.error || 'An error occurred while publishing this post'}
         >
@@ -1747,7 +1860,7 @@ const CalendarItem: FC<{
               touch keeps :hover alive and the pills read as stray dots */}
           <div
             className={clsx(
-              'phone:hidden text-[11px] max-h-[24px] h-[24px] min-h-[24px] w-full rounded-tr-[10px] rounded-tl-[10px] flex items-center justify-center gap-[10px] px-[5px] bg-btnPrimary'
+              'phone:hidden text-[12px] max-h-[24px] h-[24px] min-h-[24px] w-full rounded-tr-[10px] rounded-tl-[10px] flex items-center justify-center gap-[10px] px-[5px] bg-btnPrimary'
             )}
             style={{
               backgroundColor: post?.tags?.[0]?.tag?.color,
@@ -1819,7 +1932,7 @@ const CalendarItem: FC<{
               fallback="placeholder"
               className="min-w-[32px] min-h-[32px]"
             />
-            <div className="text-[14px] font-[600] text-newTextColor truncate text-start">
+            <div className="text-[14px] font-[550] text-newTextColor truncate text-start">
               {post.integration.name}
             </div>
             {post.tags.length > 0 && (
@@ -1888,7 +2001,7 @@ const CalendarItem: FC<{
           <div className="h-[1px] bg-newTableBorder" />
           <div className="flex items-center gap-[8px] px-[16px] py-[8px]">
             <div className="flex-1 min-w-0 text-[14px] text-start truncate">
-              <span className="font-[600] text-newTextColor">
+              <span className="font-[550] text-newTextColor">
                 {t('you_created_this', 'You created this')}
               </span>{' '}
               <span className="text-newTextColor/60">
@@ -2045,8 +2158,11 @@ const CalendarItem: FC<{
         className={clsx(
           'w-full flex text-[14px] bg-newColColor border border-newTableBorder relative cursor-pointer',
           // Buffer hover (desktop, user-flagged): pills/cards lift to white
-          // with a soft shadow
-          'hover:bg-white hover:shadow-[0_2px_8px_rgba(43,32,17,0.14)] transition-shadow duration-150',
+          // with a soft shadow — this wrapper is shared by BOTH month pills
+          // and week cards, so the hover covers both; guarded to
+          // hover-capable pointers so phone taps never latch a sticky
+          // white/shadow state on the touch grid
+          '[@media(hover:hover)]:hover:bg-white [@media(hover:hover)]:hover:shadow-[0_2px_8px_rgba(43,32,17,0.14)] transition-shadow duration-150',
           // Buffer month pill: 33px tall, r8, hairline border, 4px pad.
           // Phone month (Buffer, screenshots at 390): the pill compacts to a
           // 30×30 r6 hairline mini-tile with the 20px platform icon centered
@@ -2060,9 +2176,10 @@ const CalendarItem: FC<{
           // made tall content bleed across the grid line; sized to content,
           // the auto row grows instead.
           // Phone (Buffer screenshots): the card compacts to a single-row
-          // 36px chip — icon + time only (snippet/thumb hidden below)
+          // 32px chip (Buffer measured 31px) — icon + time only
+          // (snippet/thumb hidden below); r8, 18px icon, 15/400 time
           display === 'week' &&
-            'flex-col rounded-[10px] p-[10px] items-start gap-[6px] phone:flex-row phone:items-center phone:gap-[6px] phone:h-[36px] phone:min-h-0 phone:rounded-[8px] phone:px-[8px] phone:py-0 phone:overflow-hidden'
+            'flex-col rounded-[10px] p-[10px] items-start gap-[6px] phone:flex-row phone:items-center phone:gap-[6px] phone:h-[32px] phone:min-h-0 phone:rounded-[8px] phone:px-[8px] phone:py-0 phone:overflow-hidden'
         )}
       >
         {display === 'month' ? (
@@ -2184,7 +2301,7 @@ const DebugJsonModal: FC<{ post: any }> = ({ post }) => {
 
   return (
     <ModalBody>
-      <div className="text-textColor text-[14px]">
+      <div className="text-newTextColor text-[14px]">
         {t('debug_choose_copy', 'Choose what you want to copy')}
       </div>
       <div className="flex gap-[10px]">
@@ -2343,7 +2460,7 @@ export const SetSelectionModal: FC<{
       <div className="flex gap-2 pt-2 border-t border-newTableBorder">
         <button
           onClick={onContinueWithoutSet}
-          className="flex-1 px-4 py-2 text-textColor border border-newTableBorder rounded-[8px] transition-colors hover:bg-boxHover"
+          className="flex-1 px-4 py-2 text-newTextColor border border-newTableBorder rounded-[8px] transition-colors hover:bg-boxHover"
         >
           {t('continue_without_set', 'Continue without set')}
         </button>
