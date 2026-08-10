@@ -536,8 +536,20 @@ export const ListView = () => {
       <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
         {groupedPosts.map(([dateKey, datePosts]) => (
           <Fragment key={dateKey}>
+            {/* Buffer §Queue two-tone header: weekday prefix bright, rest muted
+                (tones live in global.scss, keyed to this element's classes).
+                Today/Tomorrow is pure presentation of the same date. */}
             <div className="text-start text-[17px] text-newTextColor font-[500] mt-[32px] first:mt-[8px] mb-[12px] px-[10px]">
-              {newDayjs(dateKey).format(isUSCitizen() ? 'dddd, MMMM D, YYYY' : 'dddd, D MMMM YYYY')}
+              <span>
+                {(newDayjs(dateKey).isSame(newDayjs(), 'day')
+                  ? t('today', 'Today')
+                  : newDayjs(dateKey).isSame(newDayjs().add(1, 'day'), 'day')
+                  ? t('tomorrow', 'Tomorrow')
+                  : newDayjs(dateKey).format('dddd')) + ','}
+              </span>{' '}
+              <span>
+                {newDayjs(dateKey).format(isUSCitizen() ? 'MMMM D' : 'D MMMM')}
+              </span>
             </div>
             <div className="cs-queue flex flex-col gap-[12px] mb-[16px] px-[10px]">
               {datePosts.map((post) => (

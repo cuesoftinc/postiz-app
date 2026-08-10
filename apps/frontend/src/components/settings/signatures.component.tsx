@@ -60,14 +60,18 @@ export const SignaturesComponent: FC<{
 
   return (
     <div className="flex flex-col">
-      <h3 className="text-[20px]">{t('signatures', 'Signatures')}</h3>
-      <div className="text-customColor18 mt-[4px]">
+      {/* data-cs: the desktop ladder would pin text-[24px] to 20px; the phone
+          ladder still steps it down to 18px */}
+      <h3 data-cs className="text-[24px] font-[500] font-display">
+        {t('signatures', 'Signatures')}
+      </h3>
+      <div className="text-[14px] text-textItemBlur mt-[4px]">
         {t(
           'you_can_add_signatures_to_your_account_to_be_used_in_your_posts',
           'You can add signatures to your account to be used in your posts.'
         )}
       </div>
-      <div className="my-[16px] mt-[16px] bg-sixth border-fifth items-center border rounded-[4px] p-[24px] flex gap-[24px]">
+      <div className="my-[16px] pt-[16px] border-t border-newTableBorder items-center flex gap-[16px]">
         <div className="flex flex-col w-full">
           {!!data?.length && (
             <div
@@ -77,13 +81,23 @@ export const SignaturesComponent: FC<{
                   : 'grid-cols-[1fr,1fr,1fr,1fr]'
               } w-full gap-y-[10px]`}
             >
-              <div>{t('content', 'Content')}</div>
-              <div className="text-center">{t('auto_add', 'Auto Add?')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">
+                {t('content', 'Content')}
+              </div>
+              <div className="text-center text-[13px] font-[500] text-textItemBlur">
+                {t('auto_add', 'Auto Add?')}
+              </div>
               {!!appendSignature && (
-                <div className="text-center">{t('actions', 'Actions')}</div>
+                <div className="text-center text-[13px] font-[500] text-textItemBlur">
+                  {t('actions', 'Actions')}
+                </div>
               )}
-              <div className="text-center">{t('edit', 'Edit')}</div>
-              <div className="text-center">{t('delete', 'Delete')}</div>
+              <div className="text-center text-[13px] font-[500] text-textItemBlur">
+                {t('edit', 'Edit')}
+              </div>
+              <div className="text-center text-[13px] font-[500] text-textItemBlur">
+                {t('delete', 'Delete')}
+              </div>
               {data?.map((p: any) => (
                 <Fragment key={p.id}>
                   <div className="relative flex-1 me-[20px] overflow-x-hidden">
@@ -98,21 +112,24 @@ export const SignaturesComponent: FC<{
                   </div>
                   {!!appendSignature && (
                     <div className="flex justify-center">
-                      <Button onClick={() => appendSignature(p.content)}>
+                      <Button
+                        secondary={true}
+                        onClick={() => appendSignature(p.content)}
+                      >
                         {t('use_signature', 'Use Signature')}
                       </Button>
                     </div>
                   )}
                   <div className="flex justify-center">
                     <div>
-                      <Button onClick={addSignature(p)}>
+                      <Button secondary={true} onClick={addSignature(p)}>
                         {t('edit', 'Edit')}
                       </Button>
                     </div>
                   </div>
                   <div className="flex justify-center">
                     <div>
-                      <Button onClick={deleteSignature(p)}>
+                      <Button secondary={true} onClick={deleteSignature(p)}>
                         {t('delete', 'Delete')}
                       </Button>
                     </div>
@@ -123,6 +140,7 @@ export const SignaturesComponent: FC<{
           )}
           <div>
             <Button
+              secondary={true}
               onClick={addSignature()}
               className={clsx((data?.length || 0) > 0 && 'my-[16px]')}
             >

@@ -273,7 +273,7 @@ export const ThirdPartyMediaLibrary: FC<{
           ),
         });
       }}
-      className="cursor-pointer bg-btnSimple changeColor flex gap-[8px] h-[44px] px-[18px] justify-center items-center rounded-[8px]"
+      className="cursor-pointer bg-newBgColorInner border border-newTableBorder hover:bg-boxHover changeColor flex gap-[8px] h-[36px] px-[14px] justify-center items-center rounded-[8px]"
     >
       <svg
         width="14"

@@ -65,23 +65,23 @@ const ShortlinkPreferenceComponent = () => {
 
   if (isLoading) {
     return (
-      <div className="my-[16px] mt-[16px] bg-sixth border-fifth border rounded-[4px] p-[24px]">
+      <div className="my-[16px] pt-[16px] border-t border-newTableBorder">
         <div className="animate-pulse">{t('loading', 'Loading...')}</div>
       </div>
     );
   }
 
   return (
-    <div className="my-[16px] mt-[16px] bg-sixth border-fifth border rounded-[4px] p-[24px] flex flex-col gap-[24px]">
-      <div className="mt-[4px]">
+    <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
+      <div className="text-[15px] font-[600]">
         {t('shortlink_settings', 'Shortlink Settings')}
       </div>
       <div className="flex items-center justify-between gap-[24px]">
         <div className="flex flex-col flex-1">
-          <div className="text-[14px]">
+          <div className="text-[14px] font-[500]">
             {t('shortlink_preference', 'Shortlink Preference')}
           </div>
-          <div className="text-[12px] text-customColor18">
+          <div className="text-[14px] text-textItemBlur">
             {t(
               'shortlink_preference_description',
               'Control how URLs in your posts are handled. Shortlinks provide click statistics.'

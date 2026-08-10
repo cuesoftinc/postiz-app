@@ -100,16 +100,18 @@ export const Plugs = () => {
         <div>
           <img src="/peoplemarketplace.svg" />
         </div>
-        <div className="text-[48px]">
+        <div className="text-[16px] font-[600] font-display text-center">
           {t(
             'there_are_not_plugs_matching_your_channels',
             'There are not plugs matching your channels'
           )}
           <br />
-          {t(
-            'you_have_to_add_x_linkedin_page_threads_or_bluesky',
-            'You have to add: X, LinkedIn Page, Threads or Bluesky'
-          )}
+          <span className="text-[14px] font-[400] font-sans text-newTextColor/60">
+            {t(
+              'you_have_to_add_x_linkedin_page_threads_or_bluesky',
+              'You have to add: X, LinkedIn Page, Threads or Bluesky'
+            )}
+          </span>
         </div>
         <Button onClick={() => router.push('/launches')}>
           {t(

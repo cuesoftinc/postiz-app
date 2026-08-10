@@ -1037,8 +1037,12 @@ button { white-space: nowrap; }
   background-color: var(--new-bgColorInner) !important; /* elevated, like Buffer */
   border-color: transparent !important;
 }
-/* Buffer parity: time as a left gutter column, muted */
-[class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] > div:last-child:not(:only-child) {
+/* Buffer parity: time as a left gutter column, muted. Keyed on the time
+   element's `whitespace-nowrap` (unique among the card-body children; only
+   ListView passes showTime): a bare `div:last-child:not(:only-child)` also
+   caught the post-copy wrapper in the day/week/month cards — no time div
+   there — and reordered/muted the copy. */
+[class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] > div[class*="whitespace-nowrap"]:last-child:not(:only-child) {
   order: -1;
   min-width: 76px;
   justify-content: flex-start !important;
@@ -1047,10 +1051,22 @@ button { white-space: nowrap; }
 }
 [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] img { margin-inline-end: 4px; }
 
-/* list view day headers (Buffer §Queue): sentence case 17px/500 in the primary
-   ink with a generous top margin — styled inline on the element in calendar.tsx
-   (ListView). The old muted-uppercase-with-divider rule that lived here
-   anchored on `mt-[10px]`, which no longer exists in the markup. */
+/* list view day headers (Buffer §Queue): sentence case 17px/500 with a
+   generous top margin — size/spacing styled inline on the element in
+   calendar.tsx (ListView), which renders two spans: weekday prefix
+   ("Today," / "Monday,") then the rest of the date. Buffer two-tone: the
+   container goes muted and the weekday span keeps the primary ink. Anchored to
+   the header's own class strings (`text-[17px]` is unique to it — grepped);
+   the attribute pair out-specifies the element's `text-newTextColor` utility,
+   which stays on as the no-scss fallback. The old muted-uppercase-with-divider
+   rule that lived here anchored on `mt-[10px]`, which no longer exists in the
+   markup. */
+[class*="text-[17px]"][class*="mt-[32px]"][class*="mb-[12px]"] {
+  color: var(--new-textItemBlur);
+}
+[class*="text-[17px]"][class*="mt-[32px]"][class*="mb-[12px]"] > span:first-child {
+  color: rgb(var(--new-textColor));
+}
 
 /* ===== Mobile (<768px) =====
    The shell is desktop-only: the nav column is `position: fixed` at a hardcoded

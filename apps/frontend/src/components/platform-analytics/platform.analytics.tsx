@@ -18,7 +18,6 @@ import {
   useSidePanelCollapse,
 } from '@gitroom/frontend/components/new-layout/side-panel-header';
 import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
-import { ToolbarSelect } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
 const allowedIntegrations = [
   'facebook',
   'instagram',
@@ -209,19 +208,39 @@ export const PlatformAnalytics = () => {
       <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
         {!!options.length && (
           <div className="flex-1 flex flex-col gap-[14px]">
-            <div className="max-w-[200px]">
-              <ToolbarSelect
-                name="date"
-                value={keys}
-                onChange={(e) => setKey(+e.target.value)}
-                className="w-full"
-              >
-                {options.map((option) => (
-                  <option key={option.key} value={option.key}>
-                    {option.value}
-                  </option>
-                ))}
-              </ToolbarSelect>
+            {/* Buffer Insights date-range chip row: active = green chip
+                (boxFocused/textItemFocused mirrors on both themes), inactive =
+                hairline chip, muted text, white-alpha hover fill. Same setter
+                (setKey) + same option keys the old ToolbarSelect drove — the
+                option set is the existing bounded 7/30/90 per-platform list. */}
+            <div className="flex flex-wrap items-center gap-[8px]">
+              {options.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setKey(option.key)}
+                  className={clsx(
+                    'h-[32px] px-[14px] rounded-[8px] border text-[14px] whitespace-nowrap cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
+                    keys === option.key
+                      ? 'bg-boxFocused text-textItemFocused border-transparent font-[500]'
+                      : 'text-textItemBlur border-newTableBorder hover:bg-newTableBorder'
+                  )}
+                >
+                  {option.value}
+                </button>
+              ))}
+            </div>
+            {/* Buffer Insights "Summary" section header: title 18/600 (data-cs
+                keeps the ladder from forcing 18 -> 16, same as the composer
+                title) + muted 14px date-range line from the existing selected
+                option — no computed dates, no compared-to (no such data). */}
+            <div className="flex flex-col gap-[2px]">
+              <div data-cs className="text-[18px] font-display font-[600]">
+                {t('summary', 'Summary')}
+              </div>
+              <div className="text-[14px] text-textItemBlur">
+                {options.find((option) => option.key === keys)?.value}
+              </div>
             </div>
             <div className="flex-1">
               {!!keys && !!currentIntegration && !refresh && (

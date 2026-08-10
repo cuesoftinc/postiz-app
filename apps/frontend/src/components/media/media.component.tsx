@@ -401,11 +401,11 @@ export const MediaBox: FC<{
       <button
         disabled={loading}
         onClick={() => uploaderRef?.current?.click()}
-        className="relative cursor-pointer bg-btnSimple changeColor flex gap-[8px] h-[44px] px-[18px] justify-center items-center rounded-[8px]"
+        className="relative cursor-pointer bg-newBgColorInner border border-newTableBorder hover:bg-boxHover changeColor flex gap-[8px] h-[36px] px-[14px] text-[14px] justify-center items-center rounded-[8px]"
       >
         {loading ? (
           <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
-            <div className="animate-spin h-[20px] w-[20px] border-4 border-white border-t-transparent rounded-full" />
+            <div className="animate-spin h-[20px] w-[20px] border-4 border-current border-t-transparent rounded-full" />
           </div>
         ) : (
           <PlusIcon size={14} />
@@ -433,7 +433,7 @@ export const MediaBox: FC<{
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('search_media_by_name', 'Search by file name')}
-              className="w-full h-[44px] px-[14px] rounded-[8px] bg-newBgColorInner border border-newColColor text-[14px] outline-none focus:border-forth"
+              className="w-full h-[36px] px-[10px] rounded-[6px] bg-newBgColorInner border border-newTableBorder text-[14px] text-textColor outline-none focus:border-forth"
             />
           </div>
           <input
@@ -474,7 +474,7 @@ export const MediaBox: FC<{
         >
           <div
             className={clsx(
-              'absolute -left-[3px] -top-[3px] withp3 h-full overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner',
+              'absolute -left-[8px] -top-[8px] w-[calc(100%+16px)] h-[calc(100%+16px)] overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner',
               !isLoading && !data?.results?.length && 'flex'
             )}
           >
@@ -519,7 +519,7 @@ export const MediaBox: FC<{
                 {[...new Array(16)].map((_, i) => (
                   <div
                     className={clsx(
-                      'px-[3px] py-[3px] float-left rounded-[6px] cursor-pointer w8-max aspect-square'
+                      'p-[8px] float-left rounded-[6px] cursor-pointer w8-max aspect-square'
                     )}
                     key={i}
                   >
@@ -540,7 +540,7 @@ export const MediaBox: FC<{
               .map((media: any) => (
                 <div
                   className={clsx(
-                    'group px-[3px] py-[3px] float-left rounded-[6px] w8-max aspect-square',
+                    'group p-[8px] float-left rounded-[6px] w8-max aspect-square',
                     !standalone && 'cursor-pointer'
                   )}
                   key={media.id}
@@ -613,7 +613,7 @@ export const MediaBox: FC<{
           <div className="flex justify-end mt-[32px] gap-[8px]">
             <button
               onClick={() => modals.closeCurrent()}
-              className="cursor-pointer h-[52px] px-[20px] items-center justify-center border border-newTextColor/10 flex rounded-[10px]"
+              className="cursor-pointer h-[40px] px-[16px] text-[14px] items-center justify-center border border-newTableBorder flex rounded-[8px] hover:bg-boxHover"
             >
               {t('cancel', 'Cancel')}
             </button>
@@ -621,7 +621,7 @@ export const MediaBox: FC<{
               <button
                 onClick={standalone ? () => {} : addMedia}
                 disabled={selected.length === 0}
-                className="cursor-pointer text-white disabled:opacity-80 disabled:cursor-not-allowed h-[52px] px-[20px] items-center justify-center bg-btnPrimary flex rounded-[10px]"
+                className="cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed h-[40px] px-[16px] text-[14px] font-[600] items-center justify-center bg-btnPrimary flex rounded-[8px]"
               >
                 {t('add_selected_media', 'Add selected media')}
               </button>
@@ -828,7 +828,7 @@ export const MultiMediaComponent: FC<{
             </ReactSortable>
           )}
         </div>
-        <div className="flex gap-[8px] px-[12px] border-t border-newColColor w-full b1 text-textColor">
+        <div className="flex gap-[8px] px-[12px] border-t border-newTableBorder w-full b1 text-textColor">
           {!mediaNotAvailable && (
             <div className="flex py-[10px] b2 items-center gap-[4px]">
               <div
@@ -978,9 +978,9 @@ export const MediaComponent: FC<{
   return (
     <div className="flex flex-col gap-[8px]">
       <div className="text-[14px]">{label}</div>
-      <div className="text-[12px]">{description}</div>
+      <div className="text-[12px] text-newTextColor/60">{description}</div>
       {!!currentMedia && (
-        <div className="my-[20px] cursor-pointer w-[200px] h-[200px] border-2 border-tableBorder">
+        <div className="my-[20px] cursor-pointer w-[200px] h-[200px] border border-newTableBorder rounded-[8px] overflow-hidden">
           <img
             className="w-full h-full object-cover"
             src={currentMedia.path}

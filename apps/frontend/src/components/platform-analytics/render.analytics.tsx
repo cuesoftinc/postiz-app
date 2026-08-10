@@ -59,64 +59,34 @@ const AnalyticsCard: FC<{
   const hasDataPoints = item.data.length >= 1;
 
   return (
-    <div className="group relative">
-      <div
-        className={`
-          flex flex-col h-full
-          bg-newTableHeader
-          border border-newTableBorder
-          rounded-[12px]
-          overflow-hidden
-          transition-all duration-200
-          hover:border-[#325ea6]/50
-        `}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-[16px] pt-[14px] pb-[8px]">
-          <div className="flex items-center gap-[10px]">
-            <div
-              className={`
-                w-[8px] h-[8px] rounded-full
-                ${color === 'purple' ? 'bg-btnPrimary' : ''}
-                ${color === 'green' ? 'bg-[#32d583]' : ''}
-                ${color === 'blue' ? 'bg-[#1d9bf0]' : ''}
-              `}
-            />
-            <span className="text-[15px] font-medium text-newTableText">
-              {item.label}
-            </span>
-          </div>
+    /* Buffer Insights stat tile: hairline card radius 12, label 14 muted on
+       top, big number (26px sits between Buffer's measured 24-28 and is not a
+       ladder token, so it renders as written), delta beside the number ONLY
+       when the API already returned percentageChange. The sparkline keeps the
+       existing per-metric chart data below the number. */
+    <div className="flex flex-col h-full bg-newTableHeader border border-newTableBorder rounded-[12px] overflow-hidden">
+      <div className="flex flex-col gap-[6px] px-[16px] pt-[16px] pb-[8px]">
+        <span className="text-[14px] text-textItemBlur">{item.label}</span>
+        <div className="flex items-center gap-[10px]">
+          <span className="text-[26px] leading-[32px] font-[600] tracking-tight">
+            {total}
+          </span>
           {item.percentageChange !== undefined && (
-            <TrendIndicator value={item.percentageChange} average={item.average} />
+            <TrendIndicator
+              value={item.percentageChange}
+              average={item.average}
+            />
           )}
         </div>
-
-        {/* Content */}
-        {hasDataPoints ? (
-          <>
-            {/* Chart */}
-            <div className="flex-1 px-[12px] py-[8px]">
-              <div className="h-[120px] relative">
-                <ChartSocial data={item.data} color={color} key={`chart-${index}`} />
-              </div>
-            </div>
-
-            {/* Value */}
-            <div className="px-[16px] pb-[14px]">
-              <div className="text-[36px] leading-[42px] font-semibold tracking-tight">
-                {total}
-              </div>
-            </div>
-          </>
-        ) : (
-          /* Single value display */
-          <div className="flex-1 flex flex-col items-center justify-center py-[32px] px-[16px]">
-            <div className="text-[48px] leading-[56px] font-semibold tracking-tight">
-              {total}
-            </div>
-          </div>
-        )}
       </div>
+
+      {hasDataPoints && (
+        <div className="flex-1 px-[12px] pb-[12px]">
+          <div className="h-[96px] relative">
+            <ChartSocial data={item.data} color={color} key={`chart-${index}`} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -148,7 +118,7 @@ const EmptyState: FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
       </p>
       <button
         onClick={onRefresh}
-        className="inline-flex items-center gap-[6px] px-[16px] py-[8px] text-[14px] font-medium text-white bg-btnPrimary hover:bg-[#a9e662] rounded-[8px] transition-colors"
+        className="inline-flex items-center gap-[6px] px-[16px] py-[8px] text-[14px] font-medium text-textItemFocused bg-btnPrimary hover:bg-[#a9e662] rounded-[8px] transition-colors"
       >
         <svg
           width="16"
@@ -236,8 +206,11 @@ export const RenderAnalytics: FC<{
     );
   }
 
+  // Buffer Summary tile row; project breakpoints (default sm/lg emit nothing
+  // here — mobile/phone are the working variants, phone declared later so it
+  // wins when both match).
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
+    <div className="grid grid-cols-3 mobile:grid-cols-2 phone:grid-cols-1 gap-[16px]">
       {data?.length === 0 && (
         <EmptyState onRefresh={refreshChannel(integration as any)} />
       )}

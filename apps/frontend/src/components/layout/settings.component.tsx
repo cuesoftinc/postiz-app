@@ -3,6 +3,7 @@
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import React, {
   FC,
+  ReactNode,
   Ref,
   useCallback,
   useEffect,
@@ -29,9 +30,78 @@ import { Sets } from '@gitroom/frontend/components/sets/sets';
 import { SignaturesComponent } from '@gitroom/frontend/components/settings/signatures.component';
 import { Autopost } from '@gitroom/frontend/components/autopost/autopost';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { GlobalSettings } from '@gitroom/frontend/components/settings/global.settings';
 import { ApprovedAppsComponent } from '@gitroom/frontend/components/approved-apps/approved-apps.component';
+
+/* Buffer settings sub-nav rows are icon 20 + label 14. Purely presentational:
+   keyed by the EXISTING tab keys — the tab list itself (keys, order,
+   permission gating) is untouched. Stroke icons inherit the row's text color
+   so the muted/active states come for free on both themes. */
+const settingsTabIcons: Record<string, ReactNode> = {
+  global_settings: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M4 7h8m6 0h2M4 12h2m8 0h6M4 17h8m6 0h2" />
+      <circle cx="14" cy="7" r="2" />
+      <circle cx="8" cy="12" r="2" />
+      <circle cx="16" cy="17" r="2" />
+    </svg>
+  ),
+  teams: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="8" r="3.25" />
+      <path d="M3.5 19c.7-3 2.9-4.5 5.5-4.5s4.8 1.5 5.5 4.5" />
+      <circle cx="16.5" cy="9.5" r="2.5" />
+      <path d="M16.5 14.5c2 .3 3.5 1.6 4 4" />
+    </svg>
+  ),
+  webhooks: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.5 13.5a4 4 0 0 0 5.66.34l3-3a4 4 0 0 0-5.66-5.66l-1.2 1.2" />
+      <path d="M13.5 10.5a4 4 0 0 0-5.66-.34l-3 3a4 4 0 0 0 5.66 5.66l1.2-1.2" />
+    </svg>
+  ),
+  autopost: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.25" />
+      <path d="M12 7.5V12l3 2" />
+    </svg>
+  ),
+  sets: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5 20 8l-8 4.5L4 8l8-4.5Z" />
+      <path d="m4 12.5 8 4.5 8-4.5" />
+      <path d="m4 16.5 8 4.5 8-4.5" />
+    </svg>
+  ),
+  signatures: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 5.5l4 4L8.5 19.5h-4v-4L14.5 5.5Z" />
+      <path d="m12.5 7.5 4 4" />
+    </svg>
+  ),
+  api: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m8.5 8.5-4 3.5 4 3.5" />
+      <path d="m15.5 8.5 4 3.5-4 3.5" />
+      <path d="M13.25 5.5 10.75 18.5" />
+    </svg>
+  ),
+  approved_apps: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="4" width="7" height="7" rx="1.5" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </svg>
+  ),
+};
+
+const settingsTabIconFallback: ReactNode = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="8.25" />
+    <path d="m9 12.25 2.25 2.25L15.25 10" />
+  </svg>
+);
 export const SettingsPopup: FC<{
   getRef?: Ref<any>;
 }> = (props) => {
@@ -118,25 +188,26 @@ export const SettingsPopup: FC<{
   return (
     <>
       <div className="bg-newBgColorInner p-[20px] flex flex-col transition-all w-[260px]">
-        <div className="flex flex-1 flex-col gap-[15px]">
+        {/* Buffer settings sub-nav: icon 20 + label 14 rows, radius 8, active =
+            hairline-alpha fill (bg-newBorder mirrors white/black-alpha across
+            themes). The wrapper's `flex flex-col` and the rows' `group/profile`
+            are the global.scss phone chip-strip hooks — do not rename. */}
+        <div className="flex flex-1 flex-col gap-[2px]">
           {list.map(({ tab: tabKey, label }) => (
             <div
               key={tabKey}
               className={clsx(
-                'cursor-pointer flex items-center gap-[12px] group/profile hover:bg-boxHover rounded-e-[8px]',
-                tabKey === tab && 'bg-boxHover'
+                'cursor-pointer flex items-center gap-[10px] group/profile h-[36px] px-[8px] rounded-[8px] text-[14px] transition-colors',
+                tabKey === tab
+                  ? 'bg-newBorder text-newTextColor'
+                  : 'text-textItemBlur hover:bg-boxHover hover:text-newTextColor'
               )}
               onClick={() => setTab(tabKey)}
             >
-              <div
-                className={clsx(
-                  'h-full w-[4px] rounded-s-[3px] opacity-0 group-hover/profile:opacity-100 transition-opacity',
-                  tabKey === tab && 'opacity-100'
-                )}
-              >
-                <SVGLine />
+              <div className="w-[20px] h-[20px] shrink-0 flex items-center justify-center">
+                {settingsTabIcons[tabKey] || settingsTabIconFallback}
               </div>
-              {label}
+              <div className="flex-1 truncate">{label}</div>
             </div>
           ))}
         </div>

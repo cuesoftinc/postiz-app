@@ -32,8 +32,8 @@ const MetricComponent = () => {
     dayjs.tz.setDefault(value);
   };
   return (
-    <div className="my-[16px] mt-[16px] bg-sixth border-fifth border rounded-[4px] p-[24px] flex flex-col gap-[24px]">
-      <div className="mt-[4px]">Date Metrics</div>
+    <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
+      <div className="text-[15px] font-[600]">Date Metrics</div>
       <Select name="metric" disableForm={true} label="" onChange={changeMetric} value={currentMetric ? 'US' : 'GLOBAL'}>
         {dateMetrics.map((metric) => (
           <option

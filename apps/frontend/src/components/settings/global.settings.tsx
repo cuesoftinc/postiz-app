@@ -17,7 +17,12 @@ export const GlobalSettings = () => {
   const t = useT();
   return (
     <div className="flex flex-col">
-      <h3 className="text-[20px]">{t('global_settings', 'Global Settings')}</h3>
+      {/* Buffer settings page title: 24/500 display face. data-cs opts out of
+          the desktop ladder (which would pin text-[24px] to 20px); the phone
+          ladder still steps it down to 18px. */}
+      <h3 data-cs className="text-[24px] font-[500] font-display">
+        {t('global_settings', 'Global Settings')}
+      </h3>
       <MetricComponent />
       <EmailNotificationsComponent />
       <ShortlinkPreferenceComponent />
