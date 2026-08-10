@@ -203,17 +203,17 @@ export const PlugItem: FC<{
     [activated]
   );
   return (
-    // Buffer card chrome: radius 12 + hairline border (the converted-card
-    // recipe: bg-newTableHeader border-newTableBorder — mirrored alpha tokens
-    // on both themes), 15/600 title, muted 14px description.
+    // Kit card chrome: white surface (bg-newBgColorInner) with radius 12 +
+    // newTableBorder hairline, 16/600 title, muted 14px description; the
+    // warm-grey wash (bg-newTableHeader) is demoted to the hover state.
     <div
       onClick={() => addPlug(data)}
       key={plug.title}
-      className="w-full h-[300px] rounded-[12px] border border-newTableBorder bg-newTableHeader hover:bg-newTableBorder cursor-pointer"
+      className="w-full h-[300px] rounded-[12px] border border-newTableBorder bg-newBgColorInner hover:bg-newTableHeader cursor-pointer"
     >
       <div key={plug.title} className="p-[16px] h-full flex flex-col flex-1">
         <div className="flex">
-          <div className="text-[15px] font-[600] mb-[8px] flex-1">
+          <div className="text-[16px] font-[600] mb-[8px] flex-1">
             {plug.title}
           </div>
           {!!data && (

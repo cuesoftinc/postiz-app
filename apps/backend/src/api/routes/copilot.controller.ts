@@ -1,6 +1,7 @@
 import {
   Logger,
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Req,
@@ -8,6 +9,8 @@ import {
   Query,
   Param,
 } from '@nestjs/common';
+import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
+import { User } from '@prisma/client';
 import {
   CopilotRuntime,
   OpenAIAdapter,
@@ -36,6 +39,65 @@ export class CopilotController {
     private _subscriptionService: SubscriptionService,
     private _mastraService: MastraService
   ) {}
+  // Claude Code content bridge (user-approved web surface, ADMIN-ONLY):
+  // pipes the SSE stream from the loopback bridge on the host — see
+  // design-system postiz/bridge/README.md. The spawned sessions are
+  // read-only (Read/Grep/Glob) against the design-system repo.
+  @Post('/content-chat')
+  async contentChat(
+    @Req() req: Request,
+    @Res() res: Response,
+    @GetUserFromRequest() user: User
+  ) {
+    if (!user?.isSuperAdmin) {
+      throw new ForbiddenException('Content chat is admin-only');
+    }
+    const bridgeUrl =
+      process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
+    res.setHeader('content-type', 'text/event-stream');
+    res.setHeader('cache-control', 'no-cache');
+    (res as any).flushHeaders?.();
+    const emitError = (message: string) => {
+      try {
+        res.write(`data: ${JSON.stringify({ type: 'error', message })}\n\n`);
+      } catch {}
+    };
+    const controller = new AbortController();
+    req.on('close', () => controller.abort());
+    try {
+      const upstream = await fetch(`${bridgeUrl}/chat`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(process.env.CONTENT_BRIDGE_TOKEN
+            ? { 'x-bridge-token': process.env.CONTENT_BRIDGE_TOKEN }
+            : {}),
+        },
+        body: JSON.stringify({
+          message: String((req.body as any)?.message || '').slice(0, 8000),
+          sessionId:
+            typeof (req.body as any)?.sessionId === 'string'
+              ? (req.body as any).sessionId
+              : undefined,
+        }),
+        signal: controller.signal,
+      });
+      if (!upstream.ok || !upstream.body) {
+        emitError('Content bridge is offline');
+        return res.end();
+      }
+      const reader = (upstream.body as any).getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(Buffer.from(value));
+      }
+    } catch {
+      emitError('Content bridge is offline');
+    }
+    return res.end();
+  }
+
   @Post('/chat')
   chatAgent(@Req() req: Request, @Res() res: Response) {
     if (

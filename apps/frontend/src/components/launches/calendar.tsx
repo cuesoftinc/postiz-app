@@ -447,8 +447,8 @@ export const WeekView = () => {
   const isPhone = useIsPhone();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Every day of the fetched range (a week on desktop; possibly a whole month
-  // grid range when the phone 3-day view is standing in for month display).
+  // Every day of the fetched week range (the phone rolling 3-day view
+  // slices its window out of this below).
   const localizedDays = useMemo(() => {
     const currentLanguage = i18next.resolvedLanguage || 'en';
     dayjs.locale(currentLanguage);
@@ -540,12 +540,13 @@ export const WeekView = () => {
                 </div>
               )}
               {visibleDays.map((day, indexDay) => (
+                // NO min-height on the grid item — Chrome substitutes it for
+                // the content contribution and pins the row, so stacked cards
+                // paint over the rows below (same bug as the month grid);
+                // the hour floor lives on the day view inside
                 <div
                   key={`${day.date.format('YYYY-MM-DD')}-${hour}`}
-                  className={clsx(
-                    'relative bg-newBgColorInner',
-                    isPhone ? 'min-h-[79px]' : 'min-h-[105px]'
-                  )}
+                  className="relative bg-newBgColorInner flex flex-col"
                 >
                   {!isPhone && indexDay === 0 && hour % 2 === 0 && (
                     <div className="absolute start-[10px] top-0 -translate-y-1/2 z-[10] text-[12px] font-[500] text-newTableText pointer-events-none">
@@ -573,9 +574,11 @@ export const MonthView = () => {
     dayjs.locale(currentLanguage);
 
     const days = [];
-    // Sunday (0) through Saturday (6)
+    // Sunday (0) through Saturday (6); short names for the ~51px phone
+    // columns (same 'ddd' the phone week header uses)
     for (let i = 0; i <= 6; i++) {
-      days.push(newDayjs().day(i).format('dddd'));
+      const day = newDayjs().day(i);
+      days.push({ full: day.format('dddd'), short: day.format('ddd') });
     }
     return days;
   }, [i18next.resolvedLanguage]);
@@ -649,16 +652,23 @@ export const MonthView = () => {
           ref={gridRef}
           // implicit rows stay `auto` — Chrome pins minmax(205px, auto)
           // tracks at the minimum and never grows them with content (verified
-          // live); the 205px floor lives on each cell's min-h instead
-          className="grid grid-cols-7 grid-rows-[36px] gap-[1px] bg-newGridLine border border-newGridLine rounded-[12px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
+          // live); the 205px floor lives on each cell's min-h instead.
+          // Columns are inline (same repeat(7, minmax(0,1fr)) the grid-cols-7
+          // class emits) — global.scss pins `[class*="grid-cols-7"]` to
+          // minmax(88px,1fr) on phone (7×88 = 616px sideways scroll), a
+          // fallback from when phone month was coerced to the 3-day grid;
+          // the month grid is real on phone now (Buffer) and must fit 390.
+          className="grid grid-rows-[36px] gap-[1px] bg-newGridLine border border-newGridLine rounded-[12px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
+          style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}
         >
           {localizedDays.map((day) => (
             <div
-              key={day}
-              className="z-[20] p-2 bg-newBgColorInner flex justify-center items-center flex-col h-full sticky top-0"
+              key={day.full}
+              className="z-[20] p-2 bg-newBgColorInner flex justify-center items-center flex-col h-full sticky top-0 min-w-0 overflow-hidden"
             >
               <div className="text-[14px] font-[500] text-newTextColor/70">
-                {day}
+                <span className="phone:hidden">{day.full}</span>
+                <span className="hidden phone:inline">{day.short}</span>
               </div>
             </div>
           ))}
@@ -897,7 +907,6 @@ export const ListView = () => {
 
 export const Calendar = () => {
   const calendar = useCalendar();
-  const isPhone = useIsPhone();
   const { display } = calendar;
   if (display === 'list') {
     return <ListView />;
@@ -908,16 +917,10 @@ export const Calendar = () => {
   if (display === 'week') {
     return <WeekView />;
   }
-  if (isPhone) {
-    // Buffer phone renders a rolling 3-day hour grid instead of the month
-    // grid. Reuse the week machinery over the already-fetched month range;
-    // display is overridden so the hour cells filter posts per-hour.
-    return (
-      <CalendarContext.Provider value={{ ...calendar, display: 'week' }}>
-        <WeekView />
-      </CalendarContext.Provider>
-    );
-  }
+  // Buffer phone: Month is a REAL 7-column grid (mini-tile chips) — the
+  // rolling 3-day hour grid is what the Week option renders at phone width
+  // (WeekView slices it itself). The view dropdown stays in the phone
+  // toolbar, so display alone decides; no phone coercion here.
   return <MonthView />;
 };
 // Buffer 'N More' / 'Show less' chevron: quiet 16px stroke glyph, muted ink
@@ -1185,11 +1188,16 @@ export const CalendarColumn: FC<{
     <div
       className={clsx(
         'flex flex-col w-full relative group/cell',
-        // month: `grow` (basis auto) — fills the cell when short AND lets
-        // tall content grow the grid track (a % min-height cycles against
-        // the track and pins it at 205px); the 205px row floor lives here
-        // too. Week/day cells are block parents where only min-h-full fills
-        display === 'month' ? 'grow min-h-[205px]' : 'min-h-full',
+        // month/week: `grow` (basis auto) — fills the cell when short AND
+        // lets tall content grow the grid track (a % min-height cycles
+        // against the track and pins it; a min-height on the grid item
+        // itself gets substituted for its content contribution — both pin
+        // the row). The row floors live HERE, inside the grid item.
+        display === 'month'
+          ? 'grow min-h-[205px] phone:min-h-[163px]'
+          : display === 'week'
+          ? 'grow min-h-[105px] phone:min-h-[79px]'
+          : 'min-h-full',
         display === 'month' && isBeforeNow && 'repeated-strip',
         loading && 'animate-pulse',
         // Buffer tint model (user-verified): the past wash is MONTH-only —
@@ -1230,7 +1238,7 @@ export const CalendarColumn: FC<{
         // cell's top-right, visible only while the cell is hovered
         <div
           onClick={integrations.length ? addModal : addProvider}
-          className="absolute top-[6px] end-[6px] z-[30] w-[24px] h-[24px] rounded-[6px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center cursor-pointer opacity-0 pointer-events-none group-hover/cell:opacity-100 group-hover/cell:pointer-events-auto transition-opacity duration-150"
+          className="phone:hidden absolute top-[6px] end-[6px] z-[30] w-[24px] h-[24px] rounded-[6px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center cursor-pointer opacity-0 pointer-events-none group-hover/cell:opacity-100 group-hover/cell:pointer-events-auto transition-opacity duration-150"
         >
           <svg
             width="14"
@@ -1299,13 +1307,33 @@ export const CalendarColumn: FC<{
           ))}
           {!showAll && postList.length > 3 && (
             <div
-              className="h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer"
+              className={clsx(
+                'h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer',
+                // phone month cells are ~51px wide — the full '{n} More'
+                // label becomes a compact centered '+N' (Buffer)
+                display === 'month' && 'phone:justify-center phone:gap-0 phone:ps-0'
+              )}
               onClick={showAllFunc}
             >
-              <ExpandChevron />
-              <span>
-                {postList.length - 3} {t('show_more', 'More')}
+              <span
+                className={clsx(
+                  'contents',
+                  display === 'month' && 'phone:hidden'
+                )}
+              >
+                <ExpandChevron />
+                <span>
+                  {postList.length - 3} {t('show_more', 'More')}
+                </span>
               </span>
+              {display === 'month' && (
+                <span
+                  data-cs
+                  className="hidden phone:block text-[11px] font-[500] text-newTextColor/60"
+                >
+                  +{postList.length - 3}
+                </span>
+              )}
             </div>
           )}
           {showAll && postList.length > 3 && (
@@ -1699,9 +1727,11 @@ const CalendarItem: FC<{
       )}
       {display !== 'day' && (
         <>
+          {/* phone: Buffer shows no tag strip / kebab on calendar cards —
+              touch keeps :hover alive and the pills read as stray dots */}
           <div
             className={clsx(
-              'text-[11px] max-h-[24px] h-[24px] min-h-[24px] w-full rounded-tr-[10px] rounded-tl-[10px] flex items-center justify-center gap-[10px] px-[5px] bg-btnPrimary'
+              'phone:hidden text-[11px] max-h-[24px] h-[24px] min-h-[24px] w-full rounded-tr-[10px] rounded-tl-[10px] flex items-center justify-center gap-[10px] px-[5px] bg-btnPrimary'
             )}
             style={{
               backgroundColor: post?.tags?.[0]?.tag?.color,
@@ -1998,9 +2028,12 @@ const CalendarItem: FC<{
         data-cs
         className={clsx(
           'w-full flex text-[14px] bg-newColColor border border-newTableBorder relative cursor-pointer',
-          // Buffer month pill: 33px tall, r8, hairline border, 4px pad
+          // Buffer month pill: 33px tall, r8, hairline border, 4px pad.
+          // Phone month (Buffer, measured at 390): the pill compacts to a
+          // 30×30 r6 mini-tile — thumbnail face when media exists, else the
+          // hairline tile with the platform icon centered; time hidden.
           display === 'month' &&
-            'h-[33px] min-h-[33px] rounded-[8px] p-[4px] items-center gap-[6px]',
+            'h-[33px] min-h-[33px] rounded-[8px] p-[4px] items-center gap-[6px] phone:w-[30px] phone:min-w-[30px] phone:h-[30px] phone:min-h-[30px] phone:rounded-[6px] phone:p-0 phone:gap-0 phone:justify-center phone:overflow-hidden phone:mx-auto',
           // Buffer week card: white r10 hairline, 10px padding, column layout.
           // Natural height — h-full pinned the card to the 105px hour row and
           // made tall content bleed across the grid line; sized to content,
@@ -2014,16 +2047,30 @@ const CalendarItem: FC<{
           // media thumbnail right]
           <>
             <img
-              className="w-[20px] h-[20px] min-w-[20px] rounded-[4px]"
+              className={clsx(
+                'w-[20px] h-[20px] min-w-[20px] rounded-[4px]',
+                // phone mini-tile: the icon is the tile face only when there
+                // is no media — a thumbnail covers the whole tile instead
+                mediaUrl && 'phone:hidden'
+              )}
               src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
               alt=""
             />
-            <div className="flex-1 flex items-center gap-[6px] text-[12px] font-[500] text-newTextColor whitespace-nowrap overflow-hidden">
-              <span className="truncate">
+            <div
+              className={clsx(
+                'flex-1 flex items-center gap-[6px] text-[12px] font-[500] text-newTextColor whitespace-nowrap overflow-hidden',
+                // phone mini-tile shows no time; without media this row is
+                // empty — hide it so the icon centers in the tile
+                !mediaUrl && 'phone:hidden'
+              )}
+            >
+              <span className="truncate phone:hidden">
                 {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
                 {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
               </span>
-              {/* media slot — 23px r6 measured on Buffer's month pills */}
+              {/* media slot — 23px r6 measured on Buffer's month pills;
+                  phone: covers the whole 30px tile (abs against the pill,
+                  which is `relative` + overflow-hidden at phone) */}
               {mediaUrl && (
                 <img
                   src={mediaUrl}
@@ -2031,7 +2078,7 @@ const CalendarItem: FC<{
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
-                  className="w-[23px] h-[23px] min-w-[23px] rounded-[6px] object-cover ms-auto"
+                  className="w-[23px] h-[23px] min-w-[23px] rounded-[6px] object-cover ms-auto phone:absolute phone:inset-0 phone:w-full phone:h-full phone:min-w-0 phone:ms-0"
                 />
               )}
             </div>

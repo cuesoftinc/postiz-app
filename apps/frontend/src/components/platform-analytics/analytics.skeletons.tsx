@@ -2,6 +2,7 @@
 
 import { FC } from 'react';
 import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
+import { PageShell } from '@gitroom/frontend/components/new-layout/page-header';
 
 /* Buffer-style loading: soft grey blocks shaped like the CONTENT they
    replace — never spinners. The primitive is the shared layout/skeleton.tsx
@@ -48,10 +49,15 @@ export const PostRowsSkeleton: FC<{ rows?: number }> = ({ rows = 3 }) => (
 );
 
 /** Whole-page shape while /integrations/list loads: header chip + title,
-    toolbar bar, then a grey Summary-shaped section holding tile blocks. */
+    toolbar bar, then a grey Summary-shaped section holding tile blocks.
+    Container + header band mirror the shared PageShell/PageHeader
+    (new-layout/page-header.tsx) so the loading→loaded swap doesn't shift. */
 export const AnalyticsPageSkeleton: FC = () => (
-  <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
-    <div className="flex items-center gap-[10px]">
+  <PageShell>
+    <div
+      data-cs
+      className="flex items-center gap-[10px] h-[48px] phone:h-[56px] shrink-0"
+    >
       {/* data-cs + raw block: the real header chip is a data-cs 40px r10 box,
           so its stand-in must hold the same footprint (the shared Skeleton
           rescales with the ladder by design and takes no data attrs) */}
@@ -71,5 +77,5 @@ export const AnalyticsPageSkeleton: FC = () => (
       </div>
       <TilesSkeleton />
     </div>
-  </div>
+  </PageShell>
 );

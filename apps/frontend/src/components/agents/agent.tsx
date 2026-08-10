@@ -25,6 +25,10 @@ import {
 } from '@gitroom/frontend/components/new-layout/side-panel-header';
 import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
 import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
+import {
+  PageHeader,
+  PageShell,
+} from '@gitroom/frontend/components/new-layout/page-header';
 
 export const MediaPortal: FC<{
   media: { path: string; id: string }[];
@@ -109,7 +113,9 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
   }, [data]);
 
   return (
-    <div className="flex items-center gap-[10px] px-[20px] py-[10px] bg-newBgColorInner border-b border-newTableBorder overflow-x-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+    // no horizontal padding of its own — the PageShell inset aligns the strip
+    // with the header chip above it
+    <div className="flex items-center gap-[10px] py-[10px] bg-newBgColorInner border-b border-newTableBorder overflow-x-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
       <div className="text-[13px] text-newTextColor/60 whitespace-nowrap">
         {t('select_channels', 'Select Channels')}
       </div>
@@ -158,19 +164,15 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <PropertiesContext.Provider value={{ properties }}>
       {/* Buffer composer pattern: the channel toggles are a bar above the
-          chat, not a side column */}
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* S1 page header — Buffer anatomy [40px r10 hairline icon chip ·
-            20px/400 display title · flex-1 · lime page primary]. The row stays
-            on phone (56px) where the primary collapses to an icon-only 40px
-            square. NOTE: layout.component.tsx renders its generic 64px Title
-            bar on desktop until /agents joins its /launches exclusion — that
-            file is out of this scope. */}
-        {/* px-[16px] not px-[20px]: the global ladder pins px-[20px] to 16px
-            with !important, which would also defeat phone:px-[12px] */}
-        <div className="flex items-center gap-[10px] h-[64px] px-[16px] bg-newBgColorInner border-b border-newTableBorder select-none phone:h-[56px] phone:px-[12px]">
-          <div className="w-[40px] h-[40px] rounded-[10px] border border-newTableBorder flex items-center justify-center text-newTextColor shrink-0">
-            {/* sparkle — the agent/AI glyph */}
+          chat, not a side column. min-w-0 keeps the shell from being crushed
+          inside the layout row. */}
+      <PageShell className="min-w-0">
+        {/* ONE shared page header (new-layout/page-header.tsx): 48px row,
+            40px r10 chip, 20/400 display title — visible on phone (56px)
+            where the lime primary collapses to an icon-only 40px square */}
+        <PageHeader
+          icon={
+            /* sparkle — the agent/AI glyph */
             <svg
               width="20"
               height="20"
@@ -185,47 +187,45 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
               <path d="M20 3v4" />
               <path d="M22 5h-4" />
             </svg>
-          </div>
-          <h1
-            className="font-display text-[20px] font-[400] text-newTextColor truncate"
-            data-cs
-          >
-            {t('agent', 'Agent')}
-          </h1>
-          <div className="flex-1" />
-          <Link
-            href="/agents/new"
-            title={t('new_chat', 'New chat')}
-            data-cs
-            className="h-[40px] px-[12px] rounded-[8px] bg-btnPrimary flex items-center justify-center gap-[6px] text-[14px] font-[500] transition-colors duration-150 shrink-0 phone:w-[40px] phone:px-0"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="shrink-0"
+          }
+          title={t('agent', 'Agent')}
+          actions={
+            <Link
+              href="/agents/new"
+              title={t('new_chat', 'New chat')}
+              data-cs
+              className="h-[40px] px-[12px] rounded-[8px] bg-btnPrimary flex items-center justify-center gap-[6px] text-[14px] font-[500] transition-colors duration-150 shrink-0 phone:w-[40px] phone:px-0"
             >
-              <path d="M5 12h14" />
-              <path d="M12 5v14" />
-            </svg>
-            <span className="phone:hidden">{t('new_chat', 'New chat')}</span>
-          </Link>
-        </div>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="shrink-0"
+              >
+                <path d="M5 12h14" />
+                <path d="M12 5v14" />
+              </svg>
+              <span className="phone:hidden">{t('new_chat', 'New chat')}</span>
+            </Link>
+          }
+        />
         <AgentList onChange={setProperties} />
         {/* phone: rail + chat stack (Threads first); min-w-0 keeps the chat
-            pane from being crushed by the rail's intrinsic width */}
-        <div className="flex flex-1 gap-[1px] min-h-0 phone:flex-col">
+            pane from being crushed by the rail's intrinsic width. The row's
+            own bg paints the 1px seam between chat and rail — the shell's
+            white would otherwise swallow it. */}
+        <div className="flex flex-1 gap-[1px] min-h-0 bg-newBgLineColor phone:flex-col">
           <div className="bg-newBgColorInner flex flex-1 min-w-0">
             {children}
           </div>
           <Threads />
         </div>
-      </div>
+      </PageShell>
     </PropertiesContext.Provider>
   );
 };

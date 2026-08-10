@@ -78,7 +78,10 @@ ${style}
   return (
     <div className="flex flex-col gap-[16px]">
       <div className="flex flex-col gap-[6px]">
-        <div className="text-[14px]">{t('prompt', 'Prompt')}</div>
+        {/* kit input anatomy: 13px muted label over a white hairline r6 field */}
+        <div className="text-[13px] text-newTextColor/60">
+          {t('prompt', 'Prompt')}
+        </div>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -86,21 +89,26 @@ ${style}
             'describe_the_image_you_want_to_generate',
             'Describe the image you want to generate'
           )}
-          className="bg-input min-h-[150px] p-[16px] outline-none border-fifth border rounded-[4px] text-inputText placeholder-inputText"
+          className="bg-newBgColorInner min-h-[150px] p-[16px] outline-none border border-newTableBorder rounded-[6px] text-[14px] text-newTextColor placeholder-newTextColor/60 focus:border-forth"
         />
       </div>
       <div className="flex flex-col gap-[6px]">
-        <div className="text-[14px]">{t('style', 'Style')}</div>
+        <div className="text-[13px] text-newTextColor/60">
+          {t('style', 'Style')}
+        </div>
         <div className="flex flex-wrap gap-[8px]">
+          {/* 32px r8 choice chips; selection is the Cuesoft lime, not the old
+              upstream purple */}
           {list.map((p) => (
             <div
               key={p}
               onClick={() => setStyle(p)}
+              data-cs
               className={clsx(
-                'cursor-pointer rounded-[4px] px-[10px] h-[30px] flex items-center text-[12px] border',
+                'cursor-pointer rounded-[8px] px-[12px] h-[32px] flex items-center text-[13px] border transition-colors duration-150',
                 style === p
-                  ? 'bg-[#612BD3] border-[#612BD3] text-white'
-                  : 'bg-newColColor border-newBgLineColor'
+                  ? 'bg-btnPrimary border-btnPrimary text-black font-[600]'
+                  : 'bg-newBgColorInner border-newTableBorder text-newTextColor/60 hover:bg-newTableHeader hover:text-newTextColor'
               )}
             >
               {p}
@@ -152,7 +160,9 @@ export const AiImage: FC<{
       >
         {loading && (
           <div className="absolute start-[50%] -translate-x-[50%]">
-            <Loading height={15} width={15} type="spin" color="#fff" />
+            {/* spinner-in-button while generating (modal closes, chip spins);
+                currentColor keeps it legible on both themes */}
+            <Loading height={15} width={15} type="spin" color="currentColor" />
           </div>
         )}
         <div

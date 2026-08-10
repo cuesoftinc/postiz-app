@@ -771,8 +771,9 @@ const PhoneFilterSheet: FC<{ open: boolean; onClose: () => void }> = ({
 };
 
 /** Buffer's view combobox: 24px borderless trigger, no leading icon, and only
- *  Week/Month options — Buffer offers no Day view at desktop (phones get the
- *  rolling three-day grid instead). display=day stays URL-reachable. */
+ *  Week/Month options — Buffer offers no Day view. It stays in the PHONE
+ *  toolbar too (measured at 390): Week = the rolling 3-day hour grid, Month =
+ *  the real 7-column mini-tile grid. display=day stays URL-reachable. */
 const ViewFilter: FC = () => {
   const t = useT();
   const calendar = useCalendar();
@@ -806,7 +807,8 @@ const ViewFilter: FC = () => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-[6px] h-[24px] px-[8px] rounded-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+        // phone: 40px tap target to match the funnel/segmented cluster
+        className="flex items-center gap-[6px] h-[24px] phone:h-[40px] px-[8px] rounded-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
       >
         {label}
         <ChevronDown />
@@ -815,7 +817,9 @@ const ViewFilter: FC = () => {
         <DropdownPanel
           surface="panel"
           anchor="start"
-          className="mt-[4px] w-[200px] !rounded-[6px] p-[8px] flex flex-col"
+          // phone: the trigger sits in the right-edge cluster — hug the end
+          // edge so the 200px panel stays inside a 390px viewport
+          className="mt-[4px] w-[200px] !rounded-[6px] p-[8px] flex flex-col phone:start-auto phone:end-0"
         >
           <SelectRow
             selected={calendar.display === 'week'}
@@ -1497,6 +1501,9 @@ export const Filters = () => {
         <TimezoneFilter />
       </div>
       <div className="hidden phone:flex items-center gap-[8px] ms-auto">
+        {/* Buffer keeps the Week/Month view dropdown in the phone toolbar,
+            beside the funnel — the other filters stay behind the sheet */}
+        {!isListView && <ViewFilter />}
         <button
           type="button"
           aria-label={t('more_actions', 'More actions')}

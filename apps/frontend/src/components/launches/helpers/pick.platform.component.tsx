@@ -234,37 +234,48 @@ export const PickPlatforms: FC<{
                         'data-tooltip-content': integration.name,
                       })}
                     >
+                      {/* kit channel tile (matches picks.socials): 40px r10,
+                          lime ring when selected, dimmed otherwise; data-cs
+                          keeps the 40px/r10 out of the global rescale ladder */}
                       <div
                         onClick={addPlatform(integration)}
+                        data-cs
                         className={clsx(
-                          'cursor-pointer relative w-[34px] h-[34px] rounded-full flex justify-center items-center bg-fifth filter transition-all duration-500',
+                          'cursor-pointer relative w-[40px] h-[40px] rounded-[10px] flex justify-center items-center transition-all',
                           selectedAccounts.findIndex(
                             (p) => p.id === integration.id
                           ) === -1
-                            ? 'opacity-40'
-                            : ''
+                            ? 'opacity-60 hover:opacity-100'
+                            : 'ring-2 ring-btnPrimary'
                         )}
                       >
-                        <SafeImage
-                          src={integration.picture || '/no-picture.jpg'}
-                          className="rounded-full"
-                          alt={integration.identifier}
-                          width={32}
-                          height={32}
-                        />
+                        {/* SafeImage drops unknown props, so the r10 +
+                            data-cs (ladder opt-out) live on a wrapper div */}
+                        <div
+                          data-cs
+                          className="w-[40px] h-[40px] rounded-[10px] overflow-hidden"
+                        >
+                          <SafeImage
+                            src={integration.picture || '/no-picture.jpg'}
+                            className="w-full h-full object-cover"
+                            alt={integration.identifier}
+                            width={40}
+                            height={40}
+                          />
+                        </div>
                         {integration.identifier === 'youtube' ? (
                           <img
                             src="/icons/platforms/youtube.svg"
-                            className="absolute z-10 bottom-0 -end-[5px]"
-                            width={20}
+                            className="absolute z-10 -bottom-[3px] -end-[3px] min-w-[16px]"
+                            width={16}
                           />
                         ) : (
                           <SafeImage
                             src={`/icons/platforms/${integration.identifier}.png`}
-                            className="rounded-full absolute z-10 -bottom-[5px] -end-[5px] border border-fifth"
+                            className="rounded-[4px] absolute z-10 -bottom-[3px] -end-[3px] min-w-[16px] min-h-[16px]"
                             alt={integration.identifier}
-                            width={20}
-                            height={20}
+                            width={16}
+                            height={16}
                           />
                         )}
                       </div>
@@ -296,7 +307,7 @@ export const PickPlatforms: FC<{
                             />
                             <SafeImage
                               src={`/icons/platforms/${integration.identifier}.png`}
-                              className="rounded-full absolute z-10 -bottom-[5px] -end-[5px] border border-fifth"
+                              className="rounded-full absolute z-10 -bottom-[5px] -end-[5px] border border-newBgColorInner"
                               alt={integration.identifier}
                               width={15}
                               height={15}

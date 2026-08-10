@@ -49,7 +49,10 @@ export const GeneralPreviewComponent: FC<{
   });
 
   return (
-    <div className={clsx('w-full p-[15px]')}>
+    // shell (white r12 hairline card + shadow) is provided by both call sites
+    // (show.all.providers / high.order.provider); this component styles the
+    // interior only — kit ink/muted type, hairline connector
+    <div className={clsx('w-full p-[16px] text-newTextColor')}>
       <div className="w-full h-full relative flex flex-col">
         {renderContent.map((value, index) => (
           <div
@@ -75,7 +78,7 @@ export const GeneralPreviewComponent: FC<{
                 {current !== 'global' && (
                   <SafeImage
                     src={`/icons/platforms/${integration?.identifier}.png`}
-                    className="min-w-[20px] min-h-[20px] rounded-full absolute z-10 -bottom-[5px] -end-[5px] border border-fifth"
+                    className="min-w-[20px] min-h-[20px] rounded-full absolute z-10 -bottom-[5px] -end-[5px] border border-newBgColorInner"
                     alt={integration.identifier}
                     width={20}
                     height={20}
@@ -83,15 +86,16 @@ export const GeneralPreviewComponent: FC<{
                 )}
               </div>
               {index !== topValue.length - 1 && (
-                <div className="flex-1 w-[2px] h-[calc(100%-10px)] bg-customColor25 absolute top-[10px] z-[1]" />
+                // thread connector — hairline token, 1px
+                <div className="flex-1 w-[1px] h-[calc(100%-10px)] bg-newTableBorder absolute top-[10px] z-[1]" />
               )}
             </div>
             <div className="flex-1 flex flex-col gap-[4px]">
               <div className="flex">
-                <div className="h-[22px] text-[15px] font-[700]">
+                <div className="h-[22px] text-[14px] font-[600] text-newTextColor">
                   {current === 'global' ? 'Global Edit' : integration?.name}
                 </div>
-                <div className="text-[15px] text-customColor26 mt-[1px] ms-[2px]">
+                <div className="text-[14px] text-[#1d9bf0] mt-[1px] ms-[2px]">
                   <svg
                     viewBox="0 0 22 22"
                     aria-label="Verified account"
@@ -104,14 +108,14 @@ export const GeneralPreviewComponent: FC<{
                     </g>
                   </svg>
                 </div>
-                <div className="text-[15px] font-[400] text-customColor27 ms-[4px]">
+                <div className="text-[14px] font-[400] text-newTextColor/60 ms-[4px]">
                   {current === 'global'
                     ? ''
                     : integration?.display || '@username'}
                 </div>
               </div>
               <div
-                className={clsx('text-wrap whitespace-pre', 'preview')}
+                className={clsx('text-wrap whitespace-pre text-[14px]', 'preview')}
                 dangerouslySetInnerHTML={{
                   __html: value.text,
                 }}

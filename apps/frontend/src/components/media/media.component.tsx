@@ -54,6 +54,7 @@ import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 import { useDebounce } from 'use-debounce';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { PagerButton } from '@gitroom/frontend/components/cuesoft/pressables';
+import { PageHeader } from '@gitroom/frontend/components/new-layout/page-header';
 const Polonto = dynamic(
   () => import('@gitroom/frontend/components/launches/polonto')
 );
@@ -428,13 +429,15 @@ export const MediaBox: FC<{
   return (
     <DropFiles disabled={loading} className="flex flex-col flex-1" onDrop={dragAndDrop}>
       <div className="flex flex-col flex-1">
-        {/* Page header (standalone /media only — the composer's media modal
-            keeps its own modal title): Buffer anatomy = 40px r10 hairline
-            icon chip + 20px/400 display-face title + spacer + the one lime
-            page-level primary. Stays visible on phone (S1). */}
+        {/* ONE shared page header (new-layout/page-header.tsx) — standalone
+            /media only; the composer's media modal keeps its own modal title.
+            Upload stays the page's lime primary, passed through unchanged.
+            mb-[8px] = the launches title-row → toolbar rhythm (the shell gap
+            can't reach inside MediaBox). */}
         {standalone && (
-          <div className="flex items-center gap-[10px] select-none mb-[16px] phone:h-[56px]">
-            <div className="w-[40px] h-[40px] rounded-[10px] border border-newTableBorder flex items-center justify-center text-newTextColor shrink-0">
+          <PageHeader
+            className="mb-[8px]"
+            icon={
               <svg
                 width="20"
                 height="20"
@@ -449,32 +452,28 @@ export const MediaBox: FC<{
                 <circle cx="9" cy="9" r="2" />
                 <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
               </svg>
-            </div>
-            <h1
-              className="font-display text-[20px] font-[400] text-newTextColor truncate min-w-0"
-              data-cs
-            >
-              {t('media', 'Media')}
-            </h1>
-            <div className="flex-1" />
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => uploaderRef?.current?.click()}
-              className="relative cursor-pointer bg-btnPrimary text-black flex gap-[8px] h-[32px] px-[12px] text-[14px] font-[500] justify-center items-center rounded-[8px] transition-colors duration-150 disabled:opacity-50 shrink-0"
-            >
-              {loading ? (
-                <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
-                  <div className="animate-spin h-[16px] w-[16px] border-2 border-current border-t-transparent rounded-full" />
+            }
+            title={t('media', 'Media')}
+            actions={
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => uploaderRef?.current?.click()}
+                className="relative cursor-pointer bg-btnPrimary text-black flex gap-[8px] h-[32px] px-[12px] text-[14px] font-[500] justify-center items-center rounded-[8px] transition-colors duration-150 disabled:opacity-50 shrink-0"
+              >
+                {loading ? (
+                  <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
+                    <div className="animate-spin h-[16px] w-[16px] border-2 border-current border-t-transparent rounded-full" />
+                  </div>
+                ) : (
+                  <PlusIcon size={14} />
+                )}
+                <div className={loading ? 'invisible' : undefined}>
+                  {t('upload', 'Upload')}
                 </div>
-              ) : (
-                <PlusIcon size={14} />
-              )}
-              <div className={loading ? 'invisible' : undefined}>
-                {t('upload', 'Upload')}
-              </div>
-            </button>
-          </div>
+              </button>
+            }
+          />
         )}
         <div
           className={clsx(

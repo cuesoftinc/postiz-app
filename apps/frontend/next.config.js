@@ -5,6 +5,15 @@ import { withSentryConfig } from '@sentry/nextjs';
 const nextConfig = {
   experimental: {
     proxyTimeout: 90_000,
+    // SPA feel: our routes are force-dynamic (root layout reads cookies), and
+    // the default dynamic staleTime of 0 refetches the full RSC payload on
+    // EVERY navigation — that server roundtrip + skeleton repaint reads as a
+    // "page reload" on mobile. 30s of client router cache makes back-and-forth
+    // navigation instant, like Buffer's SPA.
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
   },
   // Document-Policy header for browser profiling
   async headers() {

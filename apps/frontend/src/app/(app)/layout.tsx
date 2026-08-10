@@ -38,6 +38,9 @@ const fustat = Fustat({ subsets: ['latin'], variable: '--font-fustat' });
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const language = cookieStore.get(cookieName)?.value || fallbackLng;
+  // Theme on FIRST PAINT: the mode cookie the client toggle writes — a
+  // hardcoded 'dark' here flashed dark before hydration swapped to light
+  const mode = cookieStore.get('mode')?.value === 'light' ? 'light' : 'dark';
   const Plausible = !!process.env.STRIPE_PUBLISHABLE_KEY
     ? PlausibleProvider
     : Fragment;
@@ -56,7 +59,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </head>
       <ChangeDirClient />
       <body
-        className={clsx(inter.variable, jakarta.variable, fustat.variable, 'font-sans', 'dark text-primary !bg-primary')}
+        className={clsx(inter.variable, jakarta.variable, fustat.variable, 'font-sans', mode, 'text-primary !bg-primary')}
       >
         <VariableContextComponent
           storageProvider={

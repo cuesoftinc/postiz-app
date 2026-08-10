@@ -13,6 +13,10 @@ import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
 import { SkeletonAvatarRow } from '@gitroom/frontend/components/layout/skeleton';
+import {
+  PageHeader,
+  PageShell,
+} from '@gitroom/frontend/components/new-layout/page-header';
 
 export const ThirdPartyMenuComponent: FC<{
   reload: () => void;
@@ -130,22 +134,20 @@ export const ThirdPartyComponent = () => {
   });
 
   // Buffer-true layout: no second panel — one full-width column with the
-  // connected integrations as a section above the catalog grid. No
-  // `transition-all` on this root: global.scss's phone Settings-sub-nav rule
-  // keys on `.bg-newBgColorInner.flex.flex-col.transition-all` and would
-  // chip-ify the rows. Phone stacks the same column, just tighter padding.
-  // pb-[56px]: the fixed bottom-center admin pill (S6) must hover over dead
-  // space, never the last catalog row's Add buttons.
+  // connected integrations as a section above the catalog grid. PageShell has
+  // no `transition-all`: global.scss's phone Settings-sub-nav rule keys on
+  // `.bg-newBgColorInner.flex.flex-col.transition-all` and would chip-ify the
+  // rows. `!pb-[56px]`: the fixed bottom-center admin pill (S6) must hover
+  // over dead space, never the last catalog row's Add buttons (important —
+  // it has to beat the shell's own pb-[20px]).
   return (
-    <div className="bg-newBgColorInner flex-1 flex flex-col p-[20px] pb-[56px] gap-[24px] phone:p-[16px] phone:pb-[56px]">
-      {/* S1 page header (filters.tsx PageHeader anatomy): 40px r10 hairline
-          icon chip + 20/400 display-face h1. The generic 64px top bar is
-          pathname-excluded for /third-party, so this row is the page title
-          at BOTH widths (390 previously opened on the 'CONNECTED:' eyebrow
-          with no title at all). No right action: adding an integration is
-          per-card, so the page has no page-level primary. */}
-      <div className="flex items-center gap-[10px] select-none">
-        <div className="w-[40px] h-[40px] rounded-[10px] border border-newTableBorder flex items-center justify-center text-newTextColor shrink-0">
+    <PageShell className="!pb-[56px]">
+      {/* ONE shared page header (new-layout/page-header.tsx). The generic
+          64px top bar is pathname-excluded for /third-party, so this row is
+          the page title at BOTH widths. No right action: adding an
+          integration is per-card, so the page has no page-level primary. */}
+      <PageHeader
+        icon={
           <svg
             width="20"
             height="20"
@@ -161,16 +163,10 @@ export const ThirdPartyComponent = () => {
             <rect width="7" height="7" x="14" y="14" rx="1" />
             <rect width="7" height="7" x="3" y="14" rx="1" />
           </svg>
-        </div>
-        <h1
-          className="font-display text-[20px] font-[400] text-newTextColor truncate"
-          data-cs
-        >
-          {t('integrations', 'Integrations')}
-        </h1>
-        <div className="flex-1" />
-      </div>
-      <div className="flex flex-col gap-[12px]">
+        }
+        title={t('integrations', 'Integrations')}
+      />
+      <div className="flex flex-col gap-[12px] mt-[8px]">
         {/* 13px muted sentence-case section header — Buffer never uses
             tracked-uppercase eyebrows or trailing colons */}
         <div className="text-[13px] text-newTextColor/60">
@@ -257,7 +253,11 @@ export const ThirdPartyComponent = () => {
           </div>
         ) : null}
       </div>
-      <ThirdPartyListComponent reload={mutate} />
-    </div>
+      {/* mt-[8px] (+ the shell's gap-[8px]) keeps the 16px section rhythm the
+          old gap-[24px] container resolved to under the global ladder */}
+      <div className="mt-[8px]">
+        <ThirdPartyListComponent reload={mutate} />
+      </div>
+    </PageShell>
   );
 };

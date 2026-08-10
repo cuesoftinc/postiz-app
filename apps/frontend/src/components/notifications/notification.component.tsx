@@ -34,8 +34,11 @@ export const ShowNotification: FC<{
   return (
     <div
       className={clsx(
-        `text-textColor px-[16px] py-[10px] border-b border-tableBorder last:border-b-0 transition-colors`,
-        newNotification && 'font-bold bg-seventh animate-newMessages'
+        // kit list row: min 32px, 14px ink, hairline divider; unread rows get
+        // the header wash + semibold instead of the legacy seventh/third
+        // keyframe flash
+        `min-h-[32px] px-[16px] py-[8px] text-[14px] text-newTextColor border-b border-newTableBorder last:border-b-0 transition-colors`,
+        newNotification && 'font-[600] bg-newTableHeader'
       )}
     >
       <div
@@ -67,20 +70,20 @@ export const NotificationOpenComponent = () => {
       anchor="end"
       // 420px is wider than a phone and this is anchored end-0 to the bell, so
       // on mobile it hung off the left edge with its text cut off — hence the
-      // max-w guard
-      //: the elevated-surface token (#1e1e1e dark / #fff
-      // light) — SURFACES.panel still carries the legacy bg-third navy, which
-      // is darker than the page bg; override here until the shared surface
-      // moves onto the token
-      className="opacity-0 animate-normalFadeDown mt-[10px] w-[420px] max-w-[calc(100vw-48px)] min-h-[200px] flex flex-col"
+      // max-w guard.
+      // !rounded-[8px]: the shared panel surface is the r12 Buffer card; the
+      // bell menu is the r8 dropdown spec, so the radius is overridden here
+      // while keeping the panel's shadow stack (which carries the light-mode
+      // hairline ring) and dark-mode hairline border
+      className="opacity-0 animate-normalFadeDown mt-[10px] !rounded-[8px] w-[420px] max-w-[calc(100vw-48px)] min-h-[200px] flex flex-col"
     >
       <div
-        className={`p-[16px] border-b border-tableBorder font-display text-[16px] font-[600]`}
+        className={`p-[16px] border-b border-newTableBorder font-display text-[16px] font-[600] text-newTextColor`}
       >
         {t('notifications', 'Notifications')}
       </div>
 
-      <div className="flex flex-col max-h-[400px] overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+      <div className="flex flex-col max-h-[400px] overflow-y-auto scrollbar scrollbar-thumb-newTableBorder scrollbar-track-newBgColor">
         {isLoading && (
           // skeleton rows shaped like ShowNotification entries (date line +
           // content line) — never a spinner

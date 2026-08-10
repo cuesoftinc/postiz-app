@@ -1068,9 +1068,11 @@ button { white-space: nowrap; }
     flex: 0 0 auto !important; width: auto !important;
     padding: 5px 10px !important; gap: 8px !important;
     white-space: nowrap;
-    border: 1px solid rgba(128, 128, 128, .32);
-    border-radius: 999px !important;
-    background: transparent !important;
+    /* converged chip: hairline token + r8 (was a 999px pill with a
+       hard-coded grey border — Buffer has no pill chips anywhere) */
+    border: 1px solid var(--new-table-border);
+    border-radius: 8px !important;
+    background: var(--new-bgColorInner) !important;
   }
   /* analytics keeps its "Channels" label + collapse chevron INSIDE that list, so
      the row direction put them inline with the chips */

@@ -1030,8 +1030,12 @@ export const Impersonate = () => {
   // post, announcements, errors/stats, switch/billing) expands into a
   // DropdownPanel popover above it. The outer strip is pointer-events-none so
   // only the pill/popover intercept clicks.
+  // Phone: a bottom-CENTER pill sits right on top of page content (Set Plug
+  // buttons, chat inputs), so at ≤767 the pill shrinks (28px, 12px text) and
+  // docks bottom-END with a 12px inset — phone: classes only, desktop
+  // unchanged. The popover right-aligns with it (same items-end).
   return (
-    <div className="fixed bottom-[16px] inset-x-0 z-[600] flex flex-col items-center gap-[8px] pointer-events-none">
+    <div className="fixed bottom-[16px] inset-x-0 z-[600] flex flex-col items-center gap-[8px] pointer-events-none phone:bottom-[12px] phone:items-end phone:pe-[12px]">
       {open && (
         <>
           {/* click-away layer — painted under the panel/pill (source order) */}
@@ -1093,13 +1097,13 @@ export const Impersonate = () => {
       )}
       <div
         data-cs
-        className="pointer-events-auto flex items-center h-[32px] rounded-full bg-forth text-white shadow-[0_4px_12px_rgba(0,0,0,0.18)] overflow-hidden"
+        className="pointer-events-auto flex items-center h-[32px] rounded-full bg-forth text-white shadow-[0_4px_12px_rgba(0,0,0,0.18)] overflow-hidden phone:h-[28px] phone:max-w-[calc(100vw-24px)]"
       >
         <button
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-[8px] h-full ps-[14px] pe-[12px] text-[13px] font-[500] hover:bg-white/10 transition-colors duration-150"
+          className="flex items-center gap-[8px] h-full ps-[14px] pe-[12px] text-[13px] font-[500] hover:bg-white/10 transition-colors duration-150 min-w-0 phone:gap-[6px] phone:ps-[10px] phone:pe-[8px] phone:text-[12px]"
         >
           <svg
             width="16"
@@ -1111,23 +1115,28 @@ export const Impersonate = () => {
             strokeLinecap="round"
             strokeLinejoin="round"
             xmlns="http://www.w3.org/2000/svg"
+            className="shrink-0"
           >
             <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
           </svg>
-          {user?.impersonate
-            ? `${t('impersonating', 'Impersonating')}: ${
-                user?.name || user?.email || ''
-              }`
-            : t('admin', 'Admin')}
+          {/* truncate only ever engages on phones — the pill has no
+              max-width on desktop */}
+          <span className="truncate">
+            {user?.impersonate
+              ? `${t('impersonating', 'Impersonating')}: ${
+                  user?.name || user?.email || ''
+                }`
+              : t('admin', 'Admin')}
+          </span>
         </button>
         {user?.impersonate && (
           <>
-            <div className="w-[1px] h-[16px] bg-white/30" />
+            <div className="w-[1px] h-[16px] bg-white/30 shrink-0" />
             <button
               type="button"
               onClick={stopImpersonating}
               aria-label={t('stop_impersonating', 'Stop impersonating')}
-              className="h-full ps-[12px] pe-[14px] text-[13px] font-[600] hover:bg-white/10 transition-colors duration-150"
+              className="h-full ps-[12px] pe-[14px] text-[13px] font-[600] hover:bg-white/10 transition-colors duration-150 shrink-0 phone:ps-[10px] phone:pe-[10px] phone:text-[12px]"
             >
               {t('stop', 'Stop')}
             </button>

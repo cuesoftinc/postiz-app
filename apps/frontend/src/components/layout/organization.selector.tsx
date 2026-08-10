@@ -46,7 +46,12 @@ export const OrganizationSelector: FC<{ asOpenSelect?: boolean }> = ({
       <div className="hover:text-newTextColor">
         <div className="group text-[12px] relative">
           {asOpenSelect && (
-            <div className="bg-btnPrimary !flex !relative max-w-[500px] mx-auto py-[12px] px-[12px]">Select Organization</div>
+            <div
+              data-cs
+              className="bg-btnPrimary text-black rounded-[8px] h-[40px] text-[14px] font-[600] items-center justify-center !flex !relative max-w-[500px] mx-auto px-[16px]"
+            >
+              Select Organization
+            </div>
           )}
           {!asOpenSelect && (
             <div className="flex items-center">
@@ -69,15 +74,48 @@ export const OrganizationSelector: FC<{ asOpenSelect?: boolean }> = ({
             </div>
           )}
           {data?.length > 1 && (
+            // kit popover: white r8 hairline panel + soft shadow, 32px rows.
+            // Stays flush to the trigger (no margin gap — it opens on hover,
+            // so a gap would drop the hover chain and close it); keeps the
+            // bare `absolute top-[100%] end-0` classes the sidebar's
+            // UTIL_FLIP retargets.
             <div
               className={clsx(
-                'hidden py-[12px] px-[12px] group-hover:flex absolute top-[100%] end-0 bg-third border-tableBorder border gap-[12px] cursor-pointer flex-col',
+                'hidden group-hover:flex absolute top-[100%] end-0 cursor-pointer flex-col',
+                'min-w-[200px] p-[4px] gap-[2px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] z-[600]',
                 asOpenSelect ? '!flex !relative max-w-[500px] mx-auto mb-[10px]' : '',
               )}
             >
               {data?.map((org: { name: string; id: string }) => (
-                <div key={org.id} onClick={changeOrg(org)}>
-                  {org.name}
+                <div
+                  key={org.id}
+                  onClick={changeOrg(org)}
+                  data-cs
+                  className="h-[32px] px-[8px] rounded-[6px] flex items-center gap-[8px] text-[14px] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+                >
+                  <div
+                    data-cs
+                    className="w-[24px] h-[24px] rounded-full bg-newTableHeader border border-newTableBorder flex items-center justify-center text-[11px] font-[600] uppercase shrink-0"
+                  >
+                    {org.name?.trim()?.charAt(0) || '?'}
+                  </div>
+                  <div className="flex-1 truncate">{org.name}</div>
+                  {org.id === user?.orgId && (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="shrink-0"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  )}
                 </div>
               ))}
             </div>

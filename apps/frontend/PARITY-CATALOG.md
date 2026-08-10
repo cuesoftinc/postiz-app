@@ -26,6 +26,32 @@ changelog line). Statuses:
 **Changelog**
 - 2026-08-10 — initial full inventory (routes + components walk; cross-checked against
   spec, waves `f3c25aa4…fc0f3cdf`, and scratchpad round-1 measurements/gap audits).
+- 2026-08-10 — needs-work sweep (top rows): bell dropdown, org switcher popover, post
+  preview interior, post statistics modal (flat #2f7d44 chart replaces gradient
+  ChartSocial), platform picker multi-select tiles, and AI image modal converted to kit
+  tokens; org switcher stays NEEDS-BUFFER-MEASUREMENT for Buffer's own org menu. tsc clean.
+- 2026-08-10 — Plugs page adopts the shared PageShell/PageHeader (48px band, 40px r10
+  plug-glyph chip, standard pane insets) with compact 32/14 phone channel chips
+  (analytics-strip treatment); plug cards converge to kit white card chrome (white r12
+  hairline, 16/600 title, muted body); admin pill shrinks (28px) and docks bottom-end
+  with a 12px inset on phones. tsc clean.
+- 2026-08-10 — ONE shared page header: new `new-layout/page-header.tsx` (`PageHeader` +
+  `PageShell`, cloned from the measured /launches rhythm — 48px header band / 56px phone,
+  40px r10 hairline chip w/ 20px stroke-2.2 glyph, 20/400 display title, actions slot;
+  pane insets 24/32/20 w/ 8px gap, phone 12/12) adopted by /analytics, /agents, /media
+  (incl. its layout wrapper and the page skeleton) and /third-party, replacing four
+  drifting hand-rolled headers/containers (64px agent bar, p-[20px] panes). Analytics
+  drops its duplicate phone-only 56px title row — one header per page at every width
+  (the phone channel strip moved under it inside the shell). tsc clean.
+- 2026-08-10 — phone calendar = Buffer: the Week/Month view dropdown joins the phone
+  toolbar (beside the funnel; other filters stay behind the sheet) and actually switches
+  views — the `Calendar` phone month→3-day coercion is removed, so Week = the rolling
+  3-day hour grid and Month = a real 7-column grid at 390 (163px phone row floor on the
+  cell inner per the grid-item min-height gotcha, 'ddd' weekday header, inline column
+  template dodging the scss minmax(88px) grid-cols-7 fallback so nothing scrolls
+  sideways). Month pills compact to 30×30 r6 mini-tiles on phone (thumbnail face, else
+  centered 20px platform icon; time hidden); "N More" becomes a centered "+N" 11px muted
+  row. Desktop untouched (all `phone:` variants). tsc clean.
 
 ---
 
@@ -41,7 +67,7 @@ changelog line). Statuses:
 | `/media` (Media library) | `app/(app)/(site)/media/page.tsx` → `new-layout/layout.media.component.tsx` | POSTIZ-ONLY-KEEP | Buffer has no media library page; chrome tokenized (de7f7dc3) |
 | `/settings` | `app/(app)/(site)/settings/page.tsx` → `layout/settings.component.tsx` (SettingsPopup) | VERIFIED-PARITY | Rail + content measured vs buffer-settings-structure.json |
 | `/third-party` (Integrations catalog) | `third-parties/third-party.component.tsx` | POSTIZ-ONLY-KEEP | No Buffer analog; fully tokenized in fleet (de7f7dc3) |
-| `/plugs` | `plugs/plugs.tsx` | POSTIZ-ONLY-KEEP | Postiz automation plugs; no Buffer analog |
+| `/plugs` | `plugs/plugs.tsx` | POSTIZ-ONLY-KEEP | Postiz automation plugs; no Buffer analog; shared PageShell/PageHeader + compact phone channel chips |
 | `/billing`, `/billing/lifetime` | `billing/billing.component.tsx`, `billing/lifetime.deal.tsx` | N/A-INTERNAL | Billing disabled on the internal SSO instance; capability preserved |
 | `/admin/errors`, `/admin/stats` | `admin/admin-errors.component.tsx`, `admin/admin-stats.component.tsx` | N/A-INTERNAL | Superadmin-only; restyled/skeletonized (bbe94a8c) |
 | `/err` | `app/(app)/(site)/err/page.tsx` | N/A-INTERNAL | Error landing |
@@ -67,7 +93,7 @@ changelog line). Statuses:
 | Phone content card full-bleed geometry | `new-layout/layout.component.tsx` | VERIFIED-PARITY | Gap fixed in wave 2/3 |
 | Tablet auto-rail (sidebar → 52px icon rail at 768–1100, session expand override) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | ada738e4, Buffer measured at 834 |
 | Tablet nav squash / mobile list clip fixes | `new-layout/layout.component.tsx` | VERIFIED-PARITY | 82232d1c flex min-content |
-| Admin/impersonation bottom-center pill + popover (no top strip) | `layout/impersonate.tsx` | VERIFIED-PARITY | beb4c215; coupon panel spinner fc0f3cdf |
+| Admin/impersonation bottom-center pill + popover (no top strip) | `layout/impersonate.tsx` | VERIFIED-PARITY | beb4c215; coupon panel spinner fc0f3cdf; phone: 28px pill docked bottom-end, 12px inset (content overlap fix) |
 | Support "?" bubble (36px, #def0ff, bottom-right) | `layout/support.tsx` | VERIFIED-PARITY | Matches measured Buffer helpcenter bubble |
 | Chatbase embed launcher (position/theme vs Buffer bubble) | `layout/chatbase.component.tsx` | NEEDS-WORK | Third-party widget still renders its own dark bottom-left circle when enabled; needs CSS override or dashboard config to match the support-bubble slot |
 | Announcement banner / top tip | `layout/announcement.banner.tsx`, `layout/top.tip.tsx` | POSTIZ-ONLY-KEEP | Admin-pushed announcements; shown in preview wrapper + layout |
@@ -107,9 +133,9 @@ changelog line). Statuses:
 | "Locked channels · N ›" expander | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Billing-gated; hidden when N=0 |
 | Channels-limit upsell card (progress dashes, Upgrade for More) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | FREE-tier gated, dismissable |
 | Org footer row (logo 32, org name + plan, collapse control) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | panel-left-close/open glyphs split |
-| Org switcher popover (click org footer) | `layout/organization.selector.tsx` | NEEDS-WORK | Mixed legacy tokens; restyle to panel surface. Also measure Buffer's org menu if one exists (see §Measure) |
+| Org switcher popover (click org footer) | `layout/organization.selector.tsx` | NEEDS-BUFFER-MEASUREMENT | Restyled to kit 2026-08-10: white r8 hairline panel + soft shadow, 32px r6 rows, 24px initial avatar, check on active org, lime asOpenSelect CTA — legacy bg-third/tableBorder removed. Remaining: measure Buffer's org menu if one exists (see §Measure) |
 | Collapse rail (52px icon rail, expand control) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | b82cb93a + ada738e4 |
-| Notifications bell + dropdown (in sidebar utilities) | `notifications/notification.component.tsx` | NEEDS-WORK | Bell placement fine (Postiz-only feature) but dropdown panel still mixes legacy tokens (`bg-sixth`-family); restyle rows to 32px/r6 menu spec |
+| Notifications bell + dropdown (in sidebar utilities) | `notifications/notification.component.tsx` | POSTIZ-ONLY-KEEP | Postiz-only feature, kit-styled 2026-08-10: white r8 panel (shared panel shadow/hairline), 32px-min 14px ink rows, hairline dividers, unread = header wash + semibold (legacy seventh flash/tableBorder/fifth scrollbar removed) |
 | Menu item primitive | `new-layout/menu-item.tsx` | VERIFIED-PARITY | Shared row styling |
 | Side panel primitives (224px calibrated width, headers, collapse) | `new-layout/side-panel.ts`, `side-panel-header.tsx` | VERIFIED-PARITY | Used by launches/plugs/analytics/third-party/agents |
 | Mobile integration row variant | `new-layout/mobile.integration.tsx` | VERIFIED-PARITY | Phone drawer channel rows |
@@ -118,14 +144,14 @@ changelog line). Statuses:
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Page header row (40×40 r10 icon chip, 20/400 display title, bookmark, right cluster) | `launches/filters.tsx` PageHeader | VERIFIED-PARITY | Rhythm 25/48/33/8/48 (de7f7dc3) |
+| Page header row (40×40 r10 icon chip, 20/400 display title, bookmark, right cluster) | `launches/filters.tsx` PageHeader | VERIFIED-PARITY | Rhythm 25/48/33/8/48 (de7f7dc3); now the measured reference cloned into the shared `new-layout/page-header.tsx` |
 | Bookmark "Save current view" click behavior | `launches/filters.tsx` | NEEDS-BUFFER-MEASUREMENT | Click Buffer's bookmark icon: what opens (save-view dialog? named views list?), panel geometry + fields |
 | Feedback bubble button (header right) | `launches/filters.tsx` | NEEDS-BUFFER-MEASUREMENT | Click Buffer's comment/feedback icon in the header: what surface opens (feedback form? beacon?), size + fields |
 | List/Calendar segmented control (white, hairline, 32px, 4px pad, 32% green active tint) | `launches/filters.tsx` | VERIFIED-PARITY | Tint + container corrected |
 | "+ New Post" primary button | `launches/filters.tsx` | VERIFIED-PARITY | Lime + black ink brand slot |
 | Calendar toolbar left group (‹ › adjacent 32×32, H2 16/500, Today chip, view combobox) | `launches/filters.tsx` | VERIFIED-PARITY | Measured order/geometry |
 | Week-view H2 shows "August 2026" (not a date range) | `launches/filters.tsx` getDisplayText | VERIFIED-PARITY | Gap fix landed |
-| View combobox menu (Week/Month only at desktop, check-left rows) | `launches/filters.tsx` | VERIFIED-PARITY | 200px r6 p8 panel |
+| View combobox menu (Week/Month only, check-left rows; stays in the PHONE toolbar too) | `launches/filters.tsx` | VERIFIED-PARITY | 200px r6 p8 panel; phone: 40px trigger beside the funnel, panel end-anchored to stay inside 390 |
 | Channels filter dropdown (380 r12: search, Select all, 48px avatar+checkbox rows) | `launches/filters.tsx` | VERIFIED-PARITY | f67b9c9b + r1 measurements |
 | All Posts select (All/Drafts/Scheduled/Sent, check-left) | `launches/filters.tsx` | VERIFIED-PARITY | aa2ce4bc |
 | Tags filter dialog (256 r12: Untagged, colored pill rows, Clear all + Settings footer) | `launches/filters.tsx` | VERIFIED-PARITY | aa2ce4bc |
@@ -134,7 +160,7 @@ changelog line). Statuses:
 | Filter trigger buttons (32px, transparent, full ink, 16px icons/chevrons) | `launches/filters.tsx` | VERIFIED-PARITY | Metrics converged |
 | List tabs (Queue · Drafts · Approvals⚡ · Sent, count pills, ink underline on hairline track, 45px on rule) | `launches/filters.tsx` | VERIFIED-PARITY | de6ca24f + 03770f12; Approvals real since bbe94a8c |
 | Per-tab count fetch (4 parallel state counts) | `launches/filters.tsx` + `calendar.context.tsx` | VERIFIED-PARITY | Includes approvals tag count |
-| Phone toolbar (single row: ‹ › title, funnel, icon-only segmented) | `launches/filters.tsx` | VERIFIED-PARITY | 139cca46 |
+| Phone toolbar (single row: ‹ › title, Week/Month dropdown, funnel, icon-only segmented) | `launches/filters.tsx` | VERIFIED-PARITY | 139cca46; view dropdown un-hidden on phone (Buffer keeps the full toolbar at 390) |
 | Phone filter bottom sheet (drag handle, scrim, drill-in rows) | `launches/filters.tsx` | VERIFIED-PARITY | Measured vs buffer-phone-filtersheet.png |
 | Phone green icon-only "+" (40 r8) | `launches/filters.tsx` | VERIFIED-PARITY | 139cca46 |
 | Last-view restore (list/month/week cookie) | `launches/filters.tsx` | VERIFIED-PARITY | 82563526; month default (87488ff3) |
@@ -143,15 +169,15 @@ changelog line). Statuses:
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Month grid (Sunday-first, uniform ~205px rows growing in flow, outer hairline, square corners) | `launches/calendar.tsx` MonthView | VERIFIED-PARITY | In-flow growth + Chrome minmax fix (de7f7dc3) |
+| Month grid (Sunday-first, uniform ~205px rows growing in flow, outer hairline, square corners) | `launches/calendar.tsx` MonthView | VERIFIED-PARITY | In-flow growth + Chrome minmax fix (de7f7dc3); phone: REAL 7-col grid at 390 (~51px cols, 163px row floor, 'ddd' header) — columns set inline so the scss minmax(88px) grid-cols-7 fallback can't force sideways scroll |
 | Weekday header row (36px white, hairline, /70 ink) | `launches/calendar.tsx` | VERIFIED-PARITY | Two-tone → white retune |
 | Cell wash model (weekend/other-month/past washed; today/future white; wash month-only) | `launches/calendar.tsx` + `global.scss` | VERIFIED-PARITY | Hatching removed; flat #f4f3f0-family |
 | Today marker (day number in 24px lime circle, black ink) | `launches/calendar.tsx` | VERIFIED-PARITY | Brand map of Buffer's green circle |
 | Day-number three-tone ink hierarchy | `launches/calendar.tsx` | VERIFIED-PARITY | current/past/other tones |
-| Month post pills (h33 r8 p4: 20px brand chip · h:mm A 13px ink · 23px r6 thumb, 8px insets) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3 chips pass |
+| Month post pills (h33 r8 p4: 20px brand chip · h:mm A 13px ink · 23px r6 thumb, 8px insets) | `launches/calendar.tsx` CalendarItem | VERIFIED-PARITY | de7f7dc3 chips pass; phone: 30×30 r6 mini-tile (thumbnail face when media, else hairline tile w/ centered 20px platform icon; no time) per Buffer 390 |
 | Pill media thumbnails (backend `image` field) | `launches/calendar.tsx` + backend posts payload | NEEDS-WORK | Code landed (aa2ce4bc) but live deploy predates the field — verify thumbnails render after next deploy (month/week/list all gated on this) |
 | Past pills never grayscale | `launches/calendar.tsx` | VERIFIED-PARITY | !grayscale removed |
-| "N More" expander / "Show less" (16px chevron, 14/500 ink, left-aligned) | `launches/calendar.tsx` | VERIFIED-PARITY | Glyph + collapse retreated |
+| "N More" expander / "Show less" (16px chevron, 14/500 ink, left-aligned) | `launches/calendar.tsx` | VERIFIED-PARITY | Glyph + collapse retreated; phone month: compact centered "+N" 11px muted row (full label desktop; Show less unchanged) |
 | Per-day "+" button (bordered, top-right of cell, wires existing day-click composer) | `launches/calendar.tsx` | VERIFIED-PARITY | de7f7dc3 hover + square |
 | Empty-slot "+" hover ghost styling | `launches/calendar.tsx` + `global.scss` | NEEDS-BUFFER-MEASUREMENT | Hover an empty Buffer month/week slot: capture the affordance (ghost + size, fill, border, icon color) — r1 flagged "verify against a fresh capture" |
 | Month fetch range includes leading/trailing grid days | `launches/calendar.context.tsx` | VERIFIED-PARITY | Visible-grid range query |
@@ -177,7 +203,7 @@ changelog line). Statuses:
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Phone 3-day rolling hour grid (~80px rows, 48px gutter, "Mon 10" headers) | `launches/calendar.tsx` DayView/WeekView machinery | VERIFIED-PARITY | Measured vs buffer-month-phone390.png |
+| Phone 3-day rolling hour grid (~80px rows, 48px gutter, "Mon 10" headers) | `launches/calendar.tsx` WeekView machinery | VERIFIED-PARITY | Measured vs buffer-month-phone390.png; now the WEEK option at phone (Buffer's "Previous 3 Days" pager) — Month renders the real month grid, no more phone coercion in `Calendar` |
 | Desktop Day view (kept, not in the desktop combobox) | `launches/calendar.tsx` DayView | POSTIZ-ONLY-KEEP | Buffer desktop has Week/Month only; Day retained for phone + alias routes |
 | Phone full-bleed calendar card | `launches/calendar.tsx` + layout | VERIFIED-PARITY | r1 phone pass |
 
@@ -200,8 +226,8 @@ changelog line). Statuses:
 | Publish Now on drafts (date→now + status→schedule, confirm) | `launches/calendar.tsx` | VERIFIED-PARITY | bbe94a8c; mirrors Buffer "Publish Now" semantics |
 | Pager hidden when totalPages ≤ 1 | `launches/calendar.tsx` | VERIFIED-PARITY | Per addendum |
 | Page-level scroll (no nested scroll container) | `launches/calendar.tsx` | VERIFIED-PARITY | Wrapper dropped |
-| Post preview modal (existing post quick view) | `launches/general.preview.component.tsx` | NEEDS-WORK | Still legacy-token styled (4 old / 0 new tokens); restyle to card/dialog spec |
-| Post statistics modal (clicks/short-link stats) | `launches/statistics.tsx`, `calendar.tsx` Statistics | NEEDS-WORK | Mixed legacy tokens; also see §Measure row for Buffer sent-post stats strip |
+| Post preview modal (existing post quick view) | `launches/general.preview.component.tsx` | VERIFIED-PARITY | Interior kit-converted 2026-08-10: 14px ink name / muted handle, hairline (1px token) thread connector, surface-ringed platform badge — customColor25/26/27 + border-fifth removed; shell is the call sites' Buffer-measured r12 hairline preview card |
+| Post statistics modal (clicks/short-link stats) | `launches/statistics.tsx`, `calendar.tsx` Statistics | VERIFIED-PARITY | Kit-converted 2026-08-10: 16/600 section heads, cards keep header-wash/hairline r12 (blue hover + purple/green/blue gradient charts dropped), chart now flat #2f7d44 2px line w/ hairline gridlines + token tooltip (local FlatMetricLine; skeleton loading kept), short-links table = hairline r8 frame + header wash (bg-forth/customColor6 removed). Buffer sent-post stats strip tracked in its own §Measure row |
 | Sent-post per-card stats (Buffer Sent tab shows metrics under cards) | — (no equivalent yet) | NEEDS-BUFFER-MEASUREMENT | Open Buffer List → Sent: measure the stats strip on sent cards (metrics shown, icon+number style, divider) — decide mapping to our /analytics/post/:id data |
 | Delete post flow | `launches/calendar.tsx` DeletePost | VERIFIED-PARITY | Behind confirm dialog (surface itself → §Measure generic dialog) |
 | Set selection modal (apply a Set from calendar) | `launches/calendar.tsx` SetSelectionModal | POSTIZ-ONLY-KEEP | Sets are Postiz-only |
@@ -233,7 +259,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Signature box (choose/insert signature) | `components/signature.tsx` SignatureBox | POSTIZ-ONLY-KEEP | Signatures are Postiz-only |
 | @-Mention suggestion dropdown (per-platform mentions) | `new-launch/mention.component.tsx` | VERIFIED-PARITY | Tokenized + skeletons (fc0f3cdf); Postiz-only capability |
 | AI Assistant (Copilot textarea/completions in editor) | `new-launch/editor.tsx` + CopilotKit | POSTIZ-ONLY-KEEP | Buffer's AI Assistant differs; ours preserved |
-| AI image generation modal | `launches/ai.image.tsx` | NEEDS-WORK | 1 legacy token, pre-kit styling; restyle dialog to spec |
+| AI image generation modal | `launches/ai.image.tsx` | POSTIZ-ONLY-KEEP | No Buffer counterpart; kit-styled 2026-08-10: 13px muted labels, white hairline r6 textarea, 32px r8 style chips (lime selection replaces upstream purple), lime Generate button; generation flow + spinner-in-trigger kept (bg-input/inputText/border-fifth removed) |
 | AI video generation (modal + provider select) | `launches/ai.video.tsx`, `videos/video.wrapper.tsx`, `video.render.component.tsx`, `video.context.wrapper.tsx` | POSTIZ-ONLY-KEEP | No Buffer counterpart; check tokens during next sweep |
 | AI video providers (Veo3, image-text-slides) | `videos/providers/veo3.provider.tsx`, `image-text-slides.provider.tsx` | POSTIZ-ONLY-KEEP | Provider forms |
 | Post generator (AI generate posts from prompt/URL) | `launches/generator/generator.tsx` | POSTIZ-ONLY-KEEP | Postiz-only |
@@ -309,7 +335,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 |---|---|---|---|
 | Manage-channels modal (Buffer channel cards, sub-lines, derived URL state) | `launches/launches.component.tsx` (`?manageChannels=1`) + launches panel components | VERIFIED-PARITY | 9b81699c: cards, platform+type sub-lines, gear+kebab; derived modal state survives RSC remount |
 | Add-channel catalog (platform grid, API-key custom variables, URL modal) | `launches/add.provider.component.tsx` | NEEDS-BUFFER-MEASUREMENT | Open Buffer Settings→Channels→Connect Channel: measure the catalog (tile size, brand icon treatment, name+descriptor, connect CTA, search/groups) for our AddProviderComponent grid |
-| Platform picker step (choose platform → variant) | `launches/helpers/pick.platform.component.tsx` | NEEDS-WORK | Mixed legacy tokens (2 old); restyle rows/tiles |
+| Platform picker step (choose platform → variant) | `launches/helpers/pick.platform.component.tsx` | VERIFIED-PARITY | Multi-select tiles converged 2026-08-10 on the picks.socials Buffer channel-tile spec: 40px r10 (data-cs), ring-2 ring-btnPrimary selected / opacity-60 hover:100 unselected, 16px r4 badge; single-select Buffer chip untouched except badge border-fifth → surface ring |
 | Custom variables form (self-hosted API-key providers) | `launches/add.provider.component.tsx` CustomVariables | N/A-INTERNAL | Self-hosted-only fields |
 | Channel refresh/reconnect (continue integration) | `launches/continue.integration.tsx` | VERIFIED-PARITY | Spinner tokenized (fc0f3cdf) |
 | Bot picture setter (Telegram bot avatar) | `launches/bot.picture.tsx` | POSTIZ-ONLY-KEEP | |
@@ -324,7 +350,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Page header (icon chip + "Media" + Upload primary top-right) | `media/media.component.tsx` + layout wrapper | VERIFIED-PARITY | S1 fleet fix (de7f7dc3) |
+| Page header (icon chip + "Media" + Upload primary top-right) | `media/media.component.tsx` + `new-layout/layout.media.component.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell` (page-header.tsx): 48px row (56 phone), launches pane rhythm replaces the p-[20px] wrapper; Upload primary passed through unchanged |
 | Upload button (lime primary h32 r8) | `media/media.component.tsx` | VERIFIED-PARITY | Promoted per fleet |
 | Uppy uploader (dashboard strip gated on activity, progress) | `media/new.uploader.tsx`, `media/media.component.tsx` | VERIFIED-PARITY | Idle dead-space fix |
 | Media grid tiles (r8, hover-only filename chip, quiet maximize) | `media/media.component.tsx` | VERIFIED-PARITY | Fleet fixes |
@@ -333,7 +359,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Empty state (64px circle + image icon) | `media/media.component.tsx` + `cuesoft/empty-state.tsx` | VERIFIED-PARITY | Violet illustration retired |
 | Media picker modal (showMediaBox select-into-composer) | `media/media.component.tsx` MediaBox/ShowMediaBoxModal | VERIFIED-PARITY | Quiet variant kept in-picker |
 | Insert-media toolbar (composer/agents attachment row) | `media/media.component.tsx` (b2 buttons) | VERIFIED-PARITY | 32px/r8 convergence (fleet) |
-| AI image entry from media | `launches/ai.image.tsx` | NEEDS-WORK | Same dialog restyle as §9 row |
+| AI image entry from media | `launches/ai.image.tsx` | POSTIZ-ONLY-KEEP | Same dialog as §9 row — kit-styled 2026-08-10; toolbar trigger chip stays matched to its Insert/Design Media siblings, spinner now currentColor |
 | Video generation from media (providers) | `videos/**` | POSTIZ-ONLY-KEEP | |
 | Polonto design editor (Polotno canvas) | `launches/polonto.tsx`, `polonto/polonto.picture.generation.tsx` | POSTIZ-ONLY-KEEP | Third-party editor; theme wrapper only |
 | Third-party media import (HeyGen video into library) | `third-parties/third-party.media-library.tsx`, `third-party.media.tsx`, `providers/heygen.provider.tsx` | POSTIZ-ONLY-KEEP | Spinner/skeleton tokenized (fc0f3cdf) |
@@ -343,7 +369,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Page header (bar-chart chip + title; phone variant) | fleet header on `platform.analytics.tsx` | VERIFIED-PARITY | S1 |
+| Page header (bar-chart chip + title) | `new-layout/page-header.tsx` on `platform.analytics.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell`; ONE header at every width (separate 56px phone copy removed; phone strip moved under it inside the shell) |
 | Channel rail (desktop side panel 224px) + phone chip strip | `platform.analytics.tsx` + `new-layout/channel-row.tsx` | VERIFIED-PARITY | Ghosting/geometry fixed (S5) |
 | Date-range segmented (single hairline container, 24px segments, green-tint active) | `platform.analytics.tsx` | VERIFIED-PARITY | Fleet |
 | Phone date-range trigger + bottom sheet | `platform.analytics.tsx` | VERIFIED-PARITY | Fleet |
@@ -363,7 +389,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Page header (sparkle chip + title + New chat primary; phone icon-only) | `agents/agent.tsx` | VERIFIED-PARITY | S1 fleet |
+| Page header (sparkle chip + title + New chat primary; phone icon-only) | `new-layout/page-header.tsx` on `agents/agent.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell` (48px row replaces the hand-rolled 64px bar); lime New chat kept as the actions slot |
 | Threads rail ("Chats" header, 32px r8 rows, collapse, empty state) | `agents/agent.tsx` | VERIFIED-PARITY | Fleet; sidePanelRoot width calibrated |
 | Channel toggle bar (composer-style avatar toggles, 40px, ring on-state) | `agents/agent.tsx` AgentList | VERIFIED-PARITY | 7ce47dff + S5 sizing |
 | Chat pane (CopilotKit: Inter inherit, tokened bubbles/input, r12 input) | `agents/agent.chat.tsx`, `agent.styles.scss` | VERIFIED-PARITY | Fleet token pass |
@@ -404,13 +430,13 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Third-party page header + section labels | `third-parties/third-party.component.tsx` | VERIFIED-PARITY | Fleet: header, eyebrow → sentence case |
+| Third-party page header + section labels | `third-parties/third-party.component.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell` (launches pane rhythm; `!pb-[56px]` keeps the admin-pill clearance); eyebrow stays sentence case |
 | Catalog cards (quiet Add CTA, 1-col phone) | `third-parties/third-party.list.component.tsx` | VERIFIED-PARITY | Fleet |
 | Connected rows (avatar 40, bold name, sub-line, kebab menu) | `third-parties/third-party.component.tsx` | VERIFIED-PARITY | Fleet; kebab menu on panel surface |
 | API-key connect modal + function wrapper | `third-parties/third-party.function.tsx`, `third-party.wrapper.tsx` | POSTIZ-ONLY-KEEP | |
 | HeyGen provider UI (avatar/voice pickers, generate) | `third-parties/providers/heygen.provider.tsx` | POSTIZ-ONLY-KEEP | Skeleton tokenized (fc0f3cdf) |
 | Media slider picker | `third-parties/slider.component.tsx` | POSTIZ-ONLY-KEEP | |
-| Plugs page (per-channel plug cards, activate toggles, fields) | `plugs/plugs.tsx`, `plugs/plug.tsx`, `plugs.context.ts` | POSTIZ-ONLY-KEEP | Skeletons tokenized (bbe94a8c); side panel calibrated |
+| Plugs page (per-channel plug cards, activate toggles, fields) | `plugs/plugs.tsx`, `plugs/plug.tsx`, `plugs.context.ts` | POSTIZ-ONLY-KEEP | Skeletons tokenized (bbe94a8c); side panel calibrated; shared PageShell/PageHeader, kit white plug cards (r12 hairline, 16/600 title), 32/14 phone chips |
 
 ## 17. Billing & onboarding & misc member surfaces
 
@@ -423,7 +449,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | FAQ section | `billing/faq.component.tsx` | N/A-INTERNAL | |
 | Finish-trial modal | `billing/finish.trial.tsx` | N/A-INTERNAL | |
 | Onboarding wizard (welcome modal, connect steps) | `onboarding/onboarding.tsx`, `onboarding.modal.tsx`, `github.onboarding.tsx` | POSTIZ-ONLY-KEEP | Shows for invited teammates; neutral styling; sweep tokens opportunistically |
-| Notifications dropdown list (bell panel content) | `notifications/notification.component.tsx` | NEEDS-WORK | (Same as §3 row — tracked once there; listed for completeness of the bell's panel content: mixed tokens, needs 32px/r6 menu rows) |
+| Notifications dropdown list (bell panel content) | `notifications/notification.component.tsx` | POSTIZ-ONLY-KEEP | (Same as §3 row — tracked once there) Kit-styled 2026-08-10: 32px-min 14px ink rows, hairline dividers, unread wash |
 | Public post preview page (header, post render, copy link, comments) | `preview/preview.wrapper.tsx`, `copy.client.tsx`, `render.preview.date*.tsx`, `comments.components.tsx` | NEEDS-WORK | Legacy tokens on the comments render; restyle page chrome to token system |
 | Import debug post modal (admin) | `launches/import-debug-post.modal.tsx` | N/A-INTERNAL | Admin pill popover tool |
 | Admin errors table | `admin/admin-errors.component.tsx` | N/A-INTERNAL | Restyled bbe94a8c |
@@ -447,6 +473,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 |---|---|---|---|
 | Icon system (231 inline SVGs ledgered to Lucide family, 16px vb24 stroke 2.2) | `components/ui/icons/index.tsx` + inline | VERIFIED-PARITY | 987a823b + b82cb93a |
 | Empty-state component (hero variant, 64px circle pattern) | `cuesoft/empty-state.tsx` | VERIFIED-PARITY | S2 pattern |
+| Shared page header + page shell (48px band → 56 phone; 40px r10 chip, 20/400 display title, actions slot; pane insets 24/32/20, gap 8) | `new-layout/page-header.tsx` | VERIFIED-PARITY | Cloned from the measured /launches header/pane; adopted by analytics, agents, media, third-party (and plugs) |
 | Loader / LoadingPane / spinner sizes | `cuesoft/loader.tsx`, `layout/loading.tsx` | VERIFIED-PARITY | Spinner call-site sweep complete (fc0f3cdf) |
 | Skeleton primitives (route + per-surface) | `layout/skeleton.tsx` | VERIFIED-PARITY | bbe94a8c/fc0f3cdf sweep |
 | Data table / settings table | `cuesoft/data-table.tsx`, `settings-table.tsx` | VERIFIED-PARITY | Buffer table specs (12px grid corners 82563526) |
@@ -468,9 +495,9 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 
 ## Status totals (2026-08-10)
 
-Counted from the tables above (335 rows):
+Counted from the tables above (336 rows):
 
-- VERIFIED-PARITY: 154
+- VERIFIED-PARITY: 155
 - NEEDS-WORK: 15
 - NEEDS-BUFFER-MEASUREMENT: 34
 - POSTIZ-ONLY-KEEP: 92
