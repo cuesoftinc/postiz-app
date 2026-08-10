@@ -40,6 +40,7 @@ import SkoolProvider from '@gitroom/frontend/components/new-launch/providers/sko
 import WhopProvider from '@gitroom/frontend/components/new-launch/providers/whop/whop.provider';
 import MeweProvider from '@gitroom/frontend/components/new-launch/providers/mewe/mewe.provider';
 import TumblrProvider from '@gitroom/frontend/components/new-launch/providers/tumblr/tumblr.provider';
+import { PreviewEmptyState } from '@gitroom/frontend/components/new-launch/preview.empty.state';
 
 export const Providers = [
   {
@@ -228,14 +229,9 @@ export const ShowAllProviders = forwardRef((props, ref) => {
           }}
         >
           {global?.[0]?.content?.length === 0 ? (
-            <div className="text-[13px] text-newTextColor/60">
-              {t(
-                'start_writing_your_post',
-                'Start writing your post for a preview'
-              )}
-            </div>
+            <PreviewEmptyState />
           ) : (
-            <div className="border border-borderPreview rounded-[12px] shadow-previewShadow">
+            <div className="bg-newBgColorInner border border-newTableBorder rounded-[12px] shadow-previewShadow">
               <GeneralPreviewComponent maximumCharacters={100000000} />
             </div>
           )}

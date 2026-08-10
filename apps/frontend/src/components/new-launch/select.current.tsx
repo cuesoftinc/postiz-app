@@ -94,7 +94,9 @@ export const SelectCurrent: FC = () => {
 
   return (
     <>
-      <div className="select-none left-0 absolute w-full z-[100] px-[20px]">
+      {/* px matches #social-content's ps-[24px] (16 on phone) so the strip
+          lines up with the editor container below it */}
+      <div className="select-none left-0 absolute w-full z-[100] px-[24px] phone:px-[16px]">
         <div
           ref={contentRef}
           className={clsx(

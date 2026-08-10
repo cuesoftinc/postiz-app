@@ -22,6 +22,7 @@ import { InternalChannels } from '@gitroom/frontend/components/launches/internal
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import SafeImage from '@gitroom/react/helpers/safe.image';
+import { PreviewEmptyState } from '@gitroom/frontend/components/new-launch/preview.empty.state';
 
 class Empty {
   @IsOptional()
@@ -240,21 +241,17 @@ export const withProvider = function <T extends object>(params: {
         <FormProvider {...form}>
           <div
             className={clsx(
-              'border border-borderPreview rounded-[12px] shadow-previewShadow',
+              // Buffer preview card: white r12 hairline — only when there is
+              // content to preview; the empty state renders chrome-less.
+              !!value?.[0]?.content?.length &&
+                'bg-newBgColorInner border border-newTableBorder rounded-[12px] shadow-previewShadow',
               !current && 'hidden'
             )}
           >
             {current &&
               (tab === 0 ||
                 (!SettingsComponent && !data?.internalPlugs?.length)) &&
-              !value?.[0]?.content?.length && (
-                <div className="text-[13px] text-newTextColor/60">
-                  {t(
-                    'start_writing_your_post',
-                    'Start writing your post for a preview'
-                  )}
-                </div>
-              )}
+              !value?.[0]?.content?.length && <PreviewEmptyState />}
             {current &&
               (tab === 0 ||
                 (!SettingsComponent && !data?.internalPlugs?.length)) &&

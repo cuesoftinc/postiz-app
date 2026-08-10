@@ -645,7 +645,11 @@ export const Editor: FC<{
     [uppy, num, comments, toaster, t]
   );
 
-  const { getRootProps, isDragActive } = useDropzone({
+  // noClick keeps the root exactly as before (clicks never opened a file
+  // dialog — no input was rendered); the dashed drop zone below renders the
+  // input and calls open() so "select a file" runs the same uppy upload path
+  // as drag & drop.
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop: (files) => {
       if (loading) {
         toaster.show(
@@ -656,8 +660,12 @@ export const Editor: FC<{
       }
       onDrop(files);
     },
+    noClick: true,
+    noKeyboard: true,
     noDrag: num > 0 && comments === 'no-media',
   });
+
+  const mediaAvailable = !!setImages && !(num > 0 && comments === 'no-media');
 
   const valueWithoutHtml = useMemo(() => {
     return stripHtmlValidation('normal', props.value || '', true);
@@ -755,6 +763,53 @@ export const Editor: FC<{
                 editorRef?.current?.editor?.commands?.focus('end');
               }}
             />
+            {/* Buffer media affordance: dashed drop zone near the editor
+                bottom, wired to the existing dropzone/uppy upload logic
+                (click -> open() -> onDrop -> uppy). */}
+            {mediaAvailable && (
+              <div className="bg-newBgColorInner px-[12px] pb-[10px] cursor-default">
+                <input {...getInputProps()} />
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (loading) {
+                      toaster.show(
+                        'Upload current in progress, please wait and then try again.',
+                        'warning'
+                      );
+                      return;
+                    }
+                    open();
+                  }}
+                  className="h-[120px] rounded-[8px] border border-dashed border-newTableBorder flex flex-col items-center justify-center gap-[8px] cursor-pointer select-none hover:bg-newTableHeader/50 transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-newTextColor/60"
+                  >
+                    <path d="M16 5h6" />
+                    <path d="M19 2v6" />
+                    <path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    <circle cx="9" cy="9" r="2" />
+                  </svg>
+                  <div className="text-[14px] text-newTextColor/60">
+                    {t('drag_and_drop_or', 'Drag & drop or')}{' '}
+                    <span className="text-newTextColor font-[500]">
+                      {t('select_a_file', 'select a file')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="flex bg-newBgColorInner rounded-b-[6px] cursor-default">
               {setImages && (
                 <MultiMediaComponent
@@ -810,7 +865,7 @@ export const Editor: FC<{
                       <div
                         data-tooltip-id="tooltip"
                         data-tooltip-content={t('insert_emoji', 'Insert Emoji')}
-                        className="select-none cursor-pointer rounded-[6px] w-[30px] h-[30px] bg-newColColor flex justify-center items-center"
+                        className="select-none cursor-pointer rounded-[8px] w-[32px] h-[32px] border border-newTableBorder hover:bg-newTableHeader flex justify-center items-center"
                         onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
                       >
                         <EmojiIcon />

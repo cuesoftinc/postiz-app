@@ -54,6 +54,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const toaster = useToaster();
   const modal = useModals();
   const [showSettings, setShowSettings] = useState(false);
+  // Buffer's header Preview toggle. Visual only: the pane is display-hidden,
+  // never unmounted — ShowAllProviders holds the provider refs the submit
+  // flow validates through, so it must stay mounted.
+  const [showPreview, setShowPreview] = useState(true);
   const { data: shortlinkPreferenceData } = useShortlinkPreference();
 
   const { addEditSets, mutate, customClose, dummy } = props;
@@ -435,40 +439,141 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
 
   return (
     <div className="w-full h-full flex-1 p-[40px] phone:p-0 flex relative">
-      {/* Buffer spec: composer surface = elevated token, cards radius 12 */}
-      <div className="flex flex-1 bg-newBgColorInner rounded-[12px] phone:rounded-none flex-col">
+      {/* Buffer Create Post scoped skin: the legacy chip row + the footer
+          controls live in files outside this rebuild's ownership (media/**,
+          launches/*), so their convergence to 32px/r8 hairline chips and the
+          40px quiet footer buttons is applied here, keyed on wrapper ids.
+          Attribute selectors dodge the bracket-escaping of arbitrary
+          Tailwind classes. */}
+      <style>
+        {`
+          #cs-composer [class*="h-[30px]"][class*="rounded-[6px]"] {
+            height: 32px !important;
+            border-radius: 8px !important;
+            background: transparent !important;
+            border: 1px solid var(--new-table-border);
+          }
+          #cs-composer [class*="h-[30px]"][class*="rounded-[6px]"]:hover {
+            background: var(--new-table-header) !important;
+          }
+          #cs-composer [class*="w-[30px]"][class*="rounded-[6px]"] {
+            width: 32px !important;
+          }
+          #cs-tags-chip > div {
+            height: 32px !important;
+            border-radius: 8px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+          }
+          #cs-tags-chip > div > div:first-child {
+            padding-inline: 12px;
+            gap: 6px;
+          }
+          #cs-tags-chip > div [class*="rounded-[4px]"] {
+            height: 22px !important;
+            align-self: center;
+          }
+          /* the tags popover ships bottom-anchored (it lived in the footer);
+             in the header it must drop DOWN instead */
+          #cs-tags-chip [class*="z-[300]"] {
+            bottom: auto !important;
+            top: calc(100% + 8px) !important;
+            transform: none !important;
+            border-radius: 12px;
+            border: 1px solid var(--new-table-border);
+          }
+          #cs-datetime > div,
+          #cs-repeat > div {
+            height: 40px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            flex: 0 1 auto !important;
+          }
+          #cs-datetime > div {
+            border-color: var(--new-table-border) !important;
+          }
+        `}
+      </style>
+      <div
+        id="cs-composer"
+        className="flex flex-1 bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col"
+      >
+        {/* HEADER — spans the full modal width above both panes. Title is
+            20px/400 Plus Jakarta (data-cs keeps the ladder off text-[20px]);
+            beside it the existing tags control restyled as the Buffer chip. */}
+        <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] px-[24px] phone:px-[16px]">
+          <div
+            data-cs
+            className="text-[20px] font-display font-[400] text-newTextColor whitespace-nowrap"
+          >
+            {t('create_post_title', 'Create Post')}
+          </div>
+          <CreationMethodBadge
+            creationMethod={existingData?.posts?.[0]?.creationMethod}
+            size="sm"
+          />
+          {!dummy && (
+            <div id="cs-tags-chip" className="flex items-center">
+              <TagsComponent
+                name="tags"
+                label={t('tags', 'Tags')}
+                initial={tags}
+                onChange={(e) => {
+                  setTags(e.target.value);
+                }}
+              />
+            </div>
+          )}
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={() => setShowPreview(!showPreview)}
+            className={clsx(
+              'phone:hidden h-[32px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors',
+              showPreview
+                ? 'bg-boxFocused text-textItemFocused'
+                : 'border border-newTableBorder text-newTextColor hover:bg-newTableHeader'
+            )}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            {t('preview', 'Preview')}
+          </button>
+          <div
+            onClick={askClose}
+            className="cursor-pointer flex items-center justify-center w-[32px] h-[32px] rounded-[8px] hover:bg-newTextColor/10 transition-colors"
+          >
+            <CloseIcon className="text-newTextColor/60" />
+          </div>
+        </div>
         <div className="flex-1 flex">
           {/* phone: the editor owns the full width — the fixed 420px preview
               pane collapsed it to 1px (editor-first, like Buffer mobile) */}
-          <div className="flex flex-col flex-1 border-e border-newBorder phone:border-e-0">
-            {/* Header sits on the surface itself (no page-bg band) with a
-                hairline below; title 18px Outfit per spec — data-cs keeps the
-                ladder from forcing text-[18px] down to 16. */}
-            <div
-              data-cs
-              className="h-[65px] border-b border-newBorder flex items-center gap-[12px] px-[16px] text-[18px] font-display font-[600]"
-            >
-              {t('create_post_title', 'Create Post')}
-              <CreationMethodBadge
-                creationMethod={existingData?.posts?.[0]?.creationMethod}
-                size="sm"
-              />
-            </div>
+          <div className="flex flex-col flex-1 min-w-0">
             <div className="flex-1 flex flex-col gap-[16px]">
               <div
                 className={clsx('flex-1 relative', showSettings && 'hidden')}
               >
                 <div
                   id="social-content"
-                  className="gap-[16px] flex flex-col pe-[8px] pt-[16px] ps-[16px] absolute top-0 left-0 w-full h-full overflow-x-hidden overflow-y-scroll scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner"
+                  className="gap-[16px] flex flex-col pe-[16px] pt-[12px] ps-[24px] phone:ps-[16px] phone:pe-[8px] absolute top-0 left-0 w-full h-full overflow-x-hidden overflow-y-scroll scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner"
                 >
-                  <div className="flex w-full">
-                    {/* Spec: 40px channel avatars. Their classes live in
-                        picks.socials.component (stock 42px, outside this
-                        rebuild's file list); the scoped variant below targets
-                        only the avatar imgs (img.rounded-full — the platform
-                        badges are rounded-[4px] so they don't match). */}
-                    <div className="flex flex-1 [&_img.rounded-full]:w-[40px] [&_img.rounded-full]:h-[40px] [&_img.rounded-full]:min-w-[40px] [&_img.rounded-full]:min-h-[40px]">
+                  {/* CHANNELS ROW — 40px r10 avatar tiles (restyled in
+                      picks.socials.component) + the existing customer picker */}
+                  <div className="flex w-full py-[12px] phone:py-[4px]">
+                    <div className="flex flex-1">
                       <PicksSocialsComponent toolTip={true} />
                     </div>
                     <div>
@@ -482,7 +587,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   </div>
                   <div className="flex flex-1 gap-[6px] flex-col">
                     <div>{!existingData.integration && <SelectCurrent />}</div>
-                    <div className="flex-1 flex">
+                    {/* EDITOR AREA — one r12 hairline container around the
+                        existing per-platform editor stack. No overflow-hidden:
+                        the emoji/mention/delay popovers position out of it. */}
+                    <div className="flex-1 flex rounded-[12px] border border-newTableBorder">
                       {!hide && <EditorWrapper totalPosts={1} value="" />}
                     </div>
                     <div
@@ -541,57 +649,70 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               </div>
             </div>
           </div>
-          <div className="w-[420px] flex flex-col phone:hidden">
-            {/* Panel heading 16px/600 per spec; the X becomes a quiet 36px
-                icon button (newTextColor/10 hover = white-alpha in dark,
-                black-alpha in light). */}
-            <div className="h-[65px] border-b border-newBorder flex items-center px-[16px] text-[16px] font-[600]">
-              <div className="flex-1">{t('post_preview', 'Post Previews')}</div>
+          {/* PREVIEW PANE — newTableHeader wash, hairline divider. Hidden
+              (never unmounted — submit validates through the provider refs
+              inside) when the header Preview toggle is off. */}
+          <div
+            className={clsx(
+              'w-[420px] flex flex-col phone:hidden bg-newTableHeader border-s border-newTableBorder',
+              !showPreview && 'hidden'
+            )}
+          >
+            <div className="pt-[16px] px-[16px] flex items-center gap-[8px] text-[16px] font-[600] text-newTextColor">
+              <div>{t('post_preview', 'Post Previews')}</div>
               <div
-                onClick={askClose}
-                className="cursor-pointer flex items-center justify-center w-[36px] h-[36px] rounded-[8px] hover:bg-newTextColor/10 transition-colors"
+                data-tooltip-id="tooltip"
+                data-tooltip-content={t(
+                  'post_preview_tooltip',
+                  'Previews are approximations and may differ from the published post'
+                )}
+                className="text-newTextColor/60 flex items-center"
               >
-                <CloseIcon className="text-newTextColor/60" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
               </div>
             </div>
             <div className="flex-1 relative">
               <Scrollable
                 scrollClasses="!pe-[16px]"
-                className="absolute top-0 p-[16px] pe-[8px] left-0 w-full h-full overflow-x-hidden overflow-y-scroll scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner"
+                className="absolute top-0 p-[16px] pe-[8px] left-0 w-full h-full overflow-x-hidden overflow-y-scroll scrollbar scrollbar-thumb-newColColor scrollbar-track-newTableHeader"
               >
                 <ShowAllProviders ref={ref} />
               </Scrollable>
             </div>
           </div>
         </div>
-        {/* Fixed 84px + nowrap packed tags, repeat, the datetime picker, draft
-            and submit into one row; on a phone they collided and the submit
-            button ran past the viewport. Wrap instead and let the bar grow. */}
-        <div className="select-none py-[12px] border-t border-newBorder flex flex-wrap items-center gap-[8px]">
-          <div className="flex-1 flex flex-wrap ps-[16px] phone:ps-[12px] gap-[8px]">
-            {/* radius-6 skin for the packed controls (their class strings live
-                in launches/*, outside this rebuild's file list); display:
-                contents keeps the wrapper out of the flex layout. Heights are
-                already 36px via the global h-[44px] ladder. */}
+        {/* FOOTER — full width, hairline top, ~64px. Left keeps the repeat
+            control (and delete when editing); right = the existing date/time
+            selector as a quiet 40px hairline button + the lime submit.
+            Wraps on phone so nothing runs past the viewport. */}
+        <div className="select-none min-h-[64px] py-[12px] px-[24px] phone:px-[12px] border-t border-newTableBorder flex flex-wrap items-center gap-[8px]">
+          <div className="flex-1 flex flex-wrap items-center gap-[8px]">
+            {/* quiet 40px skin for the repeat control (its class strings live
+                in launches/*, outside this rebuild's file list — see the
+                #cs-repeat scoped style above) */}
             {!dummy && (
-              <div className="contents [&>div]:rounded-[6px]">
-                <TagsComponent
-                  name="tags"
-                  label={t('tags', 'Tags')}
-                  initial={tags}
-                  onChange={(e) => {
-                    setTags(e.target.value);
-                  }}
-                />
+              <div id="cs-repeat" className="contents [&>div]:rounded-[8px]">
                 <RepeatComponent repeat={repeater} onChange={setRepeater} />
               </div>
             )}
-          </div>
-          <div className="pe-[16px] phone:pe-[12px] phone:ps-[12px] flex flex-wrap items-center justify-end phone:justify-start gap-[8px]">
             {existingData?.integration && (
               <button
                 onClick={deletePost}
-                className="cursor-pointer flex text-[#FF3F3F] gap-[8px] items-center text-[15px] font-[600]"
+                className="cursor-pointer flex text-[#FF3F3F] gap-[8px] items-center text-[14px] font-[500]"
               >
                 <div>
                   <TrashIcon />
@@ -599,16 +720,19 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 <div>{t('delete_post', 'Delete Post')}</div>
               </button>
             )}
-            <div className="contents [&>div]:rounded-[6px]">
+          </div>
+          <div className="flex flex-wrap items-center justify-end phone:justify-start gap-[8px]">
+            <div id="cs-datetime" className="contents [&>div]:rounded-[8px]">
               <DatePicker onChange={setDate} date={date} />
             </div>
             {!addEditSets && (
               <button
+                data-cs
                 disabled={
                   selectedIntegrations.length === 0 || loading || locked
                 }
                 onClick={schedule('draft')}
-                className="relative cursor-pointer disabled:cursor-not-allowed px-[16px] h-[44px] bg-transparent border border-newBorder justify-center items-center flex rounded-[6px] text-[15px] font-[600] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
+                className="relative cursor-pointer disabled:cursor-not-allowed px-[16px] h-[40px] bg-transparent border border-newTableBorder justify-center items-center flex rounded-[8px] text-[14px] font-[500] hover:bg-newTableHeader focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
               >
                 {loading && (
                   <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
@@ -620,13 +744,13 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 </div>
               </button>
             )}
-            {/* Primary submits: spec h-44 radius-8 — data-cs opts them out of
-                the global h-[44px]->36 ladder. Ink comes from the global
-                bg-btnPrimary black-ink rule; no local color class here. */}
+            {/* Primary submits: lime h-40 r8, 500 weight — data-cs opts them
+                out of the global h-[40px]->32 ladder. Ink comes from the
+                global bg-btnPrimary black-ink rule; text-black restates it. */}
             {addEditSets && (
               <button
                 data-cs
-                className="text-[15px] font-[600] min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-btnPrimary ps-[20px] pe-[16px] focus-visible:ring-2 focus-visible:ring-forth"
+                className="text-[14px] font-[500] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-[8px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
                 disabled={
                   selectedIntegrations.length === 0 || loading || locked
                 }
@@ -643,7 +767,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                     selectedIntegrations.length === 0 || loading || locked
                   }
                   onClick={schedule('schedule')}
-                  className="relative min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-btnPrimary ps-[20px] pe-[16px] focus-visible:ring-2 focus-visible:ring-forth"
+                  className="relative btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-[8px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
                 >
                   {loading && (
                     <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
@@ -652,7 +776,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   )}
                   <div
                     className={clsx(
-                      'text-[15px] font-[600]',
+                      'text-[14px] font-[500]',
                       loading && 'invisible'
                     )}
                   >
@@ -683,7 +807,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   >
                     <div
                       data-cs
-                      className="rounded-[8px] bg-btnPrimary h-[44px] w-full flex justify-center items-center post-now"
+                      className="rounded-[8px] bg-btnPrimary text-black h-[40px] w-full flex justify-center items-center text-[14px] font-[500] post-now"
                     >
                       {t('post_now', 'Post Now')}
                     </div>

@@ -187,6 +187,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         '/analytics',
                         '/agents',
                         '/media',
+                        '/content',
                       ].some((p) => (pathname || '').startsWith(p)) && (
                         <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center phone:hidden">
                           {/* page title: display face 20px/400 (spec §Page
