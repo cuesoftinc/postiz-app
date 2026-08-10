@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FC, ReactNode, useCallback, useMemo, useState } from 'react';
+import React, { FC, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
 import dynamic from 'next/dynamic';
@@ -998,11 +998,38 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
     'sidebarCollapsed',
     '0'
   );
-  const collapsed = !inDrawer && sidebarCollapsed === '1';
-  const toggleCollapsed = useCallback(
-    () => setSidebarCollapsed(sidebarCollapsed === '1' ? '0' : '1'),
-    [sidebarCollapsed, setSidebarCollapsed]
-  );
+  // Buffer auto-collapses to the 52px rail on tablets (measured at 834: rail
+  // 52, content keeps the full desktop anatomy). 768–1100 = tablet band; the
+  // expand control still works and wins for the session.
+  const [tabletRail, setTabletRail] = useState(false);
+  const [railOverride, setRailOverride] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px) and (max-width: 1100px)');
+    const apply = () => {
+      setTabletRail(mq.matches);
+      if (!mq.matches) setRailOverride(false);
+    };
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+  const collapsed =
+    !inDrawer &&
+    (sidebarCollapsed === '1' || (tabletRail && !railOverride));
+  const toggleCollapsed = useCallback(() => {
+    if (tabletRail) {
+      // tablet: the control toggles the auto-rail for this session only;
+      // the desktop cookie preference stays untouched
+      if (collapsed) {
+        setRailOverride(true);
+        if (sidebarCollapsed === '1') setSidebarCollapsed('0');
+      } else {
+        setRailOverride(false);
+      }
+      return;
+    }
+    setSidebarCollapsed(sidebarCollapsed === '1' ? '0' : '1');
+  }, [tabletRail, collapsed, sidebarCollapsed, setSidebarCollapsed]);
 
   return (
     <aside
