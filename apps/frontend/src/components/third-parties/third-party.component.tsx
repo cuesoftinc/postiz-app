@@ -9,7 +9,6 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
 import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
-import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
 import { SkeletonAvatarRow } from '@gitroom/frontend/components/layout/skeleton';
@@ -186,37 +185,16 @@ export const ThirdPartyComponent = () => {
             ))}
           </div>
         ) : !data?.length ? (
-          // S2 empty state: 64px muted circle + 24px stroke icon, 16/600
-          // heading, 14px muted subline (the hero variant supplies the type
-          // ramp) — replaces the bare one-line 'pane' message.
-          <EmptyState
-            variant="hero"
-            className="pt-[40px] pb-[24px]"
-            icon={
-              <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 22v-5" />
-                  <path d="M9 8V2" />
-                  <path d="M15 8V2" />
-                  <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />
-                </svg>
-              </div>
-            }
-            title={t('no_integrations_yet', 'No integrations yet')}
-            description={t(
+          // The provider cards below are the actionable content — the old
+          // hero (icon circle + heading + subcopy) made a second focal point
+          // and pushed the cards below mid-screen. One muted line under the
+          // section header lets the cards lead.
+          <div className="text-[14px] text-newTextColor/60">
+            {t(
               'no_integrations_description',
               'Connect HeyGen or Reel.Farm to import media into your posts.'
             )}
-          />
+          </div>
         ) : data?.length ? (
           // Bordered card list (radius 12). No overflow-hidden: the kebab's
           // DropdownPanel is `absolute top-[100%]` and must escape the card;

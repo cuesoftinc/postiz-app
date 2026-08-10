@@ -869,6 +869,7 @@ export class PostsRepository {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
       },

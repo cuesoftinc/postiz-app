@@ -66,7 +66,7 @@ export const MissingReleaseModal: FC<{
     // skeleton tiles in the same grid the provider content renders into —
     // never a spinner
     return (
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-[10px] p-[4px]">
+      <div className="grid grid-cols-5 phone:grid-cols-3 gap-[10px] p-[4px]">
         {[...new Array(10)].map((_, i) => (
           <Skeleton key={i} className="aspect-square" />
         ))}
@@ -87,21 +87,21 @@ export const MissingReleaseModal: FC<{
 
   return (
     <div className="flex flex-col gap-[16px]">
-      <div className="text-[14px] text-newTextColor/70">
+      <div className="text-[14px] text-newTextColor/60">
         {t(
           'select_matching_content',
           'Select the content that matches this post:'
         )}
       </div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-[10px] max-h-[400px] overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor p-[4px]">
+      <div className="grid grid-cols-5 phone:grid-cols-3 gap-[10px] max-h-[400px] overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor p-[4px]">
         {data.map((item: { id: string; url: string }) => (
           <div
             key={item.id}
             onClick={() => setSelected(item.id)}
             className={`cursor-pointer rounded-[8px] overflow-hidden border-2 transition-all ${
               selected === item.id
-                ? 'border-[#612BD3] scale-[1.02]'
-                : 'border-transparent hover:border-textColor/20'
+                ? 'border-btnPrimary scale-[1.02]'
+                : 'border-transparent hover:border-newTableBorder'
             }`}
           >
             <img
@@ -112,12 +112,8 @@ export const MissingReleaseModal: FC<{
           </div>
         ))}
       </div>
-      <div className="flex justify-end gap-[10px] pt-[8px] border-t border-tableBorder">
-        <Button
-          type="button"
-          onClick={() => modal.closeAll()}
-          className="bg-transparent border border-tableBorder text-newTextColor"
-        >
+      <div className="flex justify-end gap-[10px] pt-[8px] border-t border-newTableBorder">
+        <Button type="button" secondary={true} onClick={() => modal.closeAll()}>
           {t('cancel', 'Cancel')}
         </Button>
         <Button

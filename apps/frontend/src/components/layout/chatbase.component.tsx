@@ -14,6 +14,71 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import useSWR from 'swr';
 
+/* Buffer help-bubble slot for the injected Chatbase launcher (Buffer floats a
+   ~44px light "?" circle bottom-RIGHT; Chatbase's default is a dark circle
+   bottom-LEFT with its bot glyph). Repositions to bottom-right at a 16px
+   inset, light surface + hairline, hides the embedded branding glyph and
+   draws an ink circled-"?" instead. The bubble is self-colored in both themes
+   (sanctioned hardcodes, same precedent as the Discord bubble in support.tsx).
+
+   Degrades gracefully: every rule is keyed on Chatbase's stable element ids
+   (#chatbase-bubble-button / -window / -message-bubbles); if the embed ever
+   changes its DOM the selectors simply match nothing and the widget renders
+   its own default launcher, no errors. The <style> mounts only alongside the
+   widget itself (CHATBASE_TOKEN gate + token fetch), so self-hosted
+   deployments without Chatbase never carry the override. */
+const launcherOverride = `
+#chatbase-bubble-button {
+  left: auto !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 0 !important;
+  border-radius: 9999px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(43, 32, 17, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: transform 0.15s ease-in-out !important;
+}
+
+#chatbase-bubble-button:hover {
+  transform: scale(1.05);
+}
+
+/* hide the embedded bot glyph / branding and draw the circled "?" ourselves */
+#chatbase-bubble-button img,
+#chatbase-bubble-button svg {
+  display: none !important;
+}
+
+#chatbase-bubble-button::after {
+  content: '?';
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #292928;
+  border-radius: 9999px;
+  color: #292928;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* the chat window + proactive message bubbles follow the launcher's corner */
+#chatbase-bubble-window,
+#chatbase-message-bubbles {
+  left: auto !important;
+  right: 16px !important;
+}
+`;
+
 export const ChatbaseComponent: FC = () => {
   const { isChatBase } = useVariables();
   if (!isChatBase) {
@@ -154,5 +219,6 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
       },
     });
   }, []);
-  return null;
+  // scoped launcher restyle rides along with the widget itself
+  return <style dangerouslySetInnerHTML={{ __html: launcherOverride }} />;
 };

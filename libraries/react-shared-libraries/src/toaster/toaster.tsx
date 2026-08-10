@@ -30,26 +30,31 @@ export const Toaster = () => {
   if (!showToaster) {
     return <></>;
   }
+  // Buffer toast surface (measured): #f6f6f4 on a 1px #e6e5e2 hairline, r12,
+  // 20px icon slot, 14px ink body, soft shadow. The exact hexes are kept —
+  // bg-newTableHeader (#f4f3f0) is close but NOT equal, and the border token
+  // is an alpha, so neither token matches the measurement. Positioning
+  // (top-center fixed) and the 4200ms timing are ours and stay; the old
+  // dark card + blurred glow ellipse are retired.
   return (
     <div
       className={clsx(
-        'animate-fadeDown rounded-[8px] gap-[18px] flex items-center overflow-hidden bg-customColor8 p-[16px] min-w-[319px] fixed start-[50%] text-white z-[900] top-[32px] -translate-x-[50%] h-[56px]',
-        toasterType === 'success' ? 'shadow-greenToast' : 'shadow-yellowToast'
+        'animate-fadeDown rounded-[12px] gap-[12px] flex items-center bg-[#f6f6f4] border border-[#e6e5e2] shadow-[0_4px_12px_rgba(0,0,0,0.08)] p-[16px] min-w-[319px] fixed start-[50%] z-[900] top-[32px] -translate-x-[50%] h-[56px]'
       )}
     >
-      <div>
+      <div className="w-[20px] h-[20px] min-w-[20px] flex items-center justify-center">
         {toasterType === 'success' ? (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-[#6CE9A6]"
+            className="text-[#16a34a]"
           >
             <circle cx="12" cy="12" r="10" />
             <path d="m9 12 2 2 4-4" />
@@ -57,15 +62,15 @@ export const Toaster = () => {
         ) : (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-[#FEC84B]"
+            className="text-[#d97706]"
           >
             <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
             <path d="M12 9v4" />
@@ -73,48 +78,7 @@ export const Toaster = () => {
           </svg>
         )}
       </div>
-      <div className="flex-1 text-newTextColor">{toasterText}</div>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="60"
-        height="56"
-        viewBox="0 0 60 56"
-        fill="none"
-        className="absolute top-0 start-0"
-      >
-        <g filter="url(#filter0_f_376_2968)">
-          <ellipse
-            cx="-12"
-            cy="28"
-            rx="28"
-            ry="13"
-            fill={toasterType === 'success' ? '#6CE9A6' : '#FEC84B'}
-          />
-        </g>
-        <defs>
-          <filter
-            id="filter0_f_376_2968"
-            x="-84"
-            y="-29"
-            width="144"
-            height="114"
-            filterUnits="userSpaceOnUse"
-            colorInterpolationFilters="sRGB"
-          >
-            <feFlood floodOpacity="0" result="BackgroundImageFix" />
-            <feBlend
-              mode="normal"
-              in="SourceGraphic"
-              in2="BackgroundImageFix"
-              result="shape"
-            />
-            <feGaussianBlur
-              stdDeviation="22"
-              result="effect1_foregroundBlur_376_2968"
-            />
-          </filter>
-        </defs>
-      </svg>
+      <div className="flex-1 text-[14px] text-newTextColor">{toasterText}</div>
     </div>
   );
 };

@@ -23,6 +23,13 @@ import dynamic from 'next/dynamic';
 import { WalletUiProvider } from '@gitroom/frontend/components/auth/providers/placeholder/wallet.ui.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import useCookie from 'react-use-cookie';
+import {
+  AUTH_BUTTON,
+  AUTH_INPUT,
+  AUTH_LINK,
+  AUTH_SUBLINE,
+  AUTH_TITLE,
+} from '@gitroom/frontend/components/auth/auth.ui';
 const WalletProvider = dynamic(
   () => import('@gitroom/frontend/components/auth/providers/wallet.provider'),
   {
@@ -69,16 +76,19 @@ export function Register() {
   // /settings -> /auth?provider=GENERIC redirect) is NOT a callback — treating
   // it as one used to render <LoadingComponent/> forever, since load() only
   // runs when provider && code. In SSO-only mode render the same clean Generic
-  // OIDC block as /auth/login instead of the email/password sign-up form. The
+  // OIDC block as /auth instead of the email/password sign-up form. The
   // real OAuth callback path (provider && code -> load() -> RegisterAfter)
   // below is untouched.
   if (!code) {
     if (isGeneral && genericOauth) {
       return (
         <div className="flex flex-col flex-1 gap-[24px]">
-          <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start">
-            {t('sign_in', 'Sign In')}
-          </h1>
+          <div className="flex flex-col gap-[4px]">
+            <h1 className={AUTH_TITLE}>{t('sign_in', 'Sign In')}</h1>
+            <div className={AUTH_SUBLINE}>
+              {t('sign_in_subline', 'Welcome back. Sign in to continue.')}
+            </div>
+          </div>
           <div className="flex">
             <OauthProvider />
           </div>
@@ -160,7 +170,7 @@ export function RegisterAfter({
             if (response.headers.get('activate') === 'true') {
               router.push('/auth/activate');
             } else {
-              router.push('/auth/login');
+              router.push('/auth');
             }
           });
         } else {
@@ -201,12 +211,14 @@ export function RegisterAfter({
     if (providerError) {
       return (
         <div className="flex flex-col flex-1 gap-[16px]">
-          <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start">
+          <h1 className={AUTH_TITLE}>
             {t('sign_up_failed', 'Sign-up failed')}
           </h1>
-          <div className="text-red-400 text-[14px]">{String(providerError)}</div>
-          <p className="text-sm">
-            <Link href="/auth/login" className="underline hover:font-[650]">
+          <div className="text-red-600 text-[14px]">
+            {String(providerError)}
+          </div>
+          <p>
+            <Link href="/auth" className={AUTH_LINK}>
               {t('back_to_sign_in', 'Back to sign in')}
             </Link>
           </p>
@@ -219,12 +231,13 @@ export function RegisterAfter({
     <FormProvider {...form}>
       <form className="flex-1 flex" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="flex flex-col flex-1">
-          <div>
-            <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start cursor-pointer">
-              {t('sign_up', 'Sign Up')}
-            </h1>
+          <div className="flex flex-col gap-[4px]">
+            <h1 className={AUTH_TITLE}>{t('sign_up', 'Sign Up')}</h1>
+            <div className={AUTH_SUBLINE}>
+              {t('sign_up_subline', 'Create your account to get started.')}
+            </div>
           </div>
-          <div className="text-[14px] mt-[32px] mb-[12px]">
+          <div className={`${AUTH_SUBLINE} mt-[24px] mb-[12px]`}>
             {t('continue_with', 'Continue With')}
           </div>
           <div className="flex flex-col">
@@ -244,11 +257,15 @@ export function RegisterAfter({
               ))}
             {!isAfterProvider && (
               <div className="h-[20px] mb-[24px] mt-[24px] relative">
-                <div className="absolute w-full h-[1px] bg-fifth top-[50%] -translate-y-[50%]" />
+                <div className="absolute w-full h-[1px] bg-newTableBorder top-[50%] -translate-y-[50%]" />
                 <div
-                  className={`absolute z-[1] justify-center items-center w-full start-0 -top-[4px] flex`}
+                  className={`absolute z-[1] justify-center items-center w-full start-0 top-[50%] -translate-y-[50%] flex`}
                 >
-                  <div className="px-[16px]">{t('or', 'or')}</div>
+                  <div
+                    className={`px-[16px] bg-newBgColorInner ${AUTH_SUBLINE}`}
+                  >
+                    {t('or', 'or')}
+                  </div>
                 </div>
               </div>
             )}
@@ -260,6 +277,7 @@ export function RegisterAfter({
                       label="Email"
                       translationKey="label_email"
                       {...form.register('email')}
+                      className={AUTH_INPUT}
                       type="email"
                       placeholder={t('email_address', 'Email Address')}
                     />
@@ -267,6 +285,7 @@ export function RegisterAfter({
                       label="Password"
                       translationKey="label_password"
                       {...form.register('password')}
+                      className={AUTH_INPUT}
                       autoComplete="off"
                       type="password"
                       placeholder={t('label_password', 'Password')}
@@ -277,12 +296,13 @@ export function RegisterAfter({
                   label="Company"
                   translationKey="label_company"
                   {...form.register('company')}
+                  className={AUTH_INPUT}
                   autoComplete="off"
                   type="text"
                   placeholder={t('label_company', 'Company')}
                 />
               </div>
-              <div className={clsx('text-[12px]')}>
+              <div className={clsx('text-[12px] text-newTextColor/60')}>
                 {t(
                   'by_registering_you_agree_to_our',
                   'By registering you agree to our'
@@ -290,7 +310,7 @@ export function RegisterAfter({
                 &nbsp;
                 <a
                   href={`https://postiz.com/terms`}
-                  className="underline hover:font-[650]"
+                  className="text-[#2f7d44] hover:underline"
                   rel="nofollow"
                 >
                   {t('terms_of_service', 'Terms of Service')}
@@ -300,29 +320,26 @@ export function RegisterAfter({
                 <a
                   href={`https://postiz.com/privacy`}
                   rel="nofollow"
-                  className="underline hover:font-[650]"
+                  className="text-[#2f7d44] hover:underline"
                 >
                   {t('privacy_policy', 'Privacy Policy')}
                 </a>
                 &nbsp;
               </div>
-              <div className="text-center mt-6">
+              <div className="text-center mt-[12px]">
                 <div className="w-full flex">
                   <Button
                     type="submit"
-                    className="flex-1 rounded-[10px] !h-[52px]"
+                    className={AUTH_BUTTON}
                     loading={loading}
                   >
                     {t('create_account', 'Create Account')}
                   </Button>
                 </div>
-                <p className="mt-4 text-sm">
+                <p className="mt-[16px] text-[14px] text-newTextColor/60">
                   {t('already_have_an_account', 'Already Have An Account?')}
                   &nbsp;
-                  <Link
-                    href="/auth/login"
-                    className="underline  cursor-pointer"
-                  >
+                  <Link href="/auth" className={AUTH_LINK}>
                     {t('sign_in', 'Sign In')}
                   </Link>
                 </p>

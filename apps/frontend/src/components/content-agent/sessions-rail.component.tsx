@@ -24,6 +24,20 @@ type BridgeSession = {
   updatedAt: number;
 };
 
+/** compact relative timestamp for the rail rows ("now", "5m", "3h", "2d",
+ *  "1w"); tolerates second-epoch values from the bridge index */
+const relTime = (ts: number) => {
+  const ms = ts < 1e12 ? ts * 1000 : ts;
+  const minutes = Math.floor((Date.now() - ms) / 60000);
+  if (!Number.isFinite(minutes) || minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return `${Math.floor(d / 7)}w`;
+};
+
 /** The bridge sessions rail (admin-only, shared by both segmented tabs):
  *  the same visual shell as the copilot Chats rail in agent.tsx — 224px
  *  Buffer-calibrated side panel, SidePanelHeader + collapse cookie, 32px r8
@@ -90,7 +104,9 @@ export const SessionsRail: FC<{
     >
       <div
         className={clsx(
-          'absolute top-0 start-0 w-full h-full p-[20px] flex flex-col gap-[12px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
+          // phone:px-[4px] — with the shell's 12px this lands the rail
+          // content on the app's single 16px phone gutter
+          'absolute top-0 start-0 w-full h-full p-[20px] phone:px-[4px] flex flex-col gap-[12px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
           sidePanelPane
         )}
       >
@@ -102,7 +118,7 @@ export const SessionsRail: FC<{
           onClick={onNewChat}
           title={t('start_a_new_chat', 'Start a new chat')}
           data-cs
-          className="flex items-center justify-center gap-[6px] h-[32px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 outline-none whitespace-nowrap shrink-0 group-[.sidebar]:w-[32px] group-[.sidebar]:px-0 group-[.sidebar]:mx-auto"
+          className="flex items-center justify-center gap-[6px] h-[32px] phone:h-[44px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 outline-none whitespace-nowrap shrink-0 group-[.sidebar]:w-[32px] group-[.sidebar]:px-0 group-[.sidebar]:mx-auto"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -175,12 +191,18 @@ export const SessionsRail: FC<{
                 key={s.id}
                 onClick={() => onSelect(s.id)}
                 className={clsx(
-                  'group/session flex items-center gap-[4px] h-[32px] px-[10px] rounded-[8px] text-[14px] cursor-pointer transition-colors duration-150 hover:bg-boxHover shrink-0',
+                  // 44px phone rows (tap floor) + a right-aligned muted
+                  // relative timestamp so bare truncated titles read as
+                  // tappable list items
+                  'group/session flex items-center gap-[6px] h-[32px] phone:h-[44px] px-[10px] rounded-[8px] text-[14px] cursor-pointer transition-colors duration-150 hover:bg-boxHover shrink-0',
                   s.id === activeId && 'bg-boxHover'
                 )}
               >
                 <span className="flex-1 min-w-0 truncate">
                   {s.title || t('untitled_session', 'Untitled session')}
+                </span>
+                <span className="shrink-0 text-[12px] text-newTextColor/50 group-hover/session:hidden">
+                  {relTime(s.updatedAt)}
                 </span>
                 {/* hover-revealed 16px x: prunes the rail entry via the
                     DELETE proxy (the session itself stays resumable) */}

@@ -62,7 +62,7 @@ export async function proxy(request: NextRequest) {
   // If the URL is logout, delete the cookie and redirect to login
   if (nextUrl.href.indexOf('/auth/logout') > -1) {
     const response = NextResponse.redirect(
-      new URL('/auth/login', nextUrl.href)
+      new URL('/auth', nextUrl.href)
     );
     response.cookies.set('auth', '', {
       path: '/',
@@ -83,7 +83,7 @@ export async function proxy(request: NextRequest) {
     nextUrl.pathname.startsWith('/auth/register') &&
     process.env.DISABLE_REGISTRATION === 'true'
   ) {
-    return NextResponse.redirect(new URL('/auth/login', nextUrl.href));
+    return NextResponse.redirect(new URL('/auth', nextUrl.href));
   }
 
   const org = nextUrl.searchParams.get('org');

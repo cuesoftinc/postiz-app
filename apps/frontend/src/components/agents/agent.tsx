@@ -284,7 +284,7 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
               {isAdmin && (
                 <div
                   data-cs
-                  className="flex h-[32px] p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] shrink-0"
+                  className="flex h-[32px] phone:h-[44px] p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] shrink-0"
                 >
                   <button
                     type="button"
@@ -322,7 +322,7 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
                   onClick={newBridgeChat}
                   title={t('new_chat', 'New chat')}
                   data-cs
-                  className="h-[32px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center gap-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 shrink-0 whitespace-nowrap phone:w-[32px] phone:px-0"
+                  className="h-[32px] phone:h-[44px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center gap-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 shrink-0 whitespace-nowrap phone:w-[44px] phone:px-0"
                 >
                   <svg
                     width="16"
@@ -347,7 +347,7 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
                   href="/agents/new"
                   title={t('new_chat', 'New chat')}
                   data-cs
-                  className="h-[32px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center gap-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 shrink-0 whitespace-nowrap phone:w-[32px] phone:px-0"
+                  className="h-[32px] phone:h-[44px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center gap-[6px] text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 shrink-0 whitespace-nowrap phone:w-[44px] phone:px-0"
                 >
                   <svg
                     width="16"
@@ -462,7 +462,9 @@ const Threads: FC = () => {
     >
       <div
         className={clsx(
-          'absolute top-0 start-0 w-full h-full p-[20px] flex flex-col gap-[12px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
+          // phone:px-[4px] — with the shell's 12px this lands the rail
+          // content on the app's single 16px phone gutter
+          'absolute top-0 start-0 w-full h-full p-[20px] phone:px-[4px] flex flex-col gap-[12px] overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
           sidePanelPane
         )}
       >
@@ -473,7 +475,7 @@ const Threads: FC = () => {
           href="/agents/new"
           title={t('start_a_new_chat', 'Start a new chat')}
           data-cs
-          className="flex items-center justify-center gap-[6px] h-[32px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 outline-none whitespace-nowrap shrink-0 group-[.sidebar]:w-[32px] group-[.sidebar]:px-0 group-[.sidebar]:mx-auto"
+          className="flex items-center justify-center gap-[6px] h-[32px] phone:h-[44px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 outline-none whitespace-nowrap shrink-0 group-[.sidebar]:w-[32px] group-[.sidebar]:px-0 group-[.sidebar]:mx-auto"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -539,7 +541,7 @@ const Threads: FC = () => {
             {data?.threads?.map((p: any) => (
               <Link
                 className={clsx(
-                  'flex items-center h-[32px] px-[10px] rounded-[8px] text-[14px] cursor-pointer transition-colors duration-150 hover:bg-boxHover shrink-0',
+                  'flex items-center h-[32px] phone:h-[44px] px-[10px] rounded-[8px] text-[14px] cursor-pointer transition-colors duration-150 hover:bg-boxHover shrink-0',
                   p.id === id && 'bg-boxHover'
                 )}
                 href={`/agents/${p.id}`}

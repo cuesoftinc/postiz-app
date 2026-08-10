@@ -48,13 +48,16 @@ export const RenderComponents: FC<{
   }
   return (
     <>
-      <div className="mb-6 flex space-x-3">
-        <form className="flex-1 space-y-2" onSubmit={handleSubmit(submit)}>
+      <div className="mb-[16px] flex">
+        <form
+          className="flex flex-1 flex-col gap-[8px]"
+          onSubmit={handleSubmit(submit)}
+        >
           <textarea
             {...register('comment', {
               required: true,
             })}
-            className="flex w-full px-3 py-2 h-[98px] text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-none text-white bg-third border border-tableBorder placeholder:text-white/50 focus:ring-0"
+            className="flex h-[98px] min-h-[80px] w-full resize-none rounded-[8px] border border-newTableBorder bg-newBgColorInner px-[12px] py-[8px] text-[14px] text-newTextColor outline-none placeholder:text-newTextColor/50 focus:border-forth disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Add a comment..."
             defaultValue={''}
           />
@@ -80,25 +83,27 @@ export const RenderComponents: FC<{
           </div>
         </form>
       </div>
-      <div className="space-y-4">
+      <div className="flex flex-col">
         {!!data.comments.length && (
-          <h3 className="text-[16px] font-[550]">
+          <h3 className="mb-[12px] text-[16px] font-[550] text-newTextColor">
             {t('comments', 'Comments')}
           </h3>
         )}
         {data.comments.map((comment: any) => (
           <div
             key={comment.id}
-            className="flex space-x-3 border-t border-tableBorder py-3"
+            className="flex border-t border-newTableBorder py-[12px]"
           >
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center space-x-2">
-                <h3 className="text-sm font-semibold">
+            <div className="flex flex-1 flex-col gap-[4px]">
+              <div className="flex items-center">
+                <h3 className="text-[14px] font-[550] text-newTextColor">
                   {t('user', 'User')}
                   {mapUsers[comment.userId]}
                 </h3>
               </div>
-              <p className="text-sm text-white/80">{comment.content}</p>
+              <p className="whitespace-pre-wrap text-[14px] text-newTextColor">
+                {comment.content}
+              </p>
             </div>
           </div>
         ))}

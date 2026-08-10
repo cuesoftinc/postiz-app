@@ -16,6 +16,7 @@ import {
   useCalendar,
 } from '@gitroom/frontend/components/launches/calendar.context';
 import dayjs from 'dayjs';
+import useSWR from 'swr';
 import 'dayjs/locale/en';
 import 'dayjs/locale/he';
 import 'dayjs/locale/ru';
@@ -483,16 +484,26 @@ export const WeekView = () => {
   // never the page — so position:fixed overlays stay safe. The 3-day span
   // and desktop keep the exact fit-to-width behavior.
   const sevenSpan = isPhone && phoneWeekSpan === '7';
+  // ONE today for the whole view — the 3-day slice anchor, the header
+  // underline and the day-cell wash all derive from this key, so they can
+  // never disagree. Compare by formatted date — isSame(_, 'day') on
+  // tz-aware instances truncates in the machine-local zone (it let the
+  // 3-day window slip to yesterday, and would let the wash/underline land
+  // on a different column when the org display timezone differs from the
+  // device zone).
+  const todayKey = newDayjs().format('YYYY-MM-DD');
   const visibleDays = useMemo(() => {
     if (!isPhone || phoneWeekSpan === '7') {
       return localizedDays.slice(0, 7);
     }
-    const today = newDayjs().startOf('day');
-    const idx = localizedDays.findIndex((d) => d.date.isSame(today, 'day'));
+    // Buffer anchors today as the FIRST column.
+    const idx = localizedDays.findIndex(
+      (d) => d.date.format('YYYY-MM-DD') === todayKey
+    );
     const start =
       idx === -1 ? 0 : Math.max(0, Math.min(idx, localizedDays.length - 3));
     return localizedDays.slice(start, start + 3);
-  }, [localizedDays, isPhone, phoneWeekSpan]);
+  }, [localizedDays, isPhone, phoneWeekSpan, todayKey]);
 
   // Buffer opens the hour grid scrolled to "now" (one row of context above).
   // Guard: only from the untouched top position — the force-dynamic page
@@ -512,20 +523,30 @@ export const WeekView = () => {
     el.scrollTop = Math.max(0, (now.hour() - 1) * (isPhone ? 80 : 106));
   }, [startDate, endDate, isPhone]);
 
-  const today = newDayjs();
   return (
     <div className="flex flex-col text-newTextColor flex-1">
       <div className="flex-1 relative">
         <div
           ref={scrollRef}
-          className="grid gap-[1px] bg-newGridLine border border-newGridLine rounded-[12px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
+          className={clsx(
+            'grid gap-[1px] bg-newGridLine border border-newGridLine rounded-[12px] absolute h-full start-0 top-0 w-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
+            // 3-day divides the window exactly — any sub-pixel spill must
+            // never draw a sideways scrollbar / 4th-column sliver
+            isPhone && !sevenSpan
+              ? 'overflow-y-auto overflow-x-hidden'
+              : 'overflow-auto'
+          )}
           style={{
             // 7-span phone columns get a 100px floor (7×100 + 48px gutter =
             // 748px → the overflow-auto container scrolls sideways); 3-day
-            // and desktop stay minmax(0,1fr) fit-to-width
+            // divides the remaining window EXACTLY into 3 (100% minus the
+            // 48px gutter minus the 3 column gaps) so no partial 4th column
+            // ever peeks; desktop stays minmax(0,1fr) fit-to-width
             gridTemplateColumns: isPhone
               ? `48px repeat(${visibleDays.length}, ${
-                  sevenSpan ? 'minmax(100px, 1fr)' : 'minmax(0, 1fr)'
+                  sevenSpan
+                    ? 'minmax(100px, 1fr)'
+                    : `calc((100% - 48px - ${visibleDays.length}px) / ${visibleDays.length})`
                 })`
               : `repeat(${visibleDays.length}, minmax(0, 1fr))`,
           }}
@@ -542,7 +563,7 @@ export const WeekView = () => {
             />
           )}
           {visibleDays.map((day) => {
-            const isToday = day.date.isSame(today, 'day');
+            const isToday = day.date.format('YYYY-MM-DD') === todayKey;
             return (
               <div
                 key={day.date.format('YYYY-MM-DD')}
@@ -550,7 +571,9 @@ export const WeekView = () => {
                   'text-center bg-newBgColorInner flex justify-center items-center gap-[8px] h-[36px] sticky top-0 z-[20] text-[14px] border-b border-newGridLine',
                   isToday
                     ? 'font-[500] text-newTableTextFocused border-b-[2px] border-newTableTextFocused'
-                    : 'text-newTextColor'
+                    : 'text-newTextColor',
+                  // Buffer phone washes the whole today column gray
+                  isToday && 'phone:bg-newTableHeader'
                 )}
               >
                 <span>{day.date.format(isPhone ? 'ddd' : 'dddd')}</span>
@@ -570,7 +593,9 @@ export const WeekView = () => {
                     sevenSpan ? 'sticky start-0 z-[15]' : 'relative'
                   )}
                 >
-                  {hour % 2 === 0 && (
+                  {/* hour 0 skipped: half-translated up, its label clipped
+                      mid-glyph against the sticky header border */}
+                  {hour % 2 === 0 && hour !== 0 && (
                     // Buffer masks the grid line behind the label with the
                     // cell background
                     <div className="absolute end-[6px] top-0 -translate-y-1/2 z-[10] text-[12px] font-[500] text-newTableText pointer-events-none bg-newBgColorInner px-[4px] leading-[16px] rounded-[3px]">
@@ -586,7 +611,12 @@ export const WeekView = () => {
                 // the hour floor lives on the day view inside
                 <div
                   key={`${day.date.format('YYYY-MM-DD')}-${hour}`}
-                  className="relative bg-newBgColorInner flex flex-col"
+                  className={clsx(
+                    'relative bg-newBgColorInner flex flex-col',
+                    // Buffer phone washes the whole today column gray
+                    day.date.format('YYYY-MM-DD') === todayKey &&
+                      'phone:bg-newTableHeader'
+                  )}
                 >
                   {!isPhone && indexDay === 0 && hour % 2 === 0 && (
                     // same line-mask treatment as the phone rail labels
@@ -885,6 +915,11 @@ export const ListView = () => {
     // min-w-0: as a flex item this column's min-width:auto otherwise pins it
     // at content width (573px measured at 390) and the right side clips
     <div className="flex flex-col flex-1 min-w-0">
+      {/* Buffer centers the queue block in the content pane (measured:
+          date-header/time-rail 194px in, 699px cards, symmetric 195px right
+          gap). The rail + card block rides one centered max-w-[800px]
+          column; under 800px (phone) w-full keeps it full-width. */}
+      <div className="mx-auto w-full max-w-[800px] flex flex-col">
       {listState === 'approvals' && listPosts.length > 0 && (
         <div className="flex justify-end mb-[8px]">
           <button
@@ -912,10 +947,11 @@ export const ListView = () => {
       )}
       {groupedPosts.map(([dateKey, datePosts]) => (
         <Fragment key={dateKey}>
-          {/* Buffer §Queue two-tone header: weekday prefix bold/bright, date
-              muted. Today/Tomorrow is pure presentation of the same date. */}
-          <div className="text-start text-[16px] mt-[32px] first:mt-[8px] mb-[16px] px-[10px]">
-            <span className="font-[550] text-newTextColor">
+          {/* Buffer §Queue two-tone header, measured 16px font-[550] on the
+              whole line: weekday prefix full ink, date muted. Today/Tomorrow
+              is pure presentation of the same date. */}
+          <div className="text-start text-[16px] font-[550] mt-[32px] first:mt-[8px] mb-[16px] px-[10px]">
+            <span className="text-newTextColor">
               {(newDayjs(dateKey).isSame(displayNow, 'day')
                 ? t('today', 'Today')
                 : newDayjs(dateKey).isSame(displayNow.add(1, 'day'), 'day')
@@ -928,7 +964,13 @@ export const ListView = () => {
           </div>
           <div className="cs-queue flex flex-col gap-[32px] mb-[16px] px-[10px]">
             {datePosts.map((post) => (
-              <div key={post.id} className="flex items-start gap-[12px]">
+              // phone:relative anchors the comment bubble, which moves off
+              // its desktop outside-gutter and into the card header (the
+              // reserved column squeezed cards on a 402px screen)
+              <div
+                key={post.id}
+                className="flex items-start gap-[12px] phone:relative"
+              >
                 {/* Buffer time rail OUTSIDE the card: time full-ink 14/500,
                     pin + 'Custom' muted below */}
                 <div className="w-[100px] min-w-[100px] pt-[20px] flex flex-col gap-[2px] phone:w-[64px] phone:min-w-[64px]">
@@ -970,12 +1012,16 @@ export const ListView = () => {
                     deletePost={deletePost(post)}
                   />
                 </div>
-                {/* floating comment bubble outside the card, top-right */}
+                {/* floating comment bubble outside the card, top-right
+                    (desktop); phone overlays it INSIDE the card header, right
+                    of the channel name — 40x40 there (tap floor; the glyph
+                    stays 16px) and the card's header row clears it with
+                    phone:pe-[56px] */}
                 <button
                   type="button"
                   onClick={openComments(post)}
                   aria-label={t('comments', 'Comments')}
-                  className="w-[32px] h-[32px] min-w-[32px] rounded-[10px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover"
+                  className="w-[32px] h-[32px] min-w-[32px] phone:w-[40px] phone:h-[40px] rounded-[10px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover phone:absolute phone:top-[10px] phone:end-[10px] phone:z-[10]"
                 >
                   <svg
                     width="16"
@@ -995,6 +1041,7 @@ export const ListView = () => {
           </div>
         </Fragment>
       ))}
+      </div>
     </div>
   );
 };
@@ -1276,7 +1323,11 @@ export const CalendarColumn: FC<{
   }, [integrations, getDate, sets, signature]);
 
   const addProvider = useAddProvider();
-  const isToday = getDate.isSame(newDayjs(), 'day');
+  // formatted-date comparison, same mechanism as WeekView's todayKey —
+  // isSame(_, 'day') truncates in the machine-local zone and can disagree
+  // with the column the 3-day slice anchored
+  const isToday =
+    getDate.format('YYYY-MM-DD') === newDayjs().format('YYYY-MM-DD');
   const isOtherMonth = !!monthLabel && monthLabel !== 'current-month';
   return (
     <div
@@ -1287,8 +1338,11 @@ export const CalendarColumn: FC<{
         // against the track and pins it; a min-height on the grid item
         // itself gets substituted for its content contribution — both pin
         // the row). The row floors live HERE, inside the grid item.
+        // phone month rows hug content: an 88px floor keeps empty weeks
+        // modest (163px stretched every blank week to the busiest row's
+        // height — August ran ~4.5 screens of dead space)
         display === 'month'
-          ? 'grow min-h-[205px] phone:min-h-[163px]'
+          ? 'grow min-h-[205px] phone:min-h-[88px]'
           : display === 'week'
           ? 'grow min-h-[105px] phone:min-h-[79px]'
           : 'min-h-full',
@@ -1301,6 +1355,8 @@ export const CalendarColumn: FC<{
           (display === 'month' && isBeforeNow
             ? 'bg-newTableHeader'
             : 'bg-newBgColorInner'),
+        // Buffer phone washes the whole today column gray in the hour grid
+        display === 'week' && isToday && 'phone:bg-newTableHeader',
         display === 'day' &&
           (isBeforeNow
             ? 'cursor-not-allowed'
@@ -1548,6 +1604,106 @@ export const CalendarColumn: FC<{
     </div>
   );
 });
+// ---------------------------------------------------------------------------
+// Buffer §Sent: per-card stats strip. Fed by GET /analytics/post/:postId
+// ?date=30 — the exact fetch pattern of platform-analytics/recent-posts.tsx
+// (providers' postAnalytics, Redis-cached server side; posts without a
+// releaseId never hit the endpoint). Lazy per visible card: an
+// IntersectionObserver arms the SWR key only once the card scrolls into
+// view; 5-minute cache (dedupingInterval).
+// ---------------------------------------------------------------------------
+const SENT_STATS_SWR_OPTS = {
+  refreshInterval: 0,
+  refreshWhenHidden: false,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+  revalidateIfStale: false,
+  refreshWhenOffline: false,
+  revalidateOnMount: true,
+  dedupingInterval: 300000,
+} as const;
+
+// Same total math as the analytics Summary tiles / recent-posts chips (see
+// metricTotal in platform-analytics/recent-posts.tsx): sum of the day
+// totals, mean (as %) for `average` metrics.
+const sentMetricTotal = (item: {
+  average?: boolean;
+  data: { total: number }[];
+}) => {
+  const value =
+    (item?.data?.reduce(
+      (acc: number, curr: { total: number }) => acc + (Number(curr.total) || 0),
+      0
+    ) || 0) / (item.average ? item.data.length || 1 : 1);
+  if (item.average) {
+    return value.toFixed(2) + '%';
+  }
+  return new Intl.NumberFormat().format(Math.round(value));
+};
+
+const SentPostStats: FC<{
+  post: { id: string; releaseId?: string | null };
+}> = ({ post }) => {
+  const fetch = useFetch();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setVisible(true);
+        observer.disconnect();
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const hasRelease = !!post.releaseId && post.releaseId !== 'missing';
+  const load = useCallback(async () => {
+    return (await fetch(`/analytics/post/${post.id}?date=30`)).json();
+  }, [post.id]);
+  // key matches recent-posts.tsx's PostStats at date=30 — one shared cache
+  const { data } = useSWR(
+    hasRelease && visible ? `/analytics-post-${post.id}-30` : null,
+    load,
+    SENT_STATS_SWR_OPTS
+  );
+
+  const items = Array.isArray(data) ? data : [];
+
+  // the ref div always renders (the observer needs a target before data
+  // exists); the divider + strip appear only once metrics are in
+  return (
+    <div ref={rootRef}>
+      {items.length > 0 && (
+        <>
+          <div className="h-[1px] bg-newTableBorder" />
+          {/* Buffer measured: metric label 14px ink + value, gap 16; the
+              metric set is whatever the provider returns (Reactions/
+              Comments/Impressions/Reach/Shares/Reposts…) */}
+          <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[4px] px-[16px] py-[8px]">
+            {items.map((item: any) => (
+              <span
+                key={`${post.id}-${item.label}`}
+                className="text-[14px] text-newTextColor whitespace-nowrap text-start"
+              >
+                <span className="font-[550]">{sentMetricTotal(item)}</span>{' '}
+                {item.label}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const CalendarItem: FC<{
   date: dayjs.Dayjs;
   isBeforeNow: boolean;
@@ -1586,7 +1742,11 @@ const CalendarItem: FC<{
   const { disableXAnalytics } = useVariables();
   const user = useUser();
   const fetch = useFetch();
-  const { reloadCalendarView, listState } = useCalendar();
+  const {
+    reloadCalendarView,
+    listState,
+    display: calendarDisplay,
+  } = useCalendar();
   const displayTimezone = useDisplayTimezone();
   // First attached image of the post's media field (backend now selects it
   // through the minified payload); undefined when absent/broken/video-only
@@ -1921,7 +2081,9 @@ const CalendarItem: FC<{
           data-cs
           className="w-full flex-1 flex flex-col text-[14px] bg-newBgColorInner border border-newTableBorder rounded-[12px] relative"
         >
-          <div className="flex items-center gap-[10px] px-[16px] pt-[12px]">
+          {/* phone:pe-[56px]: the list view's 40px comment bubble overlays
+              the header's top-right corner on phone (see ListView) */}
+          <div className="flex items-center gap-[10px] px-[16px] pt-[12px] phone:pe-[56px]">
             <ChannelAvatar
               picture={post.integration.picture || ''}
               identifier={post.integration?.providerIdentifier || ''}
@@ -1987,6 +2149,8 @@ const CalendarItem: FC<{
             {/* media slot — renders only once the backend ships the image
                 field on this payload (getFirstImageUrl); invisible until
                 then */}
+            {/* object-contain + wash letterbox (was object-cover): the
+                center-crop cut headlines off typographic brand tiles */}
             {mediaUrl && (
               <img
                 src={mediaUrl}
@@ -1994,7 +2158,7 @@ const CalendarItem: FC<{
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
-                className="w-[180px] h-[180px] min-w-[180px] rounded-[8px] object-cover border border-newTableBorder phone:w-[96px] phone:h-[96px] phone:min-w-[96px]"
+                className="w-[180px] h-[180px] min-w-[180px] rounded-[8px] object-contain bg-newTableHeader border border-newTableBorder phone:w-[96px] phone:h-[96px] phone:min-w-[96px]"
               />
             )}
           </div>
@@ -2147,6 +2311,11 @@ const CalendarItem: FC<{
               )}
             </div>
           </div>
+          {/* Buffer Sent tab: per-card stats strip in the card footer (list
+              view only — DayView reuses this card shape and must not fetch) */}
+          {calendarDisplay === 'list' && listState === 'published' && (
+            <SentPostStats post={post} />
+          )}
         </div>
       ) : (
       <div

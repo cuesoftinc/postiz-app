@@ -24,6 +24,142 @@ changelog line). Statuses:
 **The loop ends when no `NEEDS-WORK` or `NEEDS-BUFFER-MEASUREMENT` rows remain.**
 
 **Changelog**
+- 2026-08-11 - iPhone 16 Pro critique round 2 (6 fixes). date-sheet: both
+  phone bottom sheets' controls carry data-cs so the size ladder never
+  squeezes the phone-only surfaces (filters.tsx - PhoneFilterSheet rows
+  44->was 36 + back row 40->was 32; PhoneCalendarSheet segmented 44,
+  month chevrons true 40x40 (were 40x32), day buttons 40 (32px circle gets
+  breathing room + real tap target), Today row 44). drawer: NavRow
+  expanded + channel-row menu items phone:h-[44px] (sidebar.tsx) - drawer
+  rows are primary navigation on phone and now match the 44px agent session
+  rows; desktop keeps 32px density. list: comment bubble phone 40x40
+  (glyph stays 16) with header clearance phone:pe-[48px]->[56px]
+  (calendar.tsx).
+  agents-assistant: chat send button phone:w/h-[44px]
+  (content-chat.component.tsx; data-cs blocks the ladder, not phone:
+  utilities). month: phone admin dot keeps its 20px visual but the button
+  pads to a 40x40 hit area via inner span + -10px margins
+  (impersonate.tsx). three-day: single todayKey (newDayjs format
+  YYYY-MM-DD) hoisted in WeekView drives the slice anchor, header underline
+  and day-cell wash, and CalendarColumn's isToday uses the same
+  formatted-date compare - isSame(_, 'day') truncated in the machine-local
+  zone, so the washed/underlined column could diverge from the slice anchor
+  when the org display timezone differs from the device zone. tsc clean.
+- 2026-08-11 - iPhone 16 Pro critique round 1 (25 fixes). date-sheet: the
+  phone grid-cols-7 fallback (global.scss:1100) now carries :not([data-cs])
+  and the PhoneCalendarSheet mini month picker opts out with data-cs +
+  explicit repeat(7,minmax(0,1fr)) so all 7 columns fit the sheet (S/M/T/W
+  clipping + stray sideways scrollbar gone). composer: phone overflow guards
+  (modal root phone:max-w-[100dvw]/overflow-x-hidden in new-modal.tsx, same
+  on #cs-composer-shell + header row; tags chip min-w-0, preview/close
+  shrink-0); the "Add New Tag" trigger is whitespace-nowrap and reads "Tags"
+  on phone. surfaces: new 'cs:surface-open' contract - the nav drawer
+  (layout.component.tsx), every modal (new-modal openModal) and both phone
+  sheets (filters.tsx) announce on open and the sheets/drawer yield to any
+  other surface, so the calendar sheet can no longer sit over the drawer or
+  the composer. month: phone month cells hug content (phone:min-h 163->88px);
+  the phone New Post square carries data-cs (real 40x40, was laddered to
+  40x32); the non-functional bookmark hides on phone; toolbar chevrons grow
+  to phone 40x40. three-day: columns divide the window exactly
+  (calc((100%-48px-3px)/3)) with overflow-x hidden (no 4th-column sliver/
+  scrollbar), hour-0 label suppressed (clipped mid-glyph against the sticky
+  header), the slice anchors on today via date-string compare, and today's
+  column washes bg-newTableHeader (header + cells). analytics: Trends metric
+  chips become a phone single-row sideways scroll strip; summary delta badge
+  suppressed when the total is 0 or percentageChange is the provider
+  placeholder 5 (no real comparison exists in any provider); recent-posts
+  chevron 40x40 on phone; chart top padding 4->12 so the first y label is
+  not cut. impersonate: phone collapses the Admin pill to a 20px dot that
+  expands+opens on tap (it covered the Aug-30 month cell). plugs: card
+  phone:h-auto (min 160) + button mt-auto; provider plug copy fixed
+  ("reaches", "your followers") across linkedin.page/bluesky/threads/x.
+  third-party: Add buttons pin bottom via mt-auto (shared baseline); the
+  connected-integrations empty hero collapses to one muted line. agents:
+  mode toggle/new-chat/session+thread rows phone:h-[44px] (new-chat
+  phone:w-[44px]); rails + chat land on the single 16px phone gutter
+  (pane phone:px-[4px] over the shell's 12); session rows gain a muted
+  right-aligned relative timestamp. settings: rail logout phone:hidden with
+  a phone-only copy at the content bottom; duplicated "Global Settings"
+  heading phone:hidden; shared Slider knob inset (20px, centered) so it sits
+  inside the pill. list: comment bubble overlays the card header top-right
+  on phone (header clears it with phone:pe-[48px]) so cards span full width;
+  list thumbnail + media grid tiles object-contain over a bg-newTableHeader
+  letterbox (center-crop sliced typographic tiles); media lightbox
+  object-contain. Also: teams.component.tsx local type widened (name?) to
+  keep tsc green over a concurrent edit. tsc clean.
+- 2026-08-10 - auth surfaces onto today's kit (login, email sign-in, register
+  incl. disabled/SSO state, forgot, reset, activate, after-activate,
+  login-required): auth layout rebuilt - legacy dark shell (`bg-[#0E0E0E]` +
+  `#1A1919` panel, white ink) -> forced-light `light` wrapper on cream
+  `bg-newBgColor` (fonts inherit from `(app)/layout.tsx`; auth components may
+  not use `dark:` variants since the body can still carry `.dark`), centered
+  brand lockup (primary mark + Fustat 24/700 lowercase "cuesoft") above a
+  420px white `bg-newBgColorInner` r16 `border-newTableBorder` card, p32,
+  soft shadow, phone full-width w/ 16px insets. New `auth/auth.ui.ts` shares
+  the kit classes: titles 20/550 ink + 14px /60 sublines (40px heroes gone),
+  inputs converge on the shared form `Input` via wrapper classes only
+  (`!h-[44px] !rounded-[8px]` + `[&:hover:not(:focus-within)]:border-[#8a8a88]`,
+  focus keeps `border-forth`; other Input consumers untouched), primary CTA
+  lime `bg-btnPrimary` text-black 44px r8 550 full-width, secondary links
+  14px Buffer-green `#2f7d44` hover:underline, provider buttons (generic
+  OIDC/Google/GitHub/Farcaster/Wallet placeholder) -> white hairline 44px r8
+  14/550 ink w/ glyph (OIDC label now "Continue with {displayName||Google}",
+  Google button "Continue with Google"); `or` dividers `bg-fifth` ->
+  `bg-newTableBorder` w/ masked label chip; not-activated notice -> light
+  amber-50/200/800; success greens -> `#2f7d44`; login-required interstitial
+  `bg-[#121212]` -> cream + 20/550 ink. ALL logic preserved verbatim
+  (OIDC/Google/GitHub/wallet handlers, providers list, validation resolvers,
+  disabled-registration redirect + SSO block, provider auto-submit + error
+  surface, resend cooldown, return-url). tsc clean.
+- 2026-08-10 - needs-work pages wave (Task B: public preview, missing-release,
+  chatbase): `/p/[id]` shareable page kit-converted - canvas `bg-[#000000]`
+  -> theme-aware `bg-newBgColor` + ink (p/[id]/layout.tsx); header rebuilt on
+  the sidebar brand rule (theme-aware mark + Fustat wordmark replace the
+  white-only 140px logo that vanished in light mode), share button kept,
+  publication date -> 14px textItemBlur; post cards -> white r12 hairline
+  cards (bg-newBgColorInner p16, 40px avatar + surface-ringed 20px platform
+  badge, 14px/550 ink name + /60 handle, ink body, media tiles r8); comments
+  rail -> 360px r12 hairline card (phone: full-width, stacked via phone:
+  prefix - dead lg: variants dropped); comments render loses its last legacy
+  tokens (bg-third/tableBorder/text-white textarea -> kit input pattern: r8
+  hairline bg-newBgColorInner ink, placeholder /50, focus:border-forth; rows
+  -> hairline dividers, 14px/550 ink names, ink body; rem-based
+  text-sm/space-*/p-4 -> explicit px); render.preview.date debug console.log
+  removed; all logic kept (copy link, comments form + login gate, date
+  render). Missing-release modal converges: selected tile `border-[#612BD3]`
+  -> lime border-btnPrimary, hover -> hairline, footer tableBorder ->
+  newTableBorder, Cancel -> Button `secondary`, /70 muted -> /60, sm:/lg:
+  grid steps -> `grid-cols-5 phone:grid-cols-3` (both skeleton + content).
+  Chatbase launcher override moved from support.scss into
+  chatbase.component.tsx as a scoped injected `<style>` that mounts only with
+  the widget (CHATBASE_TOKEN gate + token fetch; self-hosted deployments ship
+  nothing) and restyles the injected launcher into the Buffer help-bubble
+  slot per the new measurement: 44px light circle bottom-right at a 16px
+  inset, white surface + hairline, branding glyph hidden, ink circled-"?";
+  id-keyed guard selectors (#chatbase-bubble-button/-window/-message-bubbles)
+  degrade to the widget default if Chatbase changes its DOM. support.scss
+  keeps only a pointer comment (duplicate !important rules on the same ids
+  were load-order dependent). tsc clean.
+- 2026-08-10 — list view + shared surfaces (orchestrator-measured wave, Task
+  A): (1) queue block centered — ListView's rail+card block rides one
+  `mx-auto w-full max-w-[800px]` column (Buffer 194/699/195 symmetric),
+  phone full-width; date group headers re-measured to 16px font-[550] whole
+  line. (2) Sent-tab per-card stats strip (new SentPostStats in
+  calendar.tsx): hairline divider + 14px ink metrics (font-[550] values, gap
+  16) from GET /analytics/post/:id?date=30 (recent-posts.tsx pattern, shared
+  key), IntersectionObserver-lazy per visible card, 5-min SWR dedupe,
+  list+published only, no releaseId → nothing. (3) ?tab= URL parity:
+  setListState replaceState's ?tab=queue|drafts|approvals|sent, context
+  seeds listState from ?tab= on mount, setFilters carries ?tab while the
+  target view stays the list. (4) Toaster restyled to the measured Buffer
+  surface (#f6f6f4 bg exact — newTableHeader #f4f3f0 NOT equal — 1px
+  #e6e5e2, r12, 20px icon slot, 14px ink, soft shadow; position/timing
+  ours; glow ellipse retired). (5) Modal backdrops flat black/80 NO blur
+  (new-modal both overlay branches; blurMe blur-xs dropped, pointer guard
+  kept) — mantine blur(10px)/overlay rgba in global.scss + bg-popup in
+  post.url.selector/finish.trial left for the orchestrator (outside this
+  wave's files). (6) Shared tooltip mount: !max-w-[170px] !text-[13px]
+  !leading-[1.5], colors ours. tsc clean.
 - 2026-08-10 — native Buffer URLs (route flip): /schedule/* stop being aliases
   and become the REAL Publish routes — `/schedule/calendar/month|week|day` and
   `/schedule/list` render `launches.component.tsx` directly, the view read
@@ -322,7 +458,7 @@ changelog line). Statuses:
 | `/auth/login` (+ `login-required`, `activate/[code]`, `forgot`, `forgot/[token]`) | `components/auth/**` | N/A-INTERNAL | Google SSO/OIDC only; registration disabled |
 | `/oauth/authorize` | `app/(app)/oauth/authorize/page.tsx` | N/A-INTERNAL | Public-API OAuth consent; spinner tokenized (fc0f3cdf) |
 | `/integrations/social/[provider]` | `launches/continue.integration.tsx` | N/A-INTERNAL | OAuth continue/redirect leg; spinner tokenized (fc0f3cdf) |
-| `/p/[id]` public post preview | `app/(app)/(preview)/p/[id]` → `preview/preview.wrapper.tsx` | NEEDS-WORK | Shareable page still carries legacy tokens (`preview/comments.components.tsx`); restyle to token system |
+| `/p/[id]` public post preview | `app/(app)/(preview)/p/[id]` → `preview/preview.wrapper.tsx` | POSTIZ-ONLY-KEEP | Kit-converted 2026-08-10 (shareable, so on-brand): theme-aware `bg-newBgColor` canvas (was hard #000), brand row per the sidebar rule (mark + Fustat wordmark; white-only logo died in light mode), muted date, white r12 hairline post cards w/ surface-ringed platform badge, r12 comments card; all logic kept |
 | `(extension)/modal/[style]/[platform]` | `standalone-modal/standalone.modal.tsx`, `launches/layout.standalone.tsx` | POSTIZ-ONLY-KEEP | Chrome-extension composer host |
 | `(provider)/provider`, `/provider/add`, `/provider/[p]` | `app/(app)/(provider)/**` | N/A-INTERNAL | Standalone provider-add flow |
 | `/api/uploads/[[...path]]` | `app/(app)/api/uploads` | N/A-INTERNAL | Media proxy route |
@@ -343,14 +479,14 @@ changelog line). Statuses:
 | Tablet nav squash / mobile list clip fixes | `new-layout/layout.component.tsx` | VERIFIED-PARITY | 82232d1c flex min-content |
 | Admin/impersonation bottom-center pill + popover (no top strip) | `layout/impersonate.tsx` | VERIFIED-PARITY | beb4c215; coupon panel spinner fc0f3cdf; phone: 28px pill docked bottom-end, 12px inset (content overlap fix) |
 | Support "?" bubble (36px, #def0ff, bottom-right) | `layout/support.tsx` | VERIFIED-PARITY | Matches measured Buffer helpcenter bubble |
-| Chatbase embed launcher (position/theme vs Buffer bubble) | `layout/chatbase.component.tsx` | NEEDS-WORK | Third-party widget still renders its own dark bottom-left circle when enabled; needs CSS override or dashboard config to match the support-bubble slot |
+| Chatbase embed launcher (position/theme vs Buffer bubble) | `layout/chatbase.component.tsx` | VERIFIED-PARITY | 2026-08-10: scoped `<style>` override moved INTO the component (mounts only with the widget - CHATBASE_TOKEN gate, so self-hosted ships nothing); launcher -> Buffer help-bubble slot per new measurement: 44px light circle bottom-right 16px inset, white + hairline, branding glyph hidden, ink circled-"?"; id-keyed selectors degrade to widget default if Chatbase changes DOM. NOTE: Discord fallback bubble (support.tsx) still carries the earlier 36px/#def0ff/20px measurement |
 | Announcement banner / top tip | `layout/announcement.banner.tsx`, `layout/top.tip.tsx` | POSTIZ-ONLY-KEEP | Admin-pushed announcements; shown in preview wrapper + layout |
 | Dark/light mode switch | `layout/mode.component.tsx` | POSTIZ-ONLY-KEEP | Dark theme mirrors with white-alpha hairlines per spec |
 | Language selector | `layout/language.component.tsx` | POSTIZ-ONLY-KEEP | i18n picker |
 | RTL direction handling | `new-layout/change.dir.tsx`, `change.dir.client.tsx` | POSTIZ-ONLY-KEEP | Logical properties already used throughout |
-| Toaster (toast notifications) | `libraries/react-shared-libraries/src/toaster/toaster.tsx` | NEEDS-BUFFER-MEASUREMENT | Trigger any Buffer action (e.g. save a draft): measure toast position (corner/center), surface (bg, radius, shadow), type size, icon, duration, dismiss affordance |
-| Tooltips (react-tooltip surface) | app-wide `data-tooltip-id="tooltip"` | NEEDS-BUFFER-MEASUREMENT | Hover Buffer toolbar buttons: tooltip bg (dark vs white), radius, padding, font size/weight, arrow presence, delay |
-| Generic modal wrapper (Mantine) | `layout/new-modal.tsx`, `new-launch/modal.wrapper.component.tsx` | NEEDS-BUFFER-MEASUREMENT | Open Buffer dialogs: backdrop color/opacity, modal radius/shadow, close-X geometry (size, position, hover), title row spacing |
+| Toaster (toast notifications) | `libraries/react-shared-libraries/src/toaster/toaster.tsx` | VERIFIED-PARITY | Measured 2026-08-10: surface bg #f6f6f4 on 1px #e6e5e2 hairline, r12, 20px icon slot, 14px ink body, soft shadow (0 4 12 black/8%). Exact hexes kept — bg-newTableHeader (#f4f3f0) is close but NOT equal and the border token is an alpha. Our top-center position + 4200ms timing stay; dark card + glow ellipse retired; icon inks deepened for the light surface (#16a34a / #d97706) |
+| Tooltips (react-tooltip surface) | `layout/top.tip.tsx` mount, app-wide `data-tooltip-id="tooltip"` | VERIFIED-PARITY | Partially measured 2026-08-10: max-w 170px + body line-height (1.5) + 13px body applied as ! overrides on the shared mount (react-tooltip injects core CSS at runtime); colors deliberately stay ours per orchestrator. Unmeasured leftovers (radius, arrow, delay) ride react-tooltip defaults |
+| Generic modal wrapper (Mantine) | `layout/new-modal.tsx`, `new-launch/modal.wrapper.component.tsx` | NEEDS-BUFFER-MEASUREMENT | Backdrop DONE (measured 2026-08-10): plain rgba(0,0,0,0.8), NO blur — new-modal overlays bg-popup→bg-black/80, blurMe blur-xs dropped (pointer guard kept). ORCHESTRATOR: the remaining blur/backdrops live OUTSIDE this wave's files — global.scss `.mantine-Modal-inner { backdrop-filter: blur(10px) }` (~:652) + `.mantine-Overlay-root` rgba(65,64,66,.3) (~:661), and bg-popup in post.url.selector.tsx:121 / finish.trial.tsx:36. Still measure: modal radius/shadow, close-X geometry, title row spacing |
 | Confirm/destructive dialog (delete post, close composer) | `libraries/react-shared-libraries/src/helpers/delete.dialog.tsx` | NEEDS-BUFFER-MEASUREMENT | Delete a Buffer post: confirm dialog width, title/body type, red button geometry (h, radius, fill #), cancel style, button order |
 | Modal primitives (body/footer/close button) | `cuesoft/modal/modal-body.tsx`, `modal-footer.tsx`, `modal-close-button.tsx` | VERIFIED-PARITY | Follows measured dialog specs (r12/p12 dialogs) |
 | Dropdown/popover surface (r12, layered shadow stack, 32px rows) | `cuesoft/dropdown/dropdown-panel.tsx`, `use-dropdown.ts` | VERIFIED-PARITY | Measured shadow stack applied |
@@ -463,7 +599,9 @@ changelog line). Statuses:
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Day group headers ("Tomorrow, August 11" 16px two-tone, 600 weekday) | `launches/calendar.tsx` ListView | VERIFIED-PARITY | Measured r1 |
+| Queue block centered in content pane | `launches/calendar.tsx` ListView | VERIFIED-PARITY | Measured 2026-08-10 (Buffer: rail starts 194px in, 699px cards, symmetric 195px right gap): rail+card block wrapped in one `mx-auto w-full max-w-[800px]` column; phone stays full-width |
+| Day group headers ("Tomorrow, August 11" two-tone) | `launches/calendar.tsx` ListView | VERIFIED-PARITY | Re-measured 2026-08-10: 16px font-[550] on the whole line (weekday full ink, date muted) — replaces the r1 600-weekday-only weight |
+| List tab URLs (?tab=queue\|drafts\|approvals\|sent) | `launches/calendar.context.tsx` | VERIFIED-PARITY | Buffer writes ?tab=sent on /schedule/list — setListState mirrors the tab via replaceState, the context seeds listState from ?tab= on mount ('all' default kept when absent/invalid), and setFilters' URL rewrite carries ?tab only while the target view is the list |
 | Time rail outside cards (h:mm A 14/500 ink + ⚓ Custom 12 muted) | `launches/calendar.tsx` | VERIFIED-PARITY | 87488ff3 Buffer list cards |
 | Post cards ≤700px (avatar+badge header, 15px body, see-more, media right, hairline footer) | `launches/calendar.tsx` | VERIFIED-PARITY | 87488ff3 |
 | "see more" content expander | `launches/calendar.tsx` | VERIFIED-PARITY | line-clamp-3 + link |
@@ -480,10 +618,10 @@ changelog line). Statuses:
 | Page-level scroll (no nested scroll container) | `launches/calendar.tsx` | VERIFIED-PARITY | Wrapper dropped |
 | Post preview modal (existing post quick view) | `launches/general.preview.component.tsx` | VERIFIED-PARITY | Interior kit-converted 2026-08-10: 14px ink name / muted handle, hairline (1px token) thread connector, surface-ringed platform badge — customColor25/26/27 + border-fifth removed; shell is the call sites' Buffer-measured r12 hairline preview card |
 | Post statistics modal (clicks/short-link stats) | `launches/statistics.tsx`, `calendar.tsx` Statistics | VERIFIED-PARITY | Kit-converted 2026-08-10: 16/600 section heads, cards keep header-wash/hairline r12 (blue hover + purple/green/blue gradient charts dropped), chart now flat #2f7d44 2px line w/ hairline gridlines + token tooltip (local FlatMetricLine; skeleton loading kept), short-links table = hairline r8 frame + header wash (bg-forth/customColor6 removed). Buffer sent-post stats strip tracked in its own §Measure row |
-| Sent-post per-card stats (Buffer Sent tab shows metrics under cards) | — (no equivalent yet) | NEEDS-BUFFER-MEASUREMENT | Open Buffer List → Sent: measure the stats strip on sent cards (metrics shown, icon+number style, divider) — decide mapping to our /analytics/post/:id data |
+| Sent-post per-card stats (Buffer Sent tab shows metrics under cards) | `launches/calendar.tsx` SentPostStats | VERIFIED-PARITY | Measured 2026-08-10: hairline divider above a 14px-ink strip, font-[550] values + labels, gap 16; platform-dependent metric set as returned by GET /analytics/post/:id?date=30 (recent-posts.tsx fetch pattern, shared SWR key). List view + Sent tab only (DayView reuses the card shape and never fetches); lazy per visible card via IntersectionObserver, 5-min dedupe; posts without releaseId render nothing |
 | Delete post flow | `launches/calendar.tsx` DeletePost | VERIFIED-PARITY | Behind confirm dialog (surface itself → §Measure generic dialog) |
 | Set selection modal (apply a Set from calendar) | `launches/calendar.tsx` SetSelectionModal | POSTIZ-ONLY-KEEP | Sets are Postiz-only |
-| Missing-release modal | `launches/missing-release.modal.tsx` | NEEDS-WORK | 2 legacy tokens; small restyle |
+| Missing-release modal | `launches/missing-release.modal.tsx` | POSTIZ-ONLY-KEEP | Kit-converged 2026-08-10: selected tile #612BD3 -> lime border-btnPrimary, hover -> hairline, tableBorder -> newTableBorder, Cancel -> Button secondary, /70 -> /60 muted, sm:/lg: grid -> grid-cols-5 phone:grid-cols-3 |
 | Creation-method badge (API/AI-created marker on cards) | `launches/creation.method.badge.tsx` | POSTIZ-ONLY-KEEP | No Buffer counterpart |
 | Merge/separate post helpers | `launches/merge.post.tsx`, `separate.post.tsx` | POSTIZ-ONLY-KEEP | Editing plumbing |
 
@@ -705,7 +843,7 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Finish-trial modal | `billing/finish.trial.tsx` | N/A-INTERNAL | |
 | Onboarding wizard (welcome modal, connect steps) | `onboarding/onboarding.tsx`, `onboarding.modal.tsx`, `github.onboarding.tsx` | POSTIZ-ONLY-KEEP | Shows for invited teammates; neutral styling; sweep tokens opportunistically |
 | Notifications dropdown list (bell panel content) | `notifications/notification.component.tsx` | POSTIZ-ONLY-KEEP | (Same as §3 row — tracked once there) Kit-styled 2026-08-10: 32px-min 14px ink rows, hairline dividers, unread wash |
-| Public post preview page (header, post render, copy link, comments) | `preview/preview.wrapper.tsx`, `copy.client.tsx`, `render.preview.date*.tsx`, `comments.components.tsx` | NEEDS-WORK | Legacy tokens on the comments render; restyle page chrome to token system |
+| Public post preview page (header, post render, copy link, comments) | `preview/preview.wrapper.tsx`, `copy.client.tsx`, `render.preview.date*.tsx`, `comments.components.tsx` | POSTIZ-ONLY-KEEP | Kit-converted 2026-08-10: comments render dropped its last legacy tokens (bg-third/tableBorder/text-white textarea -> kit input r8 hairline w/ focus:border-forth; hairline dividers, 14px/550 ink names, ink body; rem-based text-sm/space-* -> px); date-render debug console.log removed; copy link/login gate/date logic untouched |
 | Import debug post modal (admin) | `launches/import-debug-post.modal.tsx` | N/A-INTERNAL | Admin pill popover tool |
 | Admin errors table | `admin/admin-errors.component.tsx` | N/A-INTERNAL | Restyled bbe94a8c |
 | Admin stats dashboard | `admin/admin-stats.component.tsx` | N/A-INTERNAL | Restyled bbe94a8c |
@@ -714,12 +852,13 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| Login (OIDC button flow) | `auth/login.tsx`, `login.with.oidc.tsx` | N/A-INTERNAL | Google SSO via Internal OIDC |
-| Register / activate / after-activate | `auth/register.tsx`, `activate.tsx`, `after.activate.tsx` | N/A-INTERNAL | Registration disabled |
-| Forgot / forgot-return | `auth/forgot.tsx`, `forgot-return.tsx` | N/A-INTERNAL | |
-| Login-required interstitial | `app/(app)/auth/login-required` | N/A-INTERNAL | |
-| Auth provider buttons (Google/GitHub/OAuth/Farcaster/Wallet) | `auth/providers/**` | N/A-INTERNAL | |
-| Testimonials side panel on auth | `auth/testimonial*.tsx`, shared `testomonials.tsx` | N/A-INTERNAL | |
+| Auth shell (forced-light cream canvas + brand lockup + white card) | `app/(app)/auth/layout.tsx` + `auth/auth.ui.ts` | N/A-INTERNAL | Kit-restyled 2026-08-10: `light` wrapper on `bg-newBgColor` (fonts inherited from `(app)/layout.tsx`); mark + Fustat 24/700 "cuesoft" above a 420px `bg-newBgColorInner` r16 hairline card, p32, soft shadow; phone full-width w/ 16px insets; legacy `#0E0E0E`/`#1A1919` dark shell gone (loginBox/loginBg bgImage tokens were already unreferenced) |
+| Login (OIDC button flow) | `auth/login.tsx`, `login.with.oidc.tsx` | N/A-INTERNAL | Google SSO via Internal OIDC; kit-restyled 2026-08-10 (20/550 title + muted subline, kit inputs/CTA, green links, light amber not-activated notice); SSO handler + email fallback logic untouched |
+| Register / activate / after-activate | `auth/register.tsx`, `activate.tsx`, `after.activate.tsx` | N/A-INTERNAL | Registration disabled (SSO block on `/auth`); kit-restyled 2026-08-10; OAuth-callback/auto-submit/resend-cooldown logic untouched |
+| Forgot / forgot-return | `auth/forgot.tsx`, `forgot-return.tsx` | N/A-INTERNAL | Kit-restyled 2026-08-10 (titles, sublines, kit inputs/CTA, green back-to-login links) |
+| Login-required interstitial | `app/(app)/auth/login-required` | N/A-INTERNAL | Kit-restyled 2026-08-10: `bg-[#121212]`/4xl -> cream canvas + 20/550 ink |
+| Auth provider buttons (Google/GitHub/OAuth/Farcaster/Wallet) | `auth/providers/**` | N/A-INTERNAL | Kit-restyled 2026-08-10 to the shared `AUTH_PROVIDER_BUTTON` (white hairline 44px r8, 14/550 ink); all OAuth/OIDC/wallet handlers untouched |
+| Testimonials side panel on auth | `auth/testimonial*.tsx`, shared `testomonials.tsx` | N/A-INTERNAL | Orphaned (no importer since the card layout); left as-is |
 | OAuth consent (approve app) | `app/(app)/oauth/authorize/page.tsx` | N/A-INTERNAL | Spinner tokenized |
 
 ## 19. UI kit & shared primitives

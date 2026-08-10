@@ -21,8 +21,10 @@ export const GlobalSettings = () => {
     <div className="flex flex-col pb-[56px]">
       {/* Buffer settings content H1 measures 20px/400 display face (round-1
           structure JSON: 'Profile'). data-cs opts out of the desktop ladder
-          so it renders at the literal 20px. */}
-      <h3 data-cs className="text-[20px] font-[400] font-display">
+          so it renders at the literal 20px. phone:hidden — the phone tab bar
+          directly above already says "Global Settings"; repeating it 40px
+          below read as a stutter. */}
+      <h3 data-cs className="text-[20px] font-[400] font-display phone:hidden">
         {t('global_settings', 'Global Settings')}
       </h3>
       <MetricComponent />

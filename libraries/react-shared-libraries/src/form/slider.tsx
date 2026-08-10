@@ -22,7 +22,9 @@ export const Slider: FC<{
       <div className="w-full h-full relative rounded-[100px]">
         <div
           className={clsx(
-            'absolute left-0 top-0 w-[24px] h-[24px] rounded-full transition-all cursor-pointer',
+            // knob sits INSET in the pill (track height minus ~6px, centered)
+            // — at full track height it read as bulging past the pill edges
+            'absolute top-1/2 -translate-y-1/2 w-[20px] h-[20px] rounded-full transition-all cursor-pointer',
             value === 'on' && fill ? 'bg-black' : 'bg-customColor5',
             value === 'on' ? 'left-[100%] -translate-x-[100%]' : 'left-0'
           )}

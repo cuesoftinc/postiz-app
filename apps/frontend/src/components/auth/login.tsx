@@ -15,12 +15,41 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { FarcasterProvider } from '@gitroom/frontend/components/auth/providers/farcaster.provider';
 import WalletProvider from '@gitroom/frontend/components/auth/providers/wallet.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import {
+  AUTH_BUTTON,
+  AUTH_INPUT,
+  AUTH_LINK,
+  AUTH_SUBLINE,
+  AUTH_TITLE,
+} from '@gitroom/frontend/components/auth/auth.ui';
 type Inputs = {
   email: string;
   password: string;
   providerToken: '';
   provider: 'LOCAL';
 };
+
+/** "Account not activated" notice, calibrated for the light card. */
+const NotActivatedNotice = () => {
+  const t = useT();
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-[8px] p-[16px]">
+      <p className="text-amber-800 text-[14px] mb-[8px]">
+        {t(
+          'account_not_activated',
+          'Your account is not activated yet. Please check your email for the activation link.'
+        )}
+      </p>
+      <Link
+        href="/auth/activate"
+        className="text-amber-800 text-[14px] underline"
+      >
+        {t('resend_activation_email', 'Resend Activation Email')}
+      </Link>
+    </div>
+  );
+};
+
 export function Login() {
   const t = useT();
   const [loading, setLoading] = useState(false);
@@ -72,9 +101,12 @@ export function Login() {
     return (
       <FormProvider {...form}>
         <div className="flex flex-col flex-1 gap-[24px]">
-          <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start">
-            {t('sign_in', 'Sign In')}
-          </h1>
+          <div className="flex flex-col gap-[4px]">
+            <h1 className={AUTH_TITLE}>{t('sign_in', 'Sign In')}</h1>
+            <div className={AUTH_SUBLINE}>
+              {t('sign_in_subline', 'Welcome back. Sign in to continue.')}
+            </div>
+          </div>
           {/* Primary: Cuesoft SSO */}
           <div className="flex">
             <OauthProvider />
@@ -86,7 +118,7 @@ export function Login() {
               <button
                 type="button"
                 onClick={() => setShowEmail(true)}
-                className="text-[14px] underline opacity-70 hover:opacity-100 cursor-pointer"
+                className={AUTH_LINK}
               >
                 {t('sign_in_with_email', 'Sign in with email')}
               </button>
@@ -101,6 +133,7 @@ export function Login() {
                   label="Email"
                   translationKey="label_email"
                   {...form.register('email')}
+                  className={AUTH_INPUT}
                   type="email"
                   placeholder={t('email_address', 'Email Address')}
                 />
@@ -108,41 +141,20 @@ export function Login() {
                   label="Password"
                   translationKey="label_password"
                   {...form.register('password')}
+                  className={AUTH_INPUT}
                   autoComplete="off"
                   type="password"
                   placeholder={t('label_password', 'Password')}
                 />
               </div>
-              {notActivated && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-[10px] p-4">
-                  <p className="text-amber-400 text-sm mb-2">
-                    {t(
-                      'account_not_activated',
-                      'Your account is not activated yet. Please check your email for the activation link.'
-                    )}
-                  </p>
-                  <Link
-                    href="/auth/activate"
-                    className="text-amber-400 underline hover:font-[650] text-sm"
-                  >
-                    {t('resend_activation_email', 'Resend Activation Email')}
-                  </Link>
-                </div>
-              )}
+              {notActivated && <NotActivatedNotice />}
               <div className="w-full flex">
-                <Button
-                  type="submit"
-                  className="flex-1 rounded-[10px] !h-[52px]"
-                  loading={loading}
-                >
+                <Button type="submit" className={AUTH_BUTTON} loading={loading}>
                   {t('sign_in_1', 'Sign in')}
                 </Button>
               </div>
-              <p className="text-sm text-center">
-                <Link
-                  href="/auth/forgot"
-                  className="underline hover:font-[650] cursor-pointer"
-                >
+              <p className="text-center">
+                <Link href="/auth/forgot" className={AUTH_LINK}>
                   {t('forgot_password', 'Forgot password')}
                 </Link>
               </p>
@@ -156,15 +168,13 @@ export function Login() {
     <FormProvider {...form}>
       <form className="flex-1 flex" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="flex flex-col flex-1">
-          <div>
-            <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start cursor-pointer">
-              {t('sign_in', 'Sign In')}
-            </h1>
+          <div className="flex flex-col gap-[4px]">
+            <h1 className={AUTH_TITLE}>{t('sign_in', 'Sign In')}</h1>
+            <div className={AUTH_SUBLINE}>
+              {t('sign_in_subline', 'Welcome back. Sign in to continue.')}
+            </div>
           </div>
-          <div className="text-[14px] mt-[32px] mb-[12px]">
-            {t('continue_with', 'Continue With')}
-          </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col mt-[24px]">
             {isGeneral && genericOauth ? (
               <OauthProvider />
             ) : !isGeneral ? (
@@ -177,11 +187,15 @@ export function Login() {
               </div>
             )}
             <div className="h-[20px] mb-[24px] mt-[24px] relative">
-              <div className="absolute w-full h-[1px] bg-fifth top-[50%] -translate-y-[50%]" />
+              <div className="absolute w-full h-[1px] bg-newTableBorder top-[50%] -translate-y-[50%]" />
               <div
-                className={`absolute z-[1] justify-center items-center w-full start-0 -top-[4px] flex`}
+                className={`absolute z-[1] justify-center items-center w-full start-0 top-[50%] -translate-y-[50%] flex`}
               >
-                <div className="px-[16px]">{t('or', 'or')}</div>
+                <div
+                  className={`px-[16px] bg-newBgColorInner ${AUTH_SUBLINE}`}
+                >
+                  {t('or', 'or')}
+                </div>
               </div>
             </div>
             <div className="flex flex-col gap-[12px]">
@@ -190,6 +204,7 @@ export function Login() {
                   label="Email"
                   translationKey="label_email"
                   {...form.register('email')}
+                  className={AUTH_INPUT}
                   type="email"
                   placeholder={t('email_address', 'Email Address')}
                 />
@@ -197,48 +212,25 @@ export function Login() {
                   label="Password"
                   translationKey="label_password"
                   {...form.register('password')}
+                  className={AUTH_INPUT}
                   autoComplete="off"
                   type="password"
                   placeholder={t('label_password', 'Password')}
                 />
               </div>
-              {notActivated && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-[10px] p-4 mb-4">
-                  <p className="text-amber-400 text-sm mb-2">
-                    {t(
-                      'account_not_activated',
-                      'Your account is not activated yet. Please check your email for the activation link.'
-                    )}
-                  </p>
-                  <Link
-                    href="/auth/activate"
-                    className="text-amber-400 underline hover:font-[650] text-sm"
-                  >
-                    {t('resend_activation_email', 'Resend Activation Email')}
-                  </Link>
-                </div>
-              )}
-              <div className="text-center mt-6">
+              {notActivated && <NotActivatedNotice />}
+              <div className="text-center mt-[12px]">
                 <div className="w-full flex">
                   <Button
                     type="submit"
-                    className="flex-1 rounded-[10px] !h-[52px]"
+                    className={AUTH_BUTTON}
                     loading={loading}
                   >
                     {t('sign_in_1', 'Sign in')}
                   </Button>
                 </div>
-                <p className="mt-4 text-sm">
-                  {t('don_t_have_an_account', "Don't Have An Account?")}&nbsp;
-                  <Link href="/auth" className="underline cursor-pointer">
-                    {t('sign_up', 'Sign Up')}
-                  </Link>
-                </p>
-                <p className="mt-4 text-sm">
-                  <Link
-                    href="/auth/forgot"
-                    className="underline hover:font-[650] cursor-pointer"
-                  >
+                <p className="mt-[16px]">
+                  <Link href="/auth/forgot" className={AUTH_LINK}>
                     {t('forgot_password', 'Forgot password')}
                   </Link>
                 </p>

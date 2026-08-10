@@ -462,6 +462,9 @@ const PhoneFilterSheet: FC<{ open: boolean; onClose: () => void }> = ({
     <button
       type="button"
       onClick={onClick}
+      // data-cs: phone-only surface that owns its geometry — the global.scss
+      // size ladder must not squeeze these rows under the 40px tap floor
+      data-cs
       className="flex items-center gap-[12px] w-full h-[44px] px-[12px] rounded-[8px] text-[15px] text-newTextColor hover:bg-boxHover text-start"
     >
       {icon}
@@ -476,6 +479,7 @@ const PhoneFilterSheet: FC<{ open: boolean; onClose: () => void }> = ({
     <button
       type="button"
       onClick={() => setStage('root')}
+      data-cs
       className="flex items-center gap-[8px] w-full h-[40px] px-[8px] text-[15px] font-[500] text-newTextColor"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -786,8 +790,10 @@ const PhoneCalendarSheet: FC<{
           {/* own key — the 'calendar' key is locale-mapped to the nav label */}
           {t('calendar_view', 'Calendar')}
         </div>
-        {/* [3 Days | Week | Month] segmented — lime active segment */}
-        <div className="flex w-full h-[44px] p-[4px] border border-newTableBorder rounded-[12px] text-[15px] font-[500] mb-[16px]">
+        {/* [3 Days | Week | Month] segmented — lime active segment.
+            data-cs: phone-only surface that owns its geometry — the size
+            ladder must not squeeze it under the 40px tap floor */}
+        <div data-cs className="flex w-full h-[44px] p-[4px] border border-newTableBorder rounded-[12px] text-[15px] font-[500] mb-[16px]">
           {viewOptions.map((option) => (
             <button
               key={option.key}
@@ -813,6 +819,7 @@ const PhoneCalendarSheet: FC<{
             type="button"
             aria-label={t('previous', 'Previous')}
             onClick={() => setViewMonth((m) => m.subtract(1, 'month'))}
+            data-cs
             className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center text-newTextColor/70 rtl:rotate-180"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -823,6 +830,7 @@ const PhoneCalendarSheet: FC<{
             type="button"
             aria-label={t('next', 'Next')}
             onClick={() => setViewMonth((m) => m.add(1, 'month'))}
+            data-cs
             className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center text-newTextColor/70 rtl:rotate-180"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -830,7 +838,12 @@ const PhoneCalendarSheet: FC<{
             </svg>
           </button>
         </div>
-        <div className="grid grid-cols-7">
+        {/* data-cs opts out of the global grid-cols-7 fallback (88px column
+            floor) so the picker's 7 columns divide the sheet width */}
+        <div
+          data-cs
+          className="grid grid-cols-7 [grid-template-columns:repeat(7,minmax(0,1fr))]"
+        >
           {weekdayLetters.map((letter, i) => (
             <div
               key={i}
@@ -848,6 +861,7 @@ const PhoneCalendarSheet: FC<{
                 key={day.format('YYYY-MM-DD')}
                 type="button"
                 onClick={() => pickDay(day)}
+                data-cs
                 className="h-[40px] flex items-center justify-center"
               >
                 <span
@@ -877,6 +891,7 @@ const PhoneCalendarSheet: FC<{
             setToday();
             onClose();
           }}
+          data-cs
           className="flex items-center gap-[12px] w-full h-[44px] px-[12px] rounded-[8px] text-[15px] font-[500] text-newTextColor hover:bg-boxHover text-start"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1110,11 +1125,12 @@ export const PageHeader: FC = () => {
         {single ? single.name : t('all_channels', 'All Channels')}
       </h1>
       {/* Buffer's bookmark sits right of the title (saved-views live there);
-          anatomy only until saved views exist here */}
+          anatomy only until saved views exist here — hidden on phone, where a
+          24px non-functional target under the 40px floor read as dead chrome */}
       <button
         type="button"
         title={t('save_current_view', 'Save current view')}
-        className="w-[24px] h-[24px] rounded-[6px] flex items-center justify-center text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover transition-colors duration-150"
+        className="phone:hidden w-[24px] h-[24px] rounded-[6px] flex items-center justify-center text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover transition-colors duration-150"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" />
@@ -1177,6 +1193,7 @@ export const PageHeader: FC = () => {
         type="button"
         aria-label={t('new_post', 'New Post')}
         onClick={newPost}
+        data-cs
         className="hidden phone:flex w-[40px] h-[40px] rounded-[8px] bg-btnPrimary items-center justify-center"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1333,6 +1350,24 @@ export const Filters = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [calSheetOpen, setCalSheetOpen] = useState(false);
 
+  // Phone surfaces must not stack: a sheet left mounted under/over the nav
+  // drawer or the composer modal read as two broken primary surfaces. Every
+  // phone surface announces itself on 'cs:surface-open' (the drawer in
+  // layout.component.tsx, every modal in new-modal.tsx, the sheets here) and
+  // the sheets yield to any announcement that is not their own.
+  const announceSurface = useCallback((tag: string) => {
+    window.dispatchEvent(new CustomEvent('cs:surface-open', { detail: tag }));
+  }, []);
+  useEffect(() => {
+    const onSurface = (e: Event) => {
+      const tag = (e as CustomEvent).detail;
+      if (tag !== 'filters-sheet') setSheetOpen(false);
+      if (tag !== 'calendar-sheet') setCalSheetOpen(false);
+    };
+    window.addEventListener('cs:surface-open', onSurface);
+    return () => window.removeEventListener('cs:surface-open', onSurface);
+  }, []);
+
   const toView = useCallback(
     (target: 'calendar' | 'list') => {
       if ((target === 'list') === isListView) return;
@@ -1449,10 +1484,12 @@ export const Filters = () => {
     >
       {!isListView && (
         <div className="flex flex-grow flex-row items-center">
-          {/* Buffer: the two chevrons sit ADJACENT, before the title */}
+          {/* Buffer: the two chevrons sit ADJACENT, before the title.
+              Phone: 40x40 hit areas (32px desktop squares undershoot the
+              40px phone tap floor, crowded against the screen edge) */}
           <div
             onClick={previous}
-            className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[32px] h-[32px] rounded-[8px] flex items-center justify-center hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
+            className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[32px] h-[32px] phone:w-[40px] phone:h-[40px] rounded-[8px] flex items-center justify-center hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m15 18-6-6 6-6" />
@@ -1460,7 +1497,7 @@ export const Filters = () => {
           </div>
           <div
             onClick={next}
-            className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[32px] h-[32px] rounded-[8px] flex items-center justify-center hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
+            className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[32px] h-[32px] phone:w-[40px] phone:h-[40px] rounded-[8px] flex items-center justify-center hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m9 18 6-6-6-6" />
@@ -1475,7 +1512,10 @@ export const Filters = () => {
           <button
             type="button"
             data-cs
-            onClick={() => setCalSheetOpen(true)}
+            onClick={() => {
+              announceSurface('calendar-sheet');
+              setCalSheetOpen(true);
+            }}
             className="hidden phone:flex ms-[4px] items-center gap-[6px] h-[40px] px-[12px] rounded-[8px] bg-newTableHeader text-[16px] font-[500] text-newTextColor whitespace-nowrap"
           >
             {anchorDate.format('MMMM D')}
@@ -1653,7 +1693,10 @@ export const Filters = () => {
         <button
           type="button"
           aria-label={t('more_actions', 'More actions')}
-          onClick={() => setSheetOpen(true)}
+          onClick={() => {
+            announceSurface('filters-sheet');
+            setSheetOpen(true);
+          }}
           className="w-[40px] h-[40px] flex items-center justify-center rounded-[8px] hover:bg-boxHover text-newTextColor"
         >
           {/* Buffer's phone funnel: three shrinking filter lines */}

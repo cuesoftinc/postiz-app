@@ -60,6 +60,17 @@ const AnalyticsCard: FC<{
 }> = ({ item, total }) => {
   const t = useT();
 
+  // Delta hygiene (Buffer omits the badge without a real comparison): a zero
+  // total with a positive delta is nonsense, and no provider computes a real
+  // previous-period comparison today — every non-zero percentageChange in the
+  // codebase is the literal placeholder 5. Suppress both.
+  const rawTotal =
+    item.data?.reduce((acc, curr) => acc + (curr.total || 0), 0) || 0;
+  const showDelta =
+    item.percentageChange !== undefined &&
+    item.percentageChange !== 5 &&
+    rawTotal !== 0;
+
   return (
     <div className="grow basis-[200px] min-h-[77px] flex flex-col justify-center gap-[6px] bg-newBgColorInner border border-newTableBorder rounded-[8px] px-[16px] py-[14px]">
       <div className="flex items-start justify-between gap-[8px]">
@@ -92,9 +103,9 @@ const AnalyticsCard: FC<{
         <span className="text-[20px] leading-[24px] font-[550] tracking-tight text-newTextColor">
           {total}
         </span>
-        {item.percentageChange !== undefined && (
+        {showDelta && (
           <TrendIndicator
-            value={item.percentageChange}
+            value={item.percentageChange!}
             average={item.average}
           />
         )}

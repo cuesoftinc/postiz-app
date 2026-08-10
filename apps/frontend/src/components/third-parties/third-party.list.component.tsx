@@ -147,7 +147,10 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
           <div className="whitespace-pre-wrap text-left text-[14px] text-newTextColor/60">
             {p.description}
           </div>
-          <div className="w-full flex">
+          {/* mt-auto pins the button to the card bottom so Add buttons share
+              one baseline across a row of unequal descriptions (the grid
+              already stretches items to the tallest card) */}
+          <div className="w-full flex mt-auto">
             {/* quiet 32px hairline secondary — a lime primary on every card
                 was a wall of primaries; green stays reserved for the single
                 page-level CTA (S4). !-overrides beat the Button base's

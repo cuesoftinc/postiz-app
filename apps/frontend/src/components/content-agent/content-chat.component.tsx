@@ -237,7 +237,7 @@ export const ContentChatComponent: FC<{
     <div
       // px/pb: the pane's seam lines must never touch the composer box (the
       // messages align to the same inset)
-      className="flex flex-col flex-1 min-h-0 px-[16px] pb-[56px] phone:h-[65dvh] phone:px-[12px]"
+      className="flex flex-col flex-1 min-h-0 px-[16px] pb-[56px] phone:h-[65dvh] phone:px-[4px]"
       data-cs
     >
       {/* messages — scrollbar chrome matches the sibling kit panes (Threads
@@ -407,7 +407,10 @@ export const ContentChatComponent: FC<{
           disabled={streaming || !input.trim()}
           aria-label={t('send', 'Send')}
           className={clsx(
-            'w-[32px] h-[32px] shrink-0 rounded-[8px] bg-btnPrimary text-black flex items-center justify-center transition-opacity duration-150',
+            // phone:44px — the primary action of the chat surface gets the
+            // 40px+ tap floor (data-cs blocks the ladder, not plain phone:
+            // utilities); desktop keeps the 32px square
+            'w-[32px] h-[32px] phone:w-[44px] phone:h-[44px] shrink-0 rounded-[8px] bg-btnPrimary text-black flex items-center justify-center transition-opacity duration-150',
             (streaming || !input.trim()) && 'opacity-40'
           )}
           data-cs

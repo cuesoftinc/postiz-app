@@ -649,10 +649,8 @@ html[dir='rtl'] [dir='ltr'] {
   background: var(--new-big-strips);
 }
 
-.mantine-Modal-inner {
-  backdrop-filter: blur(10px);
-}
-
+/* Buffer overlays (measured --color-bg-overlay: #000c): plain black at 80%,
+   no blur */
 .mantine-Modal-modal {
   padding: 0;
   @apply bg-newBgColorInner;
@@ -660,7 +658,7 @@ html[dir='rtl'] [dir='ltr'] {
 }
 
 .mantine-Overlay-root {
-  background: rgba(65, 64, 66, 0.3) !important;
+  background: rgba(0, 0, 0, 0.8) !important;
 }
 
 .dropdown-menu {
@@ -1098,8 +1096,11 @@ button { white-space: nowrap; }
 
   /* month grid keeps real (tappable) columns and scrolls horizontally (only a
      pre-hydration fallback now — once mounted, phone month/week render the
-     Buffer 3-day hour grid from calendar.tsx, which sizes its own columns) */
-  .grid[class*="grid-cols-7"] { grid-template-columns: repeat(7, minmax(88px, 1fr)) !important; }
+     Buffer 3-day hour grid from calendar.tsx, which sizes its own columns).
+     :not([data-cs]) — the PhoneCalendarSheet mini month picker is also a
+     `grid grid-cols-7` and the 88px floor inflated it to ~616px inside a
+     402px sheet (Thu-Sat pushed behind an undiscoverable sideways scroll). */
+  .grid[class*="grid-cols-7"]:not([data-cs]) { grid-template-columns: repeat(7, minmax(88px, 1fr)) !important; }
 
   /* content grids are authored for desktop: grid-cols-3 gave 95px plug cards at
      390px, wrapping one word per line. grid-cols-7 is the calendar and is

@@ -9,6 +9,13 @@ import { useMemo, useState } from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { ForgotPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/forgot.password.dto';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import {
+  AUTH_BUTTON,
+  AUTH_INPUT,
+  AUTH_LINK,
+  AUTH_SUBLINE,
+  AUTH_TITLE,
+} from '@gitroom/frontend/components/auth/auth.ui';
 type Inputs = {
   email: string;
 };
@@ -39,33 +46,44 @@ export function Forgot() {
     <div className="flex flex-1 flex-col">
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div>
-            <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start mb-4 cursor-pointer">
+          <div className="flex flex-col gap-[4px] mb-[24px]">
+            <h1 className={AUTH_TITLE}>
               {t('forgot_password_1', 'Forgot Password')}
             </h1>
+            <div className={AUTH_SUBLINE}>
+              {t(
+                'forgot_password_subline',
+                'Enter your email and we will send you a reset link.'
+              )}
+            </div>
           </div>
           {!state ? (
             <>
-              <div className="space-y-4 text-newTextColor">
+              <div className="text-newTextColor">
                 <Input
                   label="Email"
                   translationKey="label_email"
                   {...form.register('email')}
+                  className={AUTH_INPUT}
                   type="email"
                   placeholder={t('email_address', 'Email Address')}
                 />
               </div>
-              <div className="text-center mt-6">
+              <div className="text-center mt-[12px]">
                 <div className="w-full flex">
-                  <Button type="submit" className="flex-1 !h-[52px] !rounded-[10px]" loading={loading}>
+                  <Button
+                    type="submit"
+                    className={AUTH_BUTTON}
+                    loading={loading}
+                  >
                     {t(
                       'send_password_reset_email',
                       'Send Password Reset Email'
                     )}
                   </Button>
                 </div>
-                <p className="mt-4 text-sm">
-                  <Link href="/auth/login" className="underline cursor-pointer">
+                <p className="mt-[16px]">
+                  <Link href="/auth" className={AUTH_LINK}>
                     {t('go_back_to_login', 'Go back to login')}
                   </Link>
                 </p>
@@ -73,14 +91,14 @@ export function Forgot() {
             </>
           ) : (
             <>
-              <div className="text-start mt-6">
+              <div className="text-start text-[14px] text-newTextColor">
                 {t(
                   'we_have_send_you_an_email_with_a_link_to_reset_your_password',
                   'We have send you an email with a link to reset your password.'
                 )}
               </div>
-              <p className="mt-4 text-sm">
-                <Link href="/auth/login" className="underline cursor-pointer">
+              <p className="mt-[16px]">
+                <Link href="/auth" className={AUTH_LINK}>
                   {t('go_back_to_login', 'Go back to login')}
                 </Link>
               </p>

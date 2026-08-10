@@ -8,6 +8,13 @@ import { useMemo, useState } from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { ForgotReturnPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/forgot-return.password.dto';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import {
+  AUTH_BUTTON,
+  AUTH_INPUT,
+  AUTH_LINK,
+  AUTH_SUBLINE,
+  AUTH_TITLE,
+} from '@gitroom/frontend/components/auth/auth.ui';
 type Inputs = {
   password: string;
   repeatPassword: string;
@@ -51,18 +58,25 @@ export function ForgotReturn({ token }: { token: string }) {
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <div>
-          <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start mb-4 cursor-pointer">
+        <div className="flex flex-col gap-[4px] mb-[24px]">
+          <h1 className={AUTH_TITLE}>
             {t('forgot_password_1', 'Forgot Password')}
           </h1>
+          <div className={AUTH_SUBLINE}>
+            {t(
+              'reset_password_subline',
+              'Choose a new password for your account.'
+            )}
+          </div>
         </div>
         {!state ? (
           <>
-            <div className="space-y-4 text-newTextColor">
+            <div className="text-newTextColor">
               <Input
                 label="New Password"
                 translationKey="label_new_password"
                 {...form.register('password')}
+                className={AUTH_INPUT}
                 type="password"
                 placeholder={t('label_password', 'Password')}
               />
@@ -70,18 +84,19 @@ export function ForgotReturn({ token }: { token: string }) {
                 label="Repeat Password"
                 translationKey="label_repeat_password"
                 {...form.register('repeatPassword')}
+                className={AUTH_INPUT}
                 type="password"
                 placeholder={t('label_repeat_password', 'Repeat Password')}
               />
             </div>
-            <div className="text-center mt-6">
+            <div className="text-center mt-[12px]">
               <div className="w-full flex">
-                <Button type="submit" className="flex-1" loading={loading}>
+                <Button type="submit" className={AUTH_BUTTON} loading={loading}>
                   {t('change_password', 'Change Password')}
                 </Button>
               </div>
-              <p className="mt-4 text-sm">
-                <Link href="/auth/login" className="underline cursor-pointer">
+              <p className="mt-[16px]">
+                <Link href="/auth" className={AUTH_LINK}>
                   {t('go_back_to_login', 'Go back to login')}
                 </Link>
               </p>
@@ -89,14 +104,14 @@ export function ForgotReturn({ token }: { token: string }) {
           </>
         ) : (
           <>
-            <div className="text-start mt-6">
+            <div className="text-start text-[14px] text-newTextColor">
               {t(
                 'we_successfully_reset_your_password_you_can_now_login_with_your',
                 'We successfully reset your password. You can now login with your'
               )}
             </div>
-            <p className="mt-4 text-sm">
-              <Link href="/auth/login" className="underline cursor-pointer">
+            <p className="mt-[16px]">
+              <Link href="/auth" className={AUTH_LINK}>
                 {t('go_back_to_login', 'Go back to login')}
               </Link>
             </p>

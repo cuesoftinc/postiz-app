@@ -28,6 +28,7 @@ import {
   UserSearchItem,
 } from '@gitroom/frontend/components/cuesoft/dropdown/user-search-dropdown';
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
+import clsx from 'clsx';
 
 interface Charge {
   id: string;
@@ -969,6 +970,10 @@ export const Impersonate = () => {
   const fetch = useFetch();
   const [name, setName] = useState('');
   const [open, setOpen] = useState(false);
+  // phone: the pill collapses to a dot until tapped — the full pill floated
+  // over page content with no reserved space (it covered the date number and
+  // tap area of the bottom-left month cell). Desktop always shows the pill.
+  const [phoneExpanded, setPhoneExpanded] = useState(false);
   const { isSecured, billingEnabled } = useVariables();
   const user = useUser();
   const load = useCallback(async () => {
@@ -1041,7 +1046,10 @@ export const Impersonate = () => {
           {/* click-away layer — painted under the panel/pill (source order) */}
           <div
             className="fixed inset-0 pointer-events-auto"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              setPhoneExpanded(false);
+            }}
           />
           <div className="pointer-events-auto w-[560px] max-w-[calc(100vw-24px)]">
             <DropdownPanel className="!static w-full p-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
@@ -1095,9 +1103,44 @@ export const Impersonate = () => {
           </div>
         </>
       )}
+      {/* phone dot — expands to the pill (and opens the tools) on tap */}
+      {!phoneExpanded && (
+        <button
+          type="button"
+          data-cs
+          aria-label={t('admin_tools', 'Admin tools')}
+          onClick={() => {
+            setPhoneExpanded(true);
+            setOpen(true);
+          }}
+          // 40x40 hit area (tap floor) around the unchanged 20px dot: the
+          // -10px margins keep the layout box 20x20 so the visible circle
+          // sits exactly where it did
+          className="pointer-events-auto hidden phone:flex w-[40px] h-[40px] -m-[10px] items-center justify-center"
+        >
+          <span className="w-[20px] h-[20px] rounded-full bg-forth text-white shadow-[0_4px_12px_rgba(0,0,0,0.18)] flex items-center justify-center">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+            </svg>
+          </span>
+        </button>
+      )}
       <div
         data-cs
-        className="pointer-events-auto flex items-center h-[32px] rounded-full bg-forth text-white shadow-[0_4px_12px_rgba(0,0,0,0.18)] overflow-hidden phone:h-[28px] phone:max-w-[calc(100vw-24px)]"
+        className={clsx(
+          'pointer-events-auto flex items-center h-[32px] rounded-full bg-forth text-white shadow-[0_4px_12px_rgba(0,0,0,0.18)] overflow-hidden phone:h-[28px] phone:max-w-[calc(100vw-24px)]',
+          !phoneExpanded && 'phone:hidden'
+        )}
       >
         <button
           type="button"

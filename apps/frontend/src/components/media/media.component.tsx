@@ -371,7 +371,7 @@ export const MediaBox: FC<{
               <img
                 width="100%"
                 height="100%"
-                className="w-full h-full max-h-[100%] max-w-[100%] object-cover"
+                className="w-full h-full max-h-[100%] max-w-[100%] object-contain"
                 src={mediaDirectory.set(media.path)}
                 alt="media"
               />
@@ -684,10 +684,13 @@ export const MediaBox: FC<{
                       {hasExtension(media.path, 'mp4') ? (
                         <VideoFrame url={mediaDirectory.set(media.path)} />
                       ) : (
+                        // object-contain + wash letterbox: cover center-crops
+                        // landscape brand tiles and slices their headlines at
+                        // both edges
                         <img
                           width="100%"
                           height="100%"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain bg-newTableHeader"
                           src={mediaDirectory.set(media.path)}
                           alt="media"
                         />

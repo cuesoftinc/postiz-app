@@ -7,6 +7,13 @@ import { Button } from '@gitroom/react/form/button';
 import { Input } from '@gitroom/react/form/input';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import {
+  AUTH_BUTTON,
+  AUTH_INPUT,
+  AUTH_LINK,
+  AUTH_SUBLINE,
+  AUTH_TITLE,
+} from '@gitroom/frontend/components/auth/auth.ui';
 
 type ResendInputs = {
   email: string;
@@ -68,12 +75,12 @@ export function Activate() {
 
   return (
     <div className="flex flex-col flex-1">
-      <div>
-        <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start mb-4 cursor-pointer">
+      <div className="flex flex-col gap-[4px] mb-[16px]">
+        <h1 className={AUTH_TITLE}>
           {t('activate_your_account', 'Activate your account')}
         </h1>
       </div>
-      <div className="text-newTextColor">
+      <div className="text-[14px] text-newTextColor">
         {t('thank_you_for_registering', 'Thank you for registering!')}
         <br />
         {t(
@@ -82,72 +89,76 @@ export function Activate() {
         )}
       </div>
 
-      <div className="mt-8 border-t border-fifth pt-6">
-        <h2 className="text-[16px] font-[550] mb-4">
+      <div className="mt-[24px] border-t border-newTableBorder pt-[24px]">
+        <h2 className="text-[16px] font-[550] text-newTextColor mb-[16px]">
           {t('didnt_receive_email', "Didn't receive the email?")}
         </h2>
         {status === 'sent' ? (
-          <div className="flex flex-col gap-4">
-            <div className="text-green-400">
+          <div className="flex flex-col gap-[16px]">
+            <div className="text-[14px] text-[#2f7d44]">
               {t(
                 'activation_email_sent',
                 'Activation email has been sent! Please check your inbox.'
               )}
             </div>
             {cooldown > 0 ? (
-              <p className="text-sm text-newTextColor">
+              <p className={AUTH_SUBLINE}>
                 {t('resend_available_in', 'You can resend in')} {cooldown}s
               </p>
             ) : (
-              <Button
-                onClick={resetToForm}
-                className="rounded-[10px] !h-[52px]"
-              >
+              <Button onClick={resetToForm} className={AUTH_BUTTON}>
                 {t('send_again', 'Send Again')}
               </Button>
             )}
           </div>
         ) : status === 'already_activated' ? (
-          <div className="flex flex-col gap-4">
-            <div className="text-green-400">
+          <div className="flex flex-col gap-[16px]">
+            <div className="text-[14px] text-[#2f7d44]">
               {t(
                 'account_already_activated',
                 'Great news! Your account is already activated.'
               )}
             </div>
-            <Link href="/auth/login">
-              <Button className="rounded-[10px] !h-[52px] w-full">
+            <Link href="/auth">
+              <Button className={AUTH_BUTTON}>
                 {t('go_to_login', 'Go to Login')}
               </Button>
             </Link>
           </div>
         ) : (
           <FormProvider {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex flex-col gap-[8px]"
+            >
               <Input
                 label={t('label_email', 'Email')}
                 translationKey="label_email"
                 {...form.register('email', { required: true })}
+                className={AUTH_INPUT}
                 type="email"
                 placeholder={t('email_address', 'Email Address')}
               />
               <Button
                 type="submit"
-                className="rounded-[10px] !h-[52px]"
+                className={AUTH_BUTTON}
                 loading={loading}
                 disabled={cooldown > 0}
               >
                 {cooldown > 0
-                  ? `${t('resend_available_in', 'You can resend in')} ${cooldown}s`
+                  ? `${t(
+                      'resend_available_in',
+                      'You can resend in'
+                    )} ${cooldown}s`
                   : t('resend_activation_email', 'Resend Activation Email')}
               </Button>
             </form>
           </FormProvider>
         )}
         {status !== 'already_activated' && (
-          <p className="mt-4 text-sm text-newTextColor">
+          <p className="mt-[16px] text-[14px] text-newTextColor/60">
             {t('already_activated', 'Already activated?')}&nbsp;
-            <Link href="/auth/login" className="underline cursor-pointer">
+            <Link href="/auth" className={AUTH_LINK}>
               {t('sign_in', 'Sign In')}
             </Link>
           </p>

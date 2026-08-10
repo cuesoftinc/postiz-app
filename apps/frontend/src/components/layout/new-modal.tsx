@@ -51,6 +51,13 @@ interface State extends ModalManagerStoreInterface {
 const useModalStore = create<State>((set) => ({
   modalManager: [],
   openModal: (params) => {
+    // phone surfaces must not stack: any modal opening (composer included)
+    // dismisses open bottom sheets / the nav drawer (see filters.tsx)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('cs:surface-open', { detail: 'modal' })
+      );
+    }
     const newId = params.id || makeId(20);
     set((state) => ({
       modalManager: [
@@ -176,7 +183,12 @@ export const Component: FC<{
           !modal.fullScreen
             ? 'pb-[50px] min-w-full min-h-full'
             : 'w-full h-full',
-          'fixed flex left-0 top-0 bg-popup transition-all animate-fadeIn overflow-y-auto text-newTextColor',
+          // Buffer overlays (measured): plain rgba(0,0,0,0.8), NO blur
+          'fixed flex left-0 top-0 bg-black/80 transition-all animate-fadeIn overflow-y-auto text-newTextColor',
+          // phone: an over-wide child must never widen the layout viewport
+          // (that shifts every position:fixed surface off the visual
+          // viewport — left gutter + clipped right edge on the composer)
+          'phone:max-w-[100dvw] phone:overflow-x-hidden',
           !isLast && '!overflow-hidden'
         )}
       >
@@ -210,7 +222,8 @@ export const Component: FC<{
         onClick={closeModalFunction}
         style={{ zIndex }}
         className={clsx(
-          'fixed flex left-0 top-0 min-w-full min-h-full bg-popup transition-all animate-fadeIn overflow-y-auto text-newTextColor',
+          // Buffer overlays (measured): plain rgba(0,0,0,0.8), NO blur
+          'fixed flex left-0 top-0 min-w-full min-h-full bg-black/80 transition-all animate-fadeIn overflow-y-auto text-newTextColor',
           !modal.fullScreen && 'pb-[50px]'
         )}
       >
@@ -298,11 +311,15 @@ export const ModalManagerInner: FC = () => {
   useEffect(() => {
     if (modalManager.length > 0) {
       document.querySelector('body')?.classList.add('overflow-hidden');
+      // Buffer backdrops do NOT blur the page behind (measured: flat
+      // rgba(0,0,0,0.8) overlay) — blur-xs dropped, the pointer guard stays
       Array.from(document.querySelectorAll('.blurMe') || []).map((p) =>
-        p.classList.add('blur-xs', 'pointer-events-none')
+        p.classList.add('pointer-events-none')
       );
     } else {
       document.querySelector('body')?.classList.remove('overflow-hidden');
+      // blur-xs also removed here: clears the class off sessions that still
+      // carry it from a pre-change render
       Array.from(document.querySelectorAll('.blurMe') || []).map((p) =>
         p.classList.remove('blur-xs', 'pointer-events-none')
       );

@@ -172,9 +172,16 @@ export const TagsComponentInner: FC<{
         <div className="cursor-pointer">
           <TagIcon />
         </div>
-        <div className="cursor-pointer flex gap-[4px]">
+        <div className="cursor-pointer flex gap-[4px] whitespace-nowrap">
           {tagValue.length === 0 ? (
-            t('add_new_tag', 'Add New Tag')
+            <>
+              {/* phone: Buffer's short "Tags" — the full label wrapped to
+                  two lines and inflated the composer header */}
+              <span className="phone:hidden">
+                {t('add_new_tag', 'Add New Tag')}
+              </span>
+              <span className="hidden phone:inline">{t('tags', 'Tags')}</span>
+            </>
           ) : (
             <>
               <div

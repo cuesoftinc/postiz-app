@@ -5,6 +5,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { NeynarContextProvider, Theme, useNeynarContext } from '@neynar/react';
 import { NeynarAuthButton } from '@gitroom/frontend/components/auth/nayner.auth.button';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { AUTH_PROVIDER_BUTTON } from '@gitroom/frontend/components/auth/auth.ui';
 export const FarcasterProvider = () => {
   const gotoLogin = useCallback(async (code: string) => {
     window.location.href = `/auth?provider=FARCASTER&code=${code}`;
@@ -25,9 +26,9 @@ export const ButtonCaster: FC<{
       }}
     >
       <NeynarAuthButton onLogin={login}>
-        <div
-          className={`cursor-pointer bg-white h-[52px] flex-1 rounded-[10px] flex justify-center items-center text-[#0E0E0E] gap-[10px]`}
-        >
+        {/* kit provider button (theme-aware tokens: this button is reused by
+            the launches web3 flow outside the forced-light auth card) */}
+        <div className={AUTH_PROVIDER_BUTTON}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"

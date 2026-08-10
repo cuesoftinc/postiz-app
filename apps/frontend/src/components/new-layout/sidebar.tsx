@@ -233,8 +233,11 @@ const NavRow: FC<{
     collapsed
       ? 'w-[32px] h-[32px] shrink-0 justify-center'
       : // shrink-0: children of the height-constrained scroll column compress
-        // to min-content (21px) on short viewports (tablets) without it
-        'w-full gap-[10px] h-[32px] px-[8px] shrink-0',
+        // to min-content (21px) on short viewports (tablets) without it.
+        // phone:h-[44px]: at max-767 the sidebar renders exclusively inside
+        // the nav drawer, where rows are the primary navigation — they get
+        // the 40px+ tap floor while desktop keeps the 32px density
+        'w-full gap-[10px] h-[32px] phone:h-[44px] px-[8px] shrink-0',
     isActive
       ? 'bg-newBorder text-newTextColor'
       : 'text-textItemBlur hover:bg-boxHover hover:text-newTextColor'
@@ -317,7 +320,7 @@ const ChannelRow: FC<{
   const { open, toggle, close, ref } = useDropdown<HTMLSpanElement>();
 
   const menuItem =
-    'flex items-center gap-[8px] px-[10px] h-[32px] rounded-[8px] hover:bg-boxHover text-[14px] text-newTextColor transition-colors duration-150';
+    'flex items-center gap-[8px] px-[10px] h-[32px] phone:h-[44px] rounded-[8px] hover:bg-boxHover text-[14px] text-newTextColor transition-colors duration-150';
 
   return (
     <div

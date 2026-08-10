@@ -3,7 +3,9 @@ import { PreviewWrapper } from '@gitroom/frontend/components/preview/preview.wra
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-[#000000] min-h-screen">
+    // kit canvas token (theme-aware; anonymous visitors get the dark default
+    // from the (app) layout mode cookie, logged-in users their own mode)
+    <div className="bg-newBgColor text-newTextColor min-h-screen">
       <PreviewWrapper>{children}</PreviewWrapper>
     </div>
   );

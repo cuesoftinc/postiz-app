@@ -182,13 +182,15 @@ export const RecentPostsSection: FC<{
                   </div>
                   <PostStats post={post} date={date} />
                 </div>
+                {/* phone: 40x40 hit area (28px sits under the tap floor);
+                    the glyph stays 14px */}
                 {!!url && (
                   <a
                     href={url}
                     target="_blank"
                     rel="noreferrer noopener"
                     aria-label={t('view_post', 'View post')}
-                    className="shrink-0 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover transition-colors duration-150"
+                    className="shrink-0 w-[28px] h-[28px] phone:w-[40px] phone:h-[40px] rounded-[6px] flex items-center justify-center text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover transition-colors duration-150"
                   >
                     <svg
                       width="14"

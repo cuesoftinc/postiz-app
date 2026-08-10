@@ -209,9 +209,15 @@ export const PlugItem: FC<{
     <div
       onClick={() => addPlug(data)}
       key={plug.title}
-      className="w-full h-[300px] rounded-[12px] border border-newTableBorder bg-newBgColorInner hover:bg-newTableHeader cursor-pointer"
+      // phone: the card hugs content (the fixed 300px left ~150px of dead
+      // space under a two-line description on a one-card page); the fixed
+      // height stays desktop-only where cards sit in a multi-column grid
+      className="w-full h-[300px] phone:h-auto rounded-[12px] border border-newTableBorder bg-newBgColorInner hover:bg-newTableHeader cursor-pointer"
     >
-      <div key={plug.title} className="p-[16px] h-full flex flex-col flex-1">
+      <div
+        key={plug.title}
+        className="p-[16px] h-full flex flex-col flex-1 phone:min-h-[160px]"
+      >
         <div className="flex">
           <div className="text-[16px] font-[550] mb-[8px] flex-1">
             {plug.title}
@@ -229,7 +235,9 @@ export const PlugItem: FC<{
         <div className="flex-1 text-[14px] text-newTextColor/60">
           {plug.description}
         </div>
-        <Button>{!data ? 'Set Plug' : 'Edit Plug'}</Button>
+        <Button className="mt-auto phone:mt-[16px]">
+          {!data ? 'Set Plug' : 'Edit Plug'}
+        </Button>
       </div>
     </div>
   );

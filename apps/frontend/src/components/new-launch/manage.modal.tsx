@@ -444,7 +444,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   return (
     <div
       id="cs-composer-shell"
-      className="w-full h-full flex-1 p-[40px] phone:p-0 flex relative"
+      className="w-full h-full flex-1 p-[40px] phone:p-0 flex relative phone:max-w-full phone:overflow-x-hidden"
     >
       {/* Buffer Create Post scoped skin: the legacy chip row + the footer
           controls live in files outside this rebuild's ownership (media/**,
@@ -563,7 +563,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             18px/500 Inter, the BODY face — measured on Buffer's composer
             (data-cs keeps the ladder off text-[18px]); beside it the existing
             tags control restyled as the Buffer chip. */}
-        <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] px-[24px] phone:px-[16px]">
+        <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] px-[24px] phone:px-[16px] phone:max-w-full phone:overflow-x-hidden">
           <div
             data-cs
             className="text-[18px] font-[500] text-newTextColor whitespace-nowrap"
@@ -575,7 +575,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             size="sm"
           />
           {!dummy && (
-            <div id="cs-tags-chip" className="flex items-center">
+            <div id="cs-tags-chip" className="flex items-center min-w-0">
               <TagsComponent
                 name="tags"
                 label={t('tags', 'Tags')}
@@ -603,7 +603,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               setShowPreview(!showPreview);
             }}
             className={clsx(
-              'h-[40px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[15px] font-[500] transition-colors',
+              'h-[40px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[15px] font-[500] transition-colors shrink-0',
               showPreview
                 ? 'bg-boxFocused text-textItemFocused'
                 : 'text-textItemBlur hover:bg-newTableHeader',
@@ -634,7 +634,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           <div
             data-cs
             onClick={askClose}
-            className="cursor-pointer flex items-center justify-center w-[40px] h-[40px] rounded-[8px] hover:bg-newTableHeader transition-colors"
+            className="cursor-pointer flex items-center justify-center w-[40px] h-[40px] rounded-[8px] hover:bg-newTableHeader transition-colors shrink-0"
           >
             <CloseIcon className="text-textItemBlur" />
           </div>

@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { AUTH_PROVIDER_BUTTON } from '@gitroom/frontend/components/auth/auth.ui';
 export const GoogleProvider = () => {
   const fetch = useFetch();
   const t = useT();
@@ -10,11 +11,10 @@ export const GoogleProvider = () => {
     const link = await (await fetch('/auth/oauth/GOOGLE')).text();
     window.location.href = link;
   }, []);
+  // Kit provider button: white hairline 44px r8, Google glyph, 14/550 ink.
+  // The OAuth handler (gotoLogin) is untouched.
   return (
-    <div
-      onClick={gotoLogin}
-      className={`cursor-pointer flex-1 bg-white h-[52px] rounded-[10px] flex justify-center items-center text-[#0E0E0E] gap-[10px]`}
-    >
+    <div onClick={gotoLogin} className={AUTH_PROVIDER_BUTTON}>
       <div>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -40,7 +40,9 @@ export const GoogleProvider = () => {
           />
         </svg>
       </div>
-      <div className="block xs:hidden">{t('google', 'Google')}</div>
+      <div className="block xs:hidden">
+        {t('continue_with_google', 'Continue with Google')}
+      </div>
     </div>
   );
 };

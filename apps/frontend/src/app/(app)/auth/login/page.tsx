@@ -1,11 +1,10 @@
+import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
-import { Login } from '@gitroom/frontend/components/auth/login';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Cuesoft' : 'Gitroom'} Login`,
-  description: '',
-};
-export default async function Auth() {
-  return <Login />;
+// /auth is the sign-in page; this route survives only so old bookmarks and
+// emailed links keep working.
+export default async function AuthLogin(params: {
+  searchParams: Promise<Record<string, string>>;
+}) {
+  const search = new URLSearchParams(await params?.searchParams).toString();
+  redirect(`/auth${search ? `?${search}` : ''}`);
 }

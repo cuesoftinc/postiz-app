@@ -190,9 +190,11 @@ export const CommentComponent: FC<{
     [postId, user]
   );
   const extractNameFromEmailAndCapitalize = useCallback((email: string) => {
-    return (
-      email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1)
-    );
+    return (email.split('@')[0] || '')
+      .split(/[._-]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
   }, []);
   return (
     <div className="relative flex gap-[20px] flex-col flex-1 rounded-[8px] border border-newTableBorder bg-newBgColorInner p-[16px] pt-0">
@@ -212,7 +214,8 @@ export const CommentComponent: FC<{
             </div>
             <div className="flex-1 flex flex-col gap-[2px] min-w-0">
               <div className="text-[14px] font-[550] text-newTextColor">
-                {extractNameFromEmailAndCapitalize(comment.user?.email || '')}
+                {(comment.user as any)?.name ||
+                  extractNameFromEmailAndCapitalize(comment.user?.email || '')}
               </div>
               <pre className="text-wrap font-sans text-[14px] text-newTextColor/80">
                 {comment.content}

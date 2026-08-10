@@ -57,6 +57,22 @@ function readStateParam(value: string | null): ListStateFilter {
     : 'all';
 }
 
+/** Buffer's list-tab URLs: /schedule/list?tab=<queue|drafts|approvals|sent>.
+ *  Mapped onto our list states; 'all' (the transient pre-coercion default)
+ *  carries no ?tab. Unknown values fall back to the existing default. */
+const LIST_TAB_TO_STATE: Record<string, ListStateFilter> = {
+  queue: 'scheduled',
+  drafts: 'draft',
+  approvals: 'approvals',
+  sent: 'published',
+};
+const LIST_STATE_TO_TAB: Partial<Record<ListStateFilter, string>> = {
+  scheduled: 'queue',
+  draft: 'drafts',
+  approvals: 'approvals',
+  published: 'sent',
+};
+
 export const CalendarContext = createContext({
   // Buffer is Sunday-first — locale 'week', not 'isoWeek'
   startDate: newDayjs().startOf('week').format('YYYY-MM-DD'),
@@ -225,10 +241,28 @@ export const CalendarWeekProvider: FC<{
 
   // List view state
   const [listPage, setListPage] = useState(0);
-  const [listState, setListStateRaw] = useState<ListStateFilter>('all');
+  // ?tab= seeds the list tab on mount (Buffer deep-link parity); absent or
+  // invalid keeps the existing 'all' default (filters.tsx coerces it to
+  // 'scheduled' once the list view mounts).
+  const [listState, setListStateRaw] = useState<ListStateFilter>(
+    () => LIST_TAB_TO_STATE[searchParams.get('tab') || ''] || 'all'
+  );
   const setListState = useCallback((next: ListStateFilter) => {
     setListStateRaw(next);
     setListPage(0);
+    // Mirror the active tab into ?tab= (Buffer writes ?tab=sent on
+    // /schedule/list) — replaceState like the toolbar dropdowns, so tab
+    // clicks never spam back/forward history.
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      const tab = LIST_STATE_TO_TAB[next];
+      if (tab) {
+        url.searchParams.set('tab', tab);
+      } else {
+        url.searchParams.delete('tab');
+      }
+      window.history.replaceState(null, '', url.toString());
+    }
   }, []);
 
   // Initialize with current date range based on URL params or defaults
@@ -447,6 +481,15 @@ export const CalendarWeekProvider: FC<{
       const carried = new URLSearchParams(window.location.search);
       const carriedState = readStateParam(carried.get('state'));
       const carriedTags = carried.get('tags');
+      // ?tab= is list-view-only (Buffer: /schedule/list?tab=sent) — carried
+      // while the target view is the list, dropped on the calendar paths.
+      const carriedTab = carried.get('tab');
+      const keptTab =
+        newFilters.display === 'list' &&
+        carriedTab &&
+        LIST_TAB_TO_STATE[carriedTab]
+          ? carriedTab
+          : null;
 
       // Native Buffer-shaped URL: the view is encoded in the PATH
       // (/schedule/list, /schedule/calendar/month|week|day) and the dates
@@ -459,6 +502,7 @@ export const CalendarWeekProvider: FC<{
         newFilters.integration ? `integration=${newFilters.integration}` : ``,
         carriedState !== 'all' ? `state=${carriedState}` : ``,
         carriedTags ? `tags=${encodeURIComponent(carriedTags)}` : ``,
+        keptTab ? `tab=${keptTab}` : ``,
       ].filter((f) => f);
       window.history.replaceState(
         null,

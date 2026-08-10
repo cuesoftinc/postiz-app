@@ -73,7 +73,9 @@ const MetricLine: FC<{ item: AnalyticsDataItem }> = ({ item }) => {
         responsive: true,
         animation: { duration: 300, easing: 'easeOutQuart' },
         interaction: { mode: 'index', intersect: false },
-        layout: { padding: { left: 0, right: 0, top: 4, bottom: 0 } },
+        // top 12: at 4 the topmost y-axis tick label drew half-clipped
+        // against the card edge
+        layout: { padding: { left: 0, right: 0, top: 12, bottom: 0 } },
         scales: {
           y: {
             beginAtZero: true,
@@ -212,10 +214,12 @@ export const AnalyticsChartSection: FC<{
           <>
             {/* Metric picker — same segmented anatomy as the range picker
                 (24px r6 segments, active = green-tint fill), wrapping when a
-                platform ships many metrics. */}
+                platform ships many metrics. Phone: a single-row sideways
+                scroll strip — wrapping produced a ragged 2x2 cluster that
+                read as a broken segmented control. */}
             <div
               data-cs
-              className="flex flex-wrap items-center p-[4px] gap-[2px] rounded-[8px] border border-newTableBorder bg-newBgColorInner self-start max-w-full"
+              className="flex flex-wrap items-center p-[4px] gap-[2px] rounded-[8px] border border-newTableBorder bg-newBgColorInner self-start max-w-full phone:flex-nowrap phone:overflow-x-auto phone:[scrollbar-width:none]"
             >
               {chartable.map((item, index) => (
                 <button
@@ -223,7 +227,7 @@ export const AnalyticsChartSection: FC<{
                   type="button"
                   onClick={() => setSelected(index)}
                   className={clsx(
-                    'h-[24px] px-[10px] rounded-[6px] text-[14px] font-[500] whitespace-nowrap cursor-pointer transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
+                    'h-[24px] px-[10px] rounded-[6px] text-[14px] font-[500] whitespace-nowrap shrink-0 cursor-pointer transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
                     current === item
                       ? 'bg-boxFocused text-textItemFocused'
                       : 'text-textItemBlur hover:bg-boxHover'

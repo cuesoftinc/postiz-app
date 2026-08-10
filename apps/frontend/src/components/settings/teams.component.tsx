@@ -123,6 +123,7 @@ export const TeamsComponent = () => {
       user: {
         email: string;
         id: string;
+        name?: string;
       };
     }>;
   }, []);
@@ -187,7 +188,13 @@ export const TeamsComponent = () => {
           {(data || []).map((p) => (
             <div key={p.user.id} className="flex items-center">
               <div className="flex-1">
-                {capitalize(p.user.email.split('@')[0]).split('.')[0]}
+                {p.user.name ||
+                  p.user.email
+                    .split('@')[0]
+                    .split(/[._-]+/)
+                    .filter(Boolean)
+                    .map((part: string) => capitalize(part))
+                    .join(' ')}
               </div>
               <div className="flex-1">
                 {p.role === 'USER'

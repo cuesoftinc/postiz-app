@@ -209,7 +209,11 @@ export const SettingsPopup: FC<{
         </div>
         <div>
           {showLogout && (
-            <div className="mt-4">
+            // phone:hidden — on phone the rail renders as a tab strip ABOVE
+            // the content, which put a top-of-page logout between the tabs
+            // and the settings (an anti-pattern); the phone copy renders at
+            // the BOTTOM of the content pane below.
+            <div className="mt-4 phone:hidden">
               <LogoutComponent />
             </div>
           )}
@@ -274,6 +278,12 @@ export const SettingsPopup: FC<{
             </div>
           </form>
         </FormProvider>
+        {showLogout && (
+          // phone-only bottom logout (the desktop copy lives in the rail)
+          <div className="hidden phone:block mt-[16px]">
+            <LogoutComponent />
+          </div>
+        )}
       </div>
     </>
   );

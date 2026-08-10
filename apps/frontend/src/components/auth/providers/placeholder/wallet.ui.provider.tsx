@@ -1,12 +1,11 @@
 import { FC } from 'react';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { AUTH_PROVIDER_BUTTON } from '@gitroom/frontend/components/auth/auth.ui';
 
 export const WalletUiProvider: FC = () => {
   const t = useT();
   return (
-    <div
-      className={`cursor-pointer bg-white flex-1 h-[52px] rounded-[10px] flex justify-center items-center text-[#0E0E0E] gap-[10px]`}
-    >
+    <div className={AUTH_PROVIDER_BUTTON}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"

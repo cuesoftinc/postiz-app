@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { AUTH_PROVIDER_BUTTON } from '@gitroom/frontend/components/auth/auth.ui';
 export const GithubProvider = () => {
   const fetch = useFetch();
   const t = useT();
@@ -8,11 +9,9 @@ export const GithubProvider = () => {
     const link = await (await fetch('/auth/oauth/GITHUB')).text();
     window.location.href = link;
   }, []);
+  // Kit provider button: white hairline 44px r8, 14/550 ink; handler kept.
   return (
-    <div
-      onClick={gotoLogin}
-      className={`cursor-pointer bg-white h-[44px] rounded-[4px] flex justify-center items-center text-[#0E0E0E] gap-[4px]`}
-    >
+    <div onClick={gotoLogin} className={AUTH_PROVIDER_BUTTON}>
       <div>
         <svg
           xmlns="http://www.w3.org/2000/svg"

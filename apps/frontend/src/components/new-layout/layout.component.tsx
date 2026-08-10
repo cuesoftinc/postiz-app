@@ -51,6 +51,17 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   // says the bottom tab bar stays — see the arbitration note at the drawer.
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
+  // Phone surfaces must not stack (see filters.tsx): the drawer announces
+  // itself on 'cs:surface-open' so open bottom sheets dismiss, and yields
+  // when any other surface (sheet, modal) announces.
+  React.useEffect(() => {
+    const onSurface = (e: Event) => {
+      if ((e as CustomEvent).detail !== 'drawer') setDrawerOpen(false);
+    };
+    window.addEventListener('cs:surface-open', onSurface);
+    return () => window.removeEventListener('cs:surface-open', onSurface);
+  }, []);
+
   if (!user) return null;
 
   return (
@@ -97,7 +108,17 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       type="button"
                       aria-label={drawerOpen ? 'Close menu' : 'Menu'}
                       aria-expanded={drawerOpen}
-                      onClick={() => setDrawerOpen((v) => !v)}
+                      onClick={() => {
+                        const next = !drawerOpen;
+                        if (next) {
+                          window.dispatchEvent(
+                            new CustomEvent('cs:surface-open', {
+                              detail: 'drawer',
+                            })
+                          );
+                        }
+                        setDrawerOpen(next);
+                      }}
                       data-cs
                       className="relative flex w-[40px] h-[40px] items-center justify-center rounded-[8px] hover:bg-boxHover transition-colors duration-150"
                     >

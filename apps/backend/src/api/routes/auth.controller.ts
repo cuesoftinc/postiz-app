@@ -17,7 +17,7 @@ import { ForgotReturnPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/for
 import { ForgotPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/forgot.password.dto';
 import { ResendActivationDto } from '@gitroom/nestjs-libraries/dtos/auth/resend-activation.dto';
 import { ApiTags } from '@nestjs/swagger';
-import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.management';
+import { authCookieOptions } from '@gitroom/backend/services/auth/auth.cookies';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { RealIP } from 'nestjs-real-ip';
 import { UserAgent } from '@gitroom/nestjs-libraries/user/user.agent';
@@ -70,14 +70,7 @@ export class AuthController {
       }
 
       response.cookie('auth', jwt, {
-        domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-        ...(!process.env.NOT_SECURED
-          ? {
-              secure: true,
-              httpOnly: true,
-              sameSite: 'none',
-            }
-          : {}),
+        ...authCookieOptions(req),
         expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
       });
 
@@ -87,14 +80,7 @@ export class AuthController {
 
       if (typeof addedOrg !== 'boolean' && addedOrg?.organizationId) {
         response.cookie('showorg', addedOrg.organizationId, {
-          domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-          ...(!process.env.NOT_SECURED
-            ? {
-                secure: true,
-                httpOnly: true,
-                sameSite: 'none',
-              }
-            : {}),
+          ...authCookieOptions(req),
           expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
         });
 
@@ -135,14 +121,7 @@ export class AuthController {
       );
 
       response.cookie('auth', jwt, {
-        domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-        ...(!process.env.NOT_SECURED
-          ? {
-              secure: true,
-              httpOnly: true,
-              sameSite: 'none',
-            }
-          : {}),
+        ...authCookieOptions(req),
         expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
       });
 
@@ -152,14 +131,7 @@ export class AuthController {
 
       if (typeof addedOrg !== 'boolean' && addedOrg?.organizationId) {
         response.cookie('showorg', addedOrg.organizationId, {
-          domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-          ...(!process.env.NOT_SECURED
-            ? {
-                secure: true,
-                httpOnly: true,
-                sameSite: 'none',
-              }
-            : {}),
+          ...authCookieOptions(req),
           expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
         });
 
@@ -219,6 +191,7 @@ export class AuthController {
 
   @Post('/activate')
   async activate(
+    @Req() req: Request,
     @Body('code') code: string,
     @Body('datafast_visitor_id') datafast_visitor_id: string,
     @Res({ passthrough: false }) response: Response
@@ -232,14 +205,7 @@ export class AuthController {
     }
 
     response.cookie('auth', activate, {
-      domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-      ...(!process.env.NOT_SECURED
-        ? {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-          }
-        : {}),
+      ...authCookieOptions(req),
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
     });
 
@@ -269,6 +235,7 @@ export class AuthController {
 
   @Post('/oauth/:provider/exists')
   async oauthExists(
+    @Req() req: Request,
     @Body('code') code: string,
     @Body('redirect_uri') redirect_uri: string,
     @Param('provider') provider: string,
@@ -285,14 +252,7 @@ export class AuthController {
     }
 
     response.cookie('auth', jwt, {
-      domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-      ...(!process.env.NOT_SECURED
-        ? {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-          }
-        : {}),
+      ...authCookieOptions(req),
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
     });
 

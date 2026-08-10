@@ -20,6 +20,7 @@ import { AuthService as AuthChecker } from '@gitroom/helpers/auth/auth.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
 import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.management';
+import { authCookieOptions } from '@gitroom/backend/services/auth/auth.cookies';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { ApiTags } from '@nestjs/swagger';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
@@ -159,6 +160,7 @@ export class UsersController {
 
   @Post('/impersonate')
   async setImpersonate(
+    @Req() req: Request,
     @GetUserFromRequest() user: User,
     @Body('id') id: string,
     @Res({ passthrough: true }) response: Response
@@ -168,14 +170,7 @@ export class UsersController {
     }
 
     response.cookie('impersonate', id, {
-      domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-      ...(!process.env.NOT_SECURED
-        ? {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-          }
-        : {}),
+      ...authCookieOptions(req),
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
     });
 
@@ -306,18 +301,12 @@ export class UsersController {
 
   @Post('/change-org')
   changeOrg(
+    @Req() req: Request,
     @Body('id') id: string,
     @Res({ passthrough: true }) response: Response
   ) {
     response.cookie('showorg', id, {
-      domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-      ...(!process.env.NOT_SECURED
-        ? {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-          }
-        : {}),
+      ...authCookieOptions(req),
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
     });
 
@@ -329,43 +318,25 @@ export class UsersController {
   }
 
   @Post('/logout')
-  logout(@Res({ passthrough: true }) response: Response) {
+  logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) response: Response
+  ) {
     response.header('logout', 'true');
     response.cookie('auth', '', {
-      domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-      ...(!process.env.NOT_SECURED
-        ? {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-          }
-        : {}),
+      ...authCookieOptions(req),
       maxAge: -1,
       expires: new Date(0),
     });
 
     response.cookie('showorg', '', {
-      domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-      ...(!process.env.NOT_SECURED
-        ? {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-          }
-        : {}),
+      ...authCookieOptions(req),
       maxAge: -1,
       expires: new Date(0),
     });
 
     response.cookie('impersonate', '', {
-      domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-      ...(!process.env.NOT_SECURED
-        ? {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-          }
-        : {}),
+      ...authCookieOptions(req),
       maxAge: -1,
       expires: new Date(0),
     });

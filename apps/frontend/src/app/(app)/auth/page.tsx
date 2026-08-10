@@ -1,23 +1,22 @@
-import { internalFetch } from '@gitroom/helpers/utils/internal.fetch';
 export const dynamic = 'force-dynamic';
+import { Login } from '@gitroom/frontend/components/auth/login';
 import { Register } from '@gitroom/frontend/components/auth/register';
 import { Metadata } from 'next';
 import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
-import { redirect } from 'next/navigation';
 export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Cuesoft' : 'Gitroom'} Register`,
+  title: `${isGeneralServerSide() ? 'Cuesoft' : 'Gitroom'} - Sign In`,
   description: '',
 };
+// Closed, invite-only system: /auth IS the sign-in page (Google SSO + email
+// fallback + password reset). Register renders ONLY mid OAuth callback
+// (provider + code), which is how SSO onboarding and sign-in complete; there
+// is no self-serve signup form.
 export default async function Auth(params: {
-  searchParams: Promise<{ provider: string }>;
+  searchParams: Promise<{ provider?: string; code?: string }>;
 }) {
-  if (process.env.DISABLE_REGISTRATION === 'true') {
-    const canRegister = (
-      await (await internalFetch('/auth/can-register')).json()
-    ).register;
-    if (!canRegister && !(await params?.searchParams)?.provider) {
-      redirect('/auth/login');
-    }
+  const search = await params?.searchParams;
+  if (search?.provider && search?.code) {
+    return <Register />;
   }
-  return <Register />;
+  return <Login />;
 }

@@ -349,6 +349,7 @@ export class OrganizationRepository {
             user: {
               select: {
                 email: true,
+                name: true,
                 id: true,
                 sendSuccessEmails: true,
                 sendFailureEmails: true,
