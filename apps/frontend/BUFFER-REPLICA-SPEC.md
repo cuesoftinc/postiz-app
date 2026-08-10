@@ -133,3 +133,13 @@ Top → bottom:
 - Same hamburger app bar (☰ + logo + streak) on every page; no bottom bar.
 - Settings: cards stack full width; primary CTA keeps its size; sub-nav is
   reached via the drawer/back affordance ("← Settings" title row).
+
+## Addendum — month-cell close-up (user capture, 2026-08-10)
+- Day cell: date number top-left; TODAY = green circle. A bordered "+"
+  button appears top-RIGHT of the cell (per-day create — wire to the
+  existing day-click composer mechanism, do not invent a new one).
+- Post pill anatomy (LTR): [platform LOGO chip ~20px, brand-colored square,
+  NOT the channel avatar] [time "9:00 AM"] [media thumbnail right, rounded].
+  White pill, hairline border.
+- Drop from our cells anything Buffer doesn't show unless it carries real
+  function; hide the list pager entirely when totalPages <= 1.
