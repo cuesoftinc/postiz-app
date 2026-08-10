@@ -98,16 +98,18 @@ const EmptyState: FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
     <div className="col-span-full flex flex-col items-center justify-center py-[48px] px-[24px] bg-newTableHeader border border-newTableBorder rounded-[12px]">
       <div className="w-[48px] h-[48px] mb-[16px] rounded-full bg-[#325ea6]/10 flex items-center justify-center">
         <svg
-          width="24"
-          height="24"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           className="text-forth"
         >
-          <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          <path d="M12 8v4l2 2" />
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v6l4 2" />
         </svg>
       </div>
       <p className="text-[15px] text-newTableText text-center mb-[12px]">
@@ -126,10 +128,14 @@ const EmptyState: FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <path d="M23 4v6h-6M1 20v-6h6" />
-          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+          <path d="M8 16H3v5" />
         </svg>
         {t('refresh_channel', 'Refresh Channel')}
       </button>

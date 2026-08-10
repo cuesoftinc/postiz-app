@@ -33,6 +33,7 @@ import {
   useSidePanelCollapse,
 } from '@gitroom/frontend/components/new-layout/side-panel-header';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
+import { ModalCloseButton } from '@gitroom/frontend/components/cuesoft/modal/modal-close-button';
 
 export const SVGLine = () => {
   return (
@@ -97,20 +98,21 @@ export const OpenClose: FC<{
   const { isOpen } = props;
   return (
     <svg
-      width="11"
-      height="6"
-      viewBox="0 0 22 12"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
       fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       xmlns="http://www.w3.org/2000/svg"
       className={clsx(
         'rotate-180 transition-all',
         isOpen ? 'rotate-180' : 'rotate-90'
       )}
     >
-      <path
-        d="M21.9245 11.3823C21.8489 11.5651 21.7207 11.7213 21.5563 11.8312C21.3919 11.9411 21.1986 11.9998 21.0008 11.9998H1.00079C0.802892 12 0.609399 11.9414 0.444805 11.8315C0.280212 11.7217 0.151917 11.5654 0.076165 11.3826C0.000412494 11.1998 -0.0193921 10.9986 0.0192583 10.8045C0.0579087 10.6104 0.153276 10.4322 0.293288 10.2923L10.2933 0.29231C10.3862 0.199333 10.4964 0.125575 10.6178 0.0752506C10.7392 0.0249263 10.8694 -0.000976562 11.0008 -0.000976562C11.1322 -0.000976562 11.2623 0.0249263 11.3837 0.0752506C11.5051 0.125575 11.6154 0.199333 11.7083 0.29231L21.7083 10.2923C21.8481 10.4322 21.9433 10.6105 21.9818 10.8045C22.0202 10.9985 22.0003 11.1996 21.9245 11.3823Z"
-        fill="currentColor"
-      />
+      <path d="m18 15-6-6-6 6" />
     </svg>
   );
 };
@@ -221,6 +223,31 @@ export const MenuGroupComponent: FC<
     </div>
   );
 };
+
+/** Buffer's channel manager shows an account-type sub-line under each name
+ *  ("Facebook Page", "TikTok Account"). Display-only mapping. */
+const CHANNEL_DESCRIPTORS: Record<string, string> = {
+  facebook: 'Facebook Page',
+  instagram: 'Instagram Professional Account',
+  'instagram-standalone': 'Instagram Account',
+  x: 'X Profile',
+  linkedin: 'LinkedIn Profile',
+  'linkedin-page': 'LinkedIn Page',
+  youtube: 'YouTube Channel',
+  tiktok: 'TikTok Account',
+  threads: 'Threads Profile',
+  pinterest: 'Pinterest Profile',
+  reddit: 'Reddit Account',
+  mastodon: 'Mastodon Account',
+  bluesky: 'Bluesky Account',
+  discord: 'Discord Server',
+  slack: 'Slack Workspace',
+  telegram: 'Telegram Channel',
+};
+const channelDescriptor = (identifier: string) =>
+  CHANNEL_DESCRIPTORS[identifier] ||
+  identifier.charAt(0).toUpperCase() + identifier.slice(1) + ' Account';
+
 export const MenuComponent: FC<
   MenuComponentInterface & {
     integration: Integration & {
@@ -267,7 +294,7 @@ export const MenuComponent: FC<
           }
         : {})}
       className={clsx(
-        'flex gap-[12px] items-center bg-newBgColorInner hover:bg-boxHover group/profile transition-all rounded-e-[8px]',
+        'flex gap-[12px] items-center bg-newBgColorInner hover:bg-boxHover group/profile transition-all rounded-[8px] border border-newTableBorder px-[12px] py-[8px]',
         integration.refreshNeeded && 'cursor-pointer'
       )}
     >
@@ -277,9 +304,6 @@ export const MenuComponent: FC<
           integration.disabled && 'opacity-50'
         )}
       >
-        <div className="h-full w-[4px] -ms-[12px] rounded-s-[3px] opacity-0 group-hover/profile:opacity-100 transition-opacity">
-          <SVGLine />
-        </div>
         {(integration.inBetweenSteps || integration.refreshNeeded) && (
           <div
             className="absolute start-0 top-0 w-[39px] h-[46px] cursor-pointer"
@@ -334,11 +358,16 @@ export const MenuComponent: FC<
           : {})}
         role="Handle"
         className={clsx(
-          'group-[.sidebar]:hidden flex-1 whitespace-nowrap text-ellipsis overflow-hidden cursor-move',
+          'group-[.sidebar]:hidden flex-1 min-w-0 cursor-move',
           integration.disabled && 'text-newTextColor/40'
         )}
       >
-        {integration.name}
+        <div className="whitespace-nowrap text-ellipsis overflow-hidden font-[600] text-[14px]">
+          {integration.name}
+        </div>
+        <div className="whitespace-nowrap text-ellipsis overflow-hidden text-[13px] text-newTextColor/60 font-[400]">
+          {channelDescriptor(integration.identifier)}
+        </div>
       </div>
       <Menu
         canChangeProfilePicture={integration.changeProfilePicture}
@@ -367,18 +396,19 @@ export const LaunchesComponent = () => {
   const t = useT();
   const [reload, setReload] = useState(false);
   const { collapsed, toggle, collapseMenu } = useSidePanelCollapse();
-  const [manageOpen, setManageOpen] = useState(false);
   const searchParamsManage = useSearchParams();
-
-  // Deep link: /launches?manageChannels=1 (sidebar gear + "Connect more
-  // channels" land here). Same consume-once pattern as ?newPost=1.
-  useEffect(() => {
-    if (!searchParamsManage.get('manageChannels')) return;
+  // The manage modal derives open-state FROM the URL (?manageChannels=1)
+  // instead of consuming the param into local state: the launches page is
+  // force-dynamic, so a deep-link navigation triggers an RSC re-render that
+  // REMOUNTS this component seconds later — local state would reset and the
+  // modal would silently close. Derived state survives the remount; closing
+  // rewrites the URL (Next syncs useSearchParams from native replaceState).
+  const manageOpen = !!searchParamsManage.get('manageChannels');
+  const closeManage = useCallback(() => {
     const url = new URL(window.location.href);
     url.searchParams.delete('manageChannels');
     window.history.replaceState(null, '', url.pathname + url.search);
-    setManageOpen(true);
-  }, [searchParamsManage]);
+  }, []);
 
   const [mode] = useCookie('mode', 'dark');
   const { isLoading, data: integrations, mutate } = useIntegrationList();
@@ -519,15 +549,11 @@ export const LaunchesComponent = () => {
   // sidebar, the panel remains as the chip strip.
   const channelManagement = (
     <>
-            <SidePanelHeader title={t('channels')} onToggle={toggle} />
-            <div className="flex flex-col gap-[8px] group-[.sidebar]:mx-auto group-[.sidebar]:w-[44px]">
+            <div className="flex flex-col gap-[8px]">
               <AddProviderButton update={() => update(true)} />
-              <div className="flex gap-[8px] group-[.sidebar]:flex-col">
-                {sortedIntegrations?.length > 0 && <NewPost />}
-                {sortedIntegrations?.length > 0 &&
-                  user?.tier?.ai &&
-                  billingEnabled && <GeneratorComponent />}
-              </div>
+              {sortedIntegrations?.length > 0 &&
+                user?.tier?.ai &&
+                billingEnabled && <GeneratorComponent />}
             </div>
             <div className="gap-[32px] flex flex-col select-none flex-1">
               {sortedIntegrations.length === 0 && collapseMenu === '0' && (
@@ -576,34 +602,22 @@ export const LaunchesComponent = () => {
           <div
             className="flex fixed inset-0 z-[500] bg-black/60 items-start justify-center overflow-y-auto py-[48px] phone:py-0"
             onClick={(e) => {
-              if (e.target === e.currentTarget) setManageOpen(false);
+              if (e.target === e.currentTarget) closeManage();
             }}
           >
             <div
               data-cs
               className="bg-newBgColorInner border border-newTableBorder rounded-[16px] w-[520px] max-w-[calc(100vw-64px)] p-[20px] flex flex-col gap-[15px] relative phone:w-full phone:max-w-none phone:min-h-full phone:rounded-none phone:border-0"
             >
-              <button
-                type="button"
-                onClick={() => setManageOpen(false)}
-                className="absolute end-[16px] top-[16px] w-[28px] h-[28px] flex items-center justify-center rounded-[6px] hover:bg-boxHover cursor-pointer"
-                aria-label={t('close', 'Close')}
-              >
-                <svg
-                  viewBox="0 0 15 15"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                >
-                  <path
-                    d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z"
-                    fill="currentColor"
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
+              <div className="flex items-center justify-between">
+                <div className="font-display text-[16px] font-[600]" data-cs>
+                  {t('channels', 'Channels')}
+                </div>
+                <ModalCloseButton
+                  onClick={closeManage}
+                  className="!static hover:bg-boxHover rounded-[6px] w-[28px] h-[28px] flex items-center justify-center"
+                />
+              </div>
               {channelManagement}
             </div>
           </div>

@@ -246,12 +246,12 @@ const PriceBreakdown: FC = () => {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                <line x1="7" y1="7" x2="7.01" y2="7" />
+                <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+                <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
               </svg>
               <span className="font-[500]">
                 {discountDisplay.displayName || discountDisplay.promotionCode}
@@ -380,17 +380,18 @@ const AppliedCouponDisplay: FC<{
           <div className="flex items-center gap-[8px] flex-wrap">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#325ea6"
-              strokeWidth="2"
+              stroke="currentColor"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              className="text-[#325ea6]"
             >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
+              <circle cx="12" cy="12" r="10" />
+              <path d="m9 12 2 2 4-4" />
             </svg>
             <span className="font-[600] text-forth">{appliedCode}</span>
             <span className="text-[14px] text-newTextColor/70">
@@ -417,12 +418,12 @@ const AppliedCouponDisplay: FC<{
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
             <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
+            <path d="M12 6v6l4 2" />
           </svg>
           {t('billing_coupon_expires', 'Coupon expires on')} {expirationDate}
         </p>
@@ -529,16 +530,16 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
           </svg>
           {t('billing_have_discount_coupon', 'Have a discount coupon?')}
         </button>

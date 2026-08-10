@@ -195,19 +195,18 @@ const Threads: FC = () => {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="21"
-              height="20"
-              viewBox="0 0 21 20"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
               fill="none"
-              className="min-w-[21px] min-h-[20px]"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="min-w-[16px] min-h-[16px]"
             >
-              <path
-                d="M10.5001 4.16699V15.8337M4.66675 10.0003H16.3334"
-                stroke="white"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
             </svg>
             <div className="flex-1 text-start text-[16px] group-[.sidebar]:hidden">
               {t('start_a_new_chat', 'Start a new chat')}
