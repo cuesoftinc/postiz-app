@@ -461,7 +461,7 @@ export const MonthView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
-        <div className="grid grid-cols-7 grid-rows-[62px_auto] gap-[1px] bg-newTableBorder rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
+        <div className="grid grid-cols-7 grid-rows-[62px_auto] gap-[1px] bg-newTableBorder rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
           {localizedDays.map((day) => (
             <div
               key={day}
@@ -492,11 +492,11 @@ export const ListView = () => {
   const { integrations, loading, listPosts, listState } = useCalendar();
   const emptyMessage =
     listState === 'scheduled'
-      ? t('no_upcoming_posts', 'No upcoming posts scheduled')
+      ? t('no_upcoming_posts', 'No posts in your queue')
       : listState === 'draft'
       ? t('no_draft_posts', 'No draft posts')
       : listState === 'published'
-      ? t('no_published_posts', 'No published posts')
+      ? t('no_published_posts', 'No sent posts')
       : t('no_posts', 'No posts');
 
   // Use shared post actions hook
@@ -864,13 +864,13 @@ export const CalendarColumn: FC<{
       )}
       <div
         className={clsx(
-          'relative flex flex-col flex-1 text-white rounded-[8px] min-h-[70px]',
+          'relative flex flex-col flex-1 rounded-[8px] min-h-[70px]',
           canDrop && 'border border-forth'
         )}
       >
         <div
           className={clsx(
-            'flex-col text-[12px] pointer w-full flex scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary',
+            'flex-col text-[12px] pointer w-full flex scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
             isBeforeNow ? 'flex-1' : 'cursor-pointer',
             isBeforeNow && postList.length === 0 && 'col-calendar'
           )}
@@ -907,10 +907,11 @@ export const CalendarColumn: FC<{
           ))}
           {!showAll && postList.length > 3 && (
             <div
-              className="text-center hover:underline py-[5px] text-forth"
+              className="text-center cursor-pointer py-[5px] text-[14px] text-newTextColor/60 hover:text-newTextColor"
               onClick={showAllFunc}
             >
-              {t('show_more', '+ Show more')} ({postList.length - 3})
+              <span aria-hidden="true">⌄</span> {postList.length - 3}{' '}
+              {t('show_more', 'More')}
             </div>
           )}
           {showAll && postList.length > 3 && (
@@ -940,7 +941,7 @@ export const CalendarColumn: FC<{
               {display !== 'day' && (
                 <div
                   className={clsx(
-                    'group hover:before:h-[30px] w-full h-full rounded-[10px] flex justify-center items-center text-white'
+                    'group hover:before:h-[30px] w-full h-full rounded-[10px] flex justify-center items-center'
                   )}
                 >
                   <div
@@ -950,7 +951,7 @@ export const CalendarColumn: FC<{
               )}
               {display === 'day' && (
                 <div
-                  className={`w-full h-full rounded-[10px] py-[10px] flex-wrap hover:border hover:border-seventh flex justify-center items-center gap-[20px] opacity-30 grayscale hover:grayscale-0 hover:opacity-100`}
+                  className={`w-full h-full rounded-[10px] py-[10px] flex-wrap hover:border hover:border-newTableBorder flex justify-center items-center gap-[20px] opacity-30 grayscale hover:grayscale-0 hover:opacity-100`}
                 >
                   {integrations.map((selectedIntegrations) => (
                     <div
@@ -1093,7 +1094,7 @@ const CalendarItem: FC<{
       )}
       <div
         className={clsx(
-          'text-white text-[11px] max-h-[24px] h-[24px] min-h-[24px] w-full rounded-tr-[10px] rounded-tl-[10px] flex items-center justify-center gap-[10px] px-[5px] bg-btnPrimary'
+          'text-[11px] max-h-[24px] h-[24px] min-h-[24px] w-full rounded-tr-[10px] rounded-tl-[10px] flex items-center justify-center gap-[10px] px-[5px] bg-btnPrimary'
         )}
         style={{
           backgroundColor: post?.tags?.[0]?.tag?.color,
@@ -1214,7 +1215,8 @@ const CalendarItem: FC<{
       <div
         onClick={editPost}
         className={clsx(
-          'gap-[5px] w-full flex h-full flex-1 rounded-br-[10px] rounded-bl-[10px] p-[8px] text-[14px] bg-newColColor border border-newTableBorder',
+          'gap-[5px] w-full flex h-full flex-1 rounded-br-[10px] rounded-bl-[10px] text-[14px] bg-newColColor border border-newTableBorder',
+          display === 'month' ? 'p-[5px] items-center' : 'p-[8px]',
           'relative',
           isBeforeNow && '!grayscale'
         )}
@@ -1229,17 +1231,28 @@ const CalendarItem: FC<{
             src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
           />
         </div>
-        <div className="w-full flex-1 flex flex-col min-h-[40px]">
-          <div className="text-start">
-            {state === 'DRAFT' ? t('draft', 'Draft') + ': ' : ''}
+        {display === 'month' ? (
+          // Buffer month cells carry compact pills — platform icon + time,
+          // no post text (the payload has no media thumbnail to show)
+          <div className="flex-1 flex items-center text-[12px] text-newTextColor whitespace-nowrap">
+            {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
+            {newDayjs(post.publishDate)
+              .local()
+              .format(isUSCitizen() ? 'h:mm A' : 'HH:mm')}
           </div>
+        ) : (
+          <div className="w-full flex-1 flex flex-col min-h-[40px]">
+            <div className="text-start">
+              {state === 'DRAFT' ? t('draft', 'Draft') + ': ' : ''}
+            </div>
             <div className="w-full relative">
               <div className="absolute top-0 start-0 w-full text-ellipsis break-words line-clamp-1 text-start">
                 {stripHtmlValidation('none', post.content, false, true, false) ||
                   t('no_content', 'no content')}
               </div>
             </div>
-        </div>
+          </div>
+        )}
         {showTime && (
           <div className="text-newTextColor text-[15px] whitespace-nowrap flex items-center justify-end text-end">
             {newDayjs(post.publishDate).local().format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
@@ -1349,7 +1362,7 @@ const Preview = () => {
       viewBox="0 0 32 32"
       fill="none"
       data-tooltip-id="tooltip"
-      data-tooltip-content={t('preview_post', 'Preview Post')}
+      data-tooltip-content={t('preview_post', 'Post Details')}
     >
       <path
         d="M30.9137 15.595C30.87 15.4963 29.8112 13.1475 27.4575 10.7937C24.3212 7.6575 20.36 6 16 6C11.64 6 7.67874 7.6575 4.54249 10.7937C2.18874 13.1475 1.12499 15.5 1.08624 15.595C1.02938 15.7229 1 15.8613 1 16.0012C1 16.1412 1.02938 16.2796 1.08624 16.4075C1.12999 16.5062 2.18874 18.8538 4.54249 21.2075C7.67874 24.3425 11.64 26 16 26C20.36 26 24.3212 24.3425 27.4575 21.2075C29.8112 18.8538 30.87 16.5062 30.9137 16.4075C30.9706 16.2796 31 16.1412 31 16.0012C31 15.8613 30.9706 15.7229 30.9137 15.595ZM16 24C12.1525 24 8.79124 22.6012 6.00874 19.8438C4.86704 18.7084 3.89572 17.4137 3.12499 16C3.89551 14.5862 4.86686 13.2915 6.00874 12.1562C8.79124 9.39875 12.1525 8 16 8C19.8475 8 23.2087 9.39875 25.9912 12.1562C27.1352 13.2912 28.1086 14.5859 28.8812 16C27.98 17.6825 24.0537 24 16 24ZM16 10C14.8133 10 13.6533 10.3519 12.6666 11.0112C11.6799 11.6705 10.9108 12.6075 10.4567 13.7039C10.0026 14.8003 9.88377 16.0067 10.1153 17.1705C10.3468 18.3344 10.9182 19.4035 11.7573 20.2426C12.5965 21.0818 13.6656 21.6532 14.8294 21.8847C15.9933 22.1162 17.1997 21.9974 18.2961 21.5433C19.3924 21.0892 20.3295 20.3201 20.9888 19.3334C21.6481 18.3467 22 17.1867 22 16C21.9983 14.4092 21.3657 12.884 20.2408 11.7592C19.1159 10.6343 17.5908 10.0017 16 10ZM16 20C15.2089 20 14.4355 19.7654 13.7777 19.3259C13.1199 18.8864 12.6072 18.2616 12.3045 17.5307C12.0017 16.7998 11.9225 15.9956 12.0768 15.2196C12.2312 14.4437 12.6122 13.731 13.1716 13.1716C13.731 12.6122 14.4437 12.2312 15.2196 12.0769C15.9956 11.9225 16.7998 12.0017 17.5307 12.3045C18.2616 12.6072 18.8863 13.1199 19.3259 13.7777C19.7654 14.4355 20 15.2089 20 16C20 17.0609 19.5786 18.0783 18.8284 18.8284C18.0783 19.5786 17.0609 20 16 20Z"
@@ -1416,11 +1429,11 @@ export const SetSelectionModal: FC<{
           <div
             key={set.id}
             onClick={() => onSelect(set)}
-            className="p-3 border border-tableBorder rounded-lg cursor-pointer hover:transition-colors"
+            className="p-3 border border-newTableBorder rounded-lg cursor-pointer transition-colors hover:bg-boxHover"
           >
             <div className="font-medium">{set.name}</div>
             {set.description && (
-              <div className="text-sm text-gray-400 mt-1">
+              <div className="text-[13px] text-newTextColor/60 mt-1">
                 {set.description}
               </div>
             )}
@@ -1431,7 +1444,7 @@ export const SetSelectionModal: FC<{
       <div className="flex gap-2 pt-2 border-t border-tableBorder">
         <button
           onClick={onContinueWithoutSet}
-          className="flex-1 px-4 py-2 text-textColor rounded-lg hover:transition-colors"
+          className="flex-1 px-4 py-2 text-textColor border border-newTableBorder rounded-[8px] transition-colors hover:bg-boxHover"
         >
           {t('continue_without_set', 'Continue without set')}
         </button>

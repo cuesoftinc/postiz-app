@@ -174,7 +174,7 @@ const CopyButton = ({
         copy(text);
         toaster.show(`${label} copied to clipboard`, 'success');
       }}
-      className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+      className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
     >
       <svg
         width="14"
@@ -240,7 +240,7 @@ const McpSection = ({
         </div>
         <div className="flex gap-[6px] shrink-0 pt-[2px]">
           <a
-            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
             href="https://docs.postiz.com/mcp/introduction"
             target="_blank"
           >
@@ -314,7 +314,7 @@ const McpSection = ({
             <button
               type="button"
               onClick={() => setRevealed(!revealed)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
             >
               <svg
                 width="14"
@@ -428,7 +428,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
         </div>
         <div className="flex gap-[6px] shrink-0 pt-[2px]">
           <a
-            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
             href="https://docs.postiz.com/cli/introduction"
             target="_blank"
           >
@@ -472,7 +472,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
             <button
               type="button"
               onClick={() => setRevealed(!revealed)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
             >
               <svg
                 width="14"
@@ -584,7 +584,7 @@ const PublicApiContent = () => {
           </div>
           <div className="flex gap-[6px] shrink-0 pt-[2px]">
             <a
-              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
               href="https://docs.postiz.com/public-api"
               target="_blank"
             >
@@ -592,7 +592,7 @@ const PublicApiContent = () => {
             {t('read_the_docs', 'Docs')}
             </a>
             <a
-              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
               href="https://www.npmjs.com/package/n8n-nodes-postiz"
               target="_blank"
             >
@@ -620,7 +620,7 @@ const PublicApiContent = () => {
             <button
               type="button"
               onClick={() => setReveal(!reveal)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
             >
               <svg
                 width="14"
@@ -651,7 +651,7 @@ const PublicApiContent = () => {
             <button
               type="button"
               onClick={rotateKey}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
             >
               <svg
                 width="14"
@@ -678,7 +678,7 @@ const PublicApiContent = () => {
               onClick={() =>
                 window.open(`${frontEndUrl}/modal/dark/all`, '_blank')
               }
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[600] flex items-center gap-[6px]"
             >
               <svg
                 width="14"
@@ -713,6 +713,19 @@ export const PublicComponent = () => {
 
   return (
     <div className="flex flex-col gap-[20px]">
+      <div className="flex flex-col">
+        {/* settings pattern (same as Signatures): display-face title + muted 14
+            helper. data-cs keeps the desktop ladder off the title size. */}
+        <h3 data-cs className="text-[24px] font-[500] font-display">
+          {t('developers', 'Developers')}
+        </h3>
+        <div className="text-[14px] text-textItemBlur mt-[4px]">
+          {t(
+            'build_on_postiz_with_the_api_cli_and_mcp_server',
+            'Build on Postiz with the API, CLI, and MCP server.'
+          )}
+        </div>
+      </div>
       <div className="flex gap-[6px]">
         {(['api', 'developer'] as const).map((tab) => (
           <button

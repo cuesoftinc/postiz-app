@@ -109,6 +109,14 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
       <div className="text-[13px] text-newTextColor/60 whitespace-nowrap">
         {t('select_channels', 'Select Channels')}
       </div>
+      {!sortedIntegrations.length && (
+        <Link
+          href="/launches"
+          className="text-[13px] text-newTextColor/60 underline hover:text-newTextColor transition-colors whitespace-nowrap"
+        >
+          {t('connect_channels', 'Connect channels')}
+        </Link>
+      )}
       {sortedIntegrations.map((integration) => (
         <div
           key={integration.id}

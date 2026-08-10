@@ -15,6 +15,7 @@ import { useIntegrationList } from '@gitroom/frontend/components/launches/helper
 import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
+import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
 
 /**
  * Buffer-replica desktop sidebar (spec §Sidebar): 240px, flat on the page bg,
@@ -193,16 +194,29 @@ const SidebarChannels: FC = () => {
               'bg-newBorder text-newTextColor'
           )}
         >
-          <ChannelAvatar
-            picture={integration.picture}
-            identifier={integration.identifier}
-            name={integration.name}
-            size={32}
-            badgeSize={14}
-            badgeOffset="-bottom-[2px] -end-[2px]"
-            fallback="placeholder"
-            className="min-w-[32px] min-h-[32px]"
-          />
+          {/* spec §Sidebar 5: presence dot top-left — green for healthy
+              channels, red-family when a refresh is needed, omitted for
+              disabled ones. Driven by fields already on this SWR row. */}
+          <span className="relative flex shrink-0">
+            <ChannelAvatar
+              picture={integration.picture}
+              identifier={integration.identifier}
+              name={integration.name}
+              size={32}
+              badgeSize={14}
+              badgeOffset="-bottom-[2px] -end-[2px]"
+              fallback="placeholder"
+              className="min-w-[32px] min-h-[32px]"
+            />
+            {!integration.disabled && (
+              <span
+                className={clsx(
+                  'absolute -top-[2px] -start-[2px] z-10 w-[9px] h-[9px] rounded-full border-2 border-newBgColor',
+                  integration.refreshNeeded ? 'bg-red-500' : 'bg-green-500'
+                )}
+              />
+            )}
+          </span>
           <div className="flex-1 truncate">{integration.name}</div>
           <span
             role="button"
@@ -223,31 +237,56 @@ const SidebarChannels: FC = () => {
           </span>
         </Link>
       ))}
-      <Link
-        prefetch={true}
-        href="/launches?manageChannels=1"
-        className={channelRowClassName()}
-      >
-        <div className="w-[32px] h-[32px] min-w-[32px] rounded-[8px] border border-newBorder flex items-center justify-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-          >
-            <path
-              d="M8 3.33334V12.6667M3.33334 8H12.6667"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
-        </div>
-        <div className="flex-1 truncate">
+      {/* spec §Sidebar 6: muted label + row of 24px platform icon buttons
+          ending in a "+" — every button deep-links to the same
+          manage-channels panel (same mechanism, different composition). */}
+      <div className="pt-[8px]">
+        <div className="px-[8px] pb-[4px] text-[13px] text-textItemBlur">
           {t('connect_more_channels', 'Connect more channels')}
         </div>
-      </Link>
+        <div className="px-[8px] flex items-center gap-[6px]">
+          {['facebook', 'instagram', 'linkedin', 'x', 'tiktok', 'youtube'].map(
+            (identifier) => (
+              <Link
+                key={identifier}
+                prefetch={true}
+                href="/launches?manageChannels=1"
+                title={t('manage_channels', 'Manage channels')}
+                className="w-[24px] h-[24px] rounded-[6px] flex items-center justify-center hover:bg-boxHover"
+              >
+                <img
+                  src={`/icons/platforms/${identifier}.png`}
+                  alt={identifier}
+                  width={16}
+                  height={16}
+                  className="rounded-[4px]"
+                />
+              </Link>
+            )
+          )}
+          <Link
+            prefetch={true}
+            href="/launches?manageChannels=1"
+            title={t('manage_channels', 'Manage channels')}
+            className="w-[24px] h-[24px] rounded-[6px] border border-newBorder flex items-center justify-center text-textItemBlur hover:bg-boxHover hover:text-newTextColor"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="none"
+            >
+              <path
+                d="M8 3.33334V12.6667M3.33334 8H12.6667"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };
@@ -353,6 +392,8 @@ const NewMenu: FC = () => {
         <DropdownPanel
           surface="panel"
           anchor="start"
+          //: SURFACES.panel still carries the legacy
+          // bg-third navy; float on the elevated-surface token instead
           className="mt-[6px] w-[248px] p-[6px] flex flex-col gap-[2px]"
         >
           <Link prefetch={true} href="/launches?newPost=1" className={item}>
@@ -377,7 +418,7 @@ const NewMenu: FC = () => {
               </svg>
             </span>
             <span className="font-[500]">
-              {t('connect_a_new_channel', 'Connect a New Channel')}
+              {t('connect_a_new_channel', 'Connect Channel')}
             </span>
           </Link>
           <Link prefetch={true} href="/settings" className={item}>
@@ -413,8 +454,12 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
           old rail's #left-menu padding hacks are not needed here */}
       <div className="sticky top-[12px] h-[calc(100dvh-24px)] flex flex-col px-[8px]">
         {/* logo row — the ONLY logo on desktop; the content column's top bar
-            keeps Title + the icon cluster and never duplicates it */}
-        <div data-cs className="h-[48px] shrink-0 flex items-center px-[8px]">
+            keeps Title + the icon cluster and never duplicates it. Spec
+            §Sidebar row 1: logo left, streak icon right. */}
+        <div
+          data-cs
+          className="h-[48px] shrink-0 flex items-center justify-between px-[8px]"
+        >
           <Link prefetch={true} href="/launches" className="flex items-center">
             <img
               src="/cuesoft-mark-white.png"
@@ -431,6 +476,7 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
               className="block dark:hidden object-contain"
             />
           </Link>
+          <StreakComponent />
         </div>
         {/* "+ New" pill — h-44 r-999 lime, dark ink (data-cs: the ladder
             rescales h-[44px] to 36). Navigation, not a new modal mechanism. */}

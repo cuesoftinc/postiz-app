@@ -55,21 +55,25 @@ export const TumblrContinue = withContinueProvider<
             alt={item.name}
           />
         ) : (
-          <div className="w-[80px] h-[80px] bg-input rounded-full flex items-center justify-center text-[32px] font-semibold">
+          <div className="w-[80px] h-[80px] bg-newBgColorInner rounded-full flex items-center justify-center text-[32px] font-semibold">
             t
           </div>
         )}
       </div>
-      <div className="text-sm font-medium">{item.name}</div>
+      <div className="text-[14px] font-[500]">{item.name}</div>
       {item.username && (
-        <div className="text-xs text-gray-500 break-all">{item.username}</div>
+        <div className="text-[12px] text-newTextColor/60 break-all">
+          {item.username}
+        </div>
       )}
       {!!item.followers && (
-        <div className="text-xs text-gray-400">
+        <div className="text-[12px] text-newTextColor/60">
           {item.followers.toLocaleString()} followers
         </div>
       )}
-      {item.primary && <div className="text-xs text-gray-400">Primary</div>}
+      {item.primary && (
+        <div className="text-[12px] text-newTextColor/60">Primary</div>
+      )}
     </>
   ),
 });

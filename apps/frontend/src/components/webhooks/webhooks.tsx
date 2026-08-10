@@ -69,7 +69,7 @@ export const Webhooks: FC = () => {
       <div className="text-[14px] text-textItemBlur mt-[4px]">
         {t(
           'webhooks_are_a_way_to_get_notified_when_something_happens_in_postiz_via_an_http_request',
-          'Webhooks are a way to get notified when something happens in Postiz via\n        an HTTP request.'
+          'Webhooks are a way to get notified when something happens in Postiz via an HTTP request.'
         )}
       </div>
       <div className="my-[16px] pt-[16px] border-t border-newTableBorder items-center flex gap-[16px]">
@@ -202,7 +202,7 @@ export const AddOrEditWebhook: FC<{
   );
   const sendTest = useCallback(async () => {
     const url = form.getValues('url');
-    toast.show(t('webhook_sent', 'Webhook send'), 'success');
+    toast.show(t('webhook_sent', 'Webhook sent'), 'success');
     try {
       await fetch(`/webhooks/send?url=${encodeURIComponent(url)}`, {
         method: 'POST',

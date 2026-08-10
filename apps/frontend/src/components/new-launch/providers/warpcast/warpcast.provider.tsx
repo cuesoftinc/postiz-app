@@ -11,6 +11,7 @@ import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { Button } from '@gitroom/react/form/button';
 import { Subreddit } from './subreddit';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { CloseIcon } from '@gitroom/frontend/components/ui/icons';
 const WrapcastProvider: FC = () => {
   const { register, control } = useSettings();
   const { fields, append, remove } = useFieldArray({
@@ -45,9 +46,9 @@ const WrapcastProvider: FC = () => {
           <div key={field.id} className="flex flex-col relative">
             <div
               onClick={deleteField(index)}
-              className="absolute -start-[10px] justify-center items-center flex -top-[10px] w-[20px] h-[20px] bg-red-600 rounded-full text-textColor"
+              className="absolute -start-[10px] justify-center items-center flex -top-[10px] w-[20px] h-[20px] bg-[#FF3F3F] rounded-full text-white"
             >
-              x
+              <CloseIcon size={10} />
             </div>
             <Subreddit {...register(`subreddit.${index}.value`)} />
           </div>

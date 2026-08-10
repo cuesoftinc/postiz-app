@@ -45,7 +45,7 @@ export const ShowNotification: FC<{
         }}
       />
       <div
-        className="text-[11px] mt-[4px] opacity-60 font-normal"
+        className="text-[12px] mt-[4px] text-newTextColor/60 font-normal"
         title={isWithin24h ? fullDate : undefined}
       >
         {isWithin24h ? createdAt.fromNow() : fullDate}
@@ -68,20 +68,31 @@ export const NotificationOpenComponent = () => {
       // 420px is wider than a phone and this is anchored end-0 to the bell, so
       // on mobile it hung off the left edge with its text cut off — hence the
       // max-w guard
+      //: the elevated-surface token (#1e1e1e dark / #fff
+      // light) — SURFACES.panel still carries the legacy bg-third navy, which
+      // is darker than the page bg; override here until the shared surface
+      // moves onto the token
       className="opacity-0 animate-normalFadeDown mt-[10px] w-[420px] max-w-[calc(100vw-48px)] min-h-[200px] flex flex-col"
     >
-      <div className={`p-[16px] border-b border-tableBorder font-bold`}>
+      <div
+        className={`p-[16px] border-b border-tableBorder font-display text-[16px] font-[600]`}
+      >
         {t('notifications', 'Notifications')}
       </div>
 
       <div className="flex flex-col max-h-[400px] overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
         {isLoading && (
           <div className="flex-1 flex justify-center pt-12">
-            <ReactLoading type="spin" color="#fff" width={36} height={36} />
+            <ReactLoading
+              type="spin"
+              color="var(--new-textItemBlur)"
+              width={36}
+              height={36}
+            />
           </div>
         )}
         {!isLoading && !data.notifications.length && (
-          <div className="text-center p-[16px] text-textColor flex-1 flex justify-center items-center mt-[20px]">
+          <div className="text-center p-[16px] text-newTextColor/60 flex-1 flex justify-center items-center mt-[20px]">
             {t('no_notifications', 'No notifications')}
           </div>
         )}
@@ -147,8 +158,8 @@ const NotificationComponent = () => {
               cx="17.0625"
               cy="5"
               r="4"
-              fill="#FF3EA2"
-              stroke="#1A1919"
+              fill="var(--new-btn-primary)"
+              stroke="var(--new-bgColorInner)"
               strokeWidth="2"
             />
           )}

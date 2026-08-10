@@ -20,6 +20,7 @@ import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useFormatting } from '@gitroom/frontend/components/launches/helpers/use.formatting';
+import { CloseIcon } from '@gitroom/frontend/components/ui/icons';
 const RenderRedditComponent: FC<{
   type: string;
   images?: Array<{
@@ -188,9 +189,9 @@ const RedditSettings: FC = () => {
           <div key={field.id} className="flex flex-col relative">
             <div
               onClick={deleteField(index)}
-              className="absolute -start-[10px] justify-center items-center flex -top-[10px] w-[20px] h-[20px] bg-red-600 rounded-full text-textColor"
+              className="absolute -start-[10px] justify-center items-center flex -top-[10px] w-[20px] h-[20px] bg-[#FF3F3F] rounded-full text-white"
             >
-              x
+              <CloseIcon size={10} />
             </div>
             <Subreddit {...register(`subreddit.${index}.value`)} />
           </div>
@@ -198,7 +199,7 @@ const RedditSettings: FC = () => {
       </div>
       <Button onClick={addField}>{t('add_subreddit', 'Add Subreddit')}</Button>
       {fields.length === 0 && (
-        <div className="text-red-500 text-[12px] mt-[10px]">
+        <div className="text-[#FF3F3F] text-[12px] mt-[10px]">
           {t(
             'please_add_at_least_one_subreddit',
             'Please add at least one Subreddit'

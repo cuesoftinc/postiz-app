@@ -54,7 +54,7 @@ export const YoutubeContinue = withContinueProvider<
             alt={item.name}
           />
         ) : (
-          <div className="w-[80px] h-[80px] bg-input rounded-full flex items-center justify-center">
+          <div className="w-[80px] h-[80px] bg-newBgColorInner rounded-full flex items-center justify-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="40"
@@ -72,12 +72,12 @@ export const YoutubeContinue = withContinueProvider<
           </div>
         )}
       </div>
-      <div className="text-sm font-medium">{item.name}</div>
+      <div className="text-[14px] font-[500]">{item.name}</div>
       {item.username && (
-        <div className="text-xs text-gray-500">{item.username}</div>
+        <div className="text-[12px] text-newTextColor/60">{item.username}</div>
       )}
       {item.subscriberCount && (
-        <div className="text-xs text-gray-400">
+        <div className="text-[12px] text-newTextColor/60">
           {parseInt(item.subscriberCount).toLocaleString()} subscribers
         </div>
       )}

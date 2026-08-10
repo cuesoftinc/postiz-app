@@ -7,6 +7,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 const postUrlEmitter = new EventEmitter();
 
 export const MediaSettingsLayout = () => {
@@ -237,11 +238,13 @@ export const CreateThumbnail: FC<{
               step="0.1"
               value={currentTime}
               onChange={handleSeek}
-              className="w-full h-2 bg-fifth rounded-lg appearance-none cursor-pointer slider"
+              className="w-full h-2 bg-newTableBorder rounded-lg appearance-none cursor-pointer slider"
               style={{
                 background: `linear-gradient(to right, #325ea6 0%, #325ea6 ${
                   (currentTime / duration) * 100
-                }%, #374151 ${(currentTime / duration) * 100}%, #374151 100%)`,
+                }%, var(--new-table-border) ${
+                  (currentTime / duration) * 100
+                }%, var(--new-table-border) 100%)`,
               }}
             />
             <div className="flex justify-between text-sm text-textColor">
@@ -473,7 +476,7 @@ export const MediaComponentInner: FC<{
       )}
 
       {!isEditingThumbnail && (
-        <div className="flex space-x-2 !mt-[20px]">
+        <ModalFooter align="stretch">
           <button
             disabled={loading}
             onClick={onClose}
@@ -487,7 +490,7 @@ export const MediaComponentInner: FC<{
           >
             Save Changes
           </button>
-        </div>
+        </ModalFooter>
       )}
     </div>
   );

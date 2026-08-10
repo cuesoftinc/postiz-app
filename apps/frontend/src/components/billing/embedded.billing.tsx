@@ -228,7 +228,7 @@ const PriceBreakdown: FC = () => {
         <div className="flex justify-between items-center">
           <div className="flex flex-col">
             <span className="font-[600] text-textColor">{planName}</span>
-            <span className="text-[13px] text-textColor/60">
+            <span className="text-[13px] text-newTextColor/60">
               {billingInterval}
             </span>
           </div>
@@ -282,7 +282,7 @@ const PriceBreakdown: FC = () => {
 
         {/* Next billing info */}
         {nextBillingTotal && nextBillingDate && (
-          <div className="flex justify-between items-center text-[13px] text-textColor/60">
+          <div className="flex justify-between items-center text-[13px] text-newTextColor/60">
             <span>
               {t('billing_then', 'Then')} {nextBillingTotal}{' '}
               {t('billing_on', 'on')} {nextBillingDate}
@@ -393,7 +393,7 @@ const AppliedCouponDisplay: FC<{
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
             <span className="font-[600] text-forth">{appliedCode}</span>
-            <span className="text-[14px] text-textColor/70">
+            <span className="text-[14px] text-newTextColor/70">
               {t('billing_discount_applied', 'applied')}
               {discountDisplay && ` (${discountDisplay})`}
             </span>
@@ -403,13 +403,13 @@ const AppliedCouponDisplay: FC<{
           type="button"
           onClick={onRemove}
           disabled={isApplying}
-          className="text-[14px] text-textColor/50 hover:text-textColor font-[500] disabled:opacity-50"
+          className="text-[14px] text-newTextColor/50 hover:text-newTextColor font-[500] disabled:opacity-50"
         >
           {t('billing_remove', 'Remove')}
         </button>
       </div>
       {expirationDate && (
-        <p className="text-[13px] text-textColor/50 flex items-center gap-[6px]">
+        <p className="text-[13px] text-newTextColor/50 flex items-center gap-[6px]">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="14"
@@ -525,7 +525,7 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
         <button
           type="button"
           onClick={() => setShowInput(true)}
-          className="text-[16px] text-textColor/60 hover:text-textColor font-[500] flex items-center gap-[8px] transition-colors"
+          className="text-[16px] text-newTextColor/60 hover:text-newTextColor font-[500] flex items-center gap-[8px] transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -559,7 +559,7 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
             setShowInput(false);
             setCouponCode('');
           }}
-          className="text-[14px] text-textColor/50 hover:text-textColor transition-colors"
+          className="text-[14px] text-newTextColor/50 hover:text-newTextColor transition-colors"
         >
           {t('billing_cancel', 'Cancel')}
         </button>
@@ -572,7 +572,7 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
           placeholder={t('billing_enter_coupon_code', 'Enter coupon code')}
           disabled={isApplying}
           autoFocus
-          className="flex-1 h-[44px] px-[16px] rounded-[8px] border border-newColColor bg-newBgColor text-textColor placeholder:text-textColor/50 focus:outline-none focus:border-boxFocused disabled:opacity-50"
+          className="flex-1 h-[44px] px-[16px] rounded-[8px] border border-newColColor bg-newBgColor text-textColor placeholder:text-newTextColor/50 focus:outline-none focus:border-boxFocused disabled:opacity-50"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
@@ -608,7 +608,7 @@ const SubmitBar: FC<{ loading: boolean }> = ({ loading }) => {
 
   return (
     <div className="animate-fadeIn h-[92px] mobile:h-auto fixed bottom-0 w-full px-[12px] pb-[12px] left-0 bg-newBgColor z-[100]">
-      <div className="w-full h-full border-t border-newColColor bg-newBgColorInner px-[80px] tablet:px-[33px] mobile:!px-[16px] flex mobile:flex-col gap-[32px] mobile:gap-[16px] justify-end items-center font-[400] text-[14px] text-[#A3A3A3] mobile:py-[16px]">
+      <div className="w-full h-full border-t border-newColColor bg-newBgColorInner px-[80px] tablet:px-[33px] mobile:!px-[16px] flex mobile:flex-col gap-[32px] mobile:gap-[16px] justify-end items-center font-[400] text-[14px] text-newTextColor/60 mobile:py-[16px]">
         {checkout.checkout.recurring?.trial?.trialEnd ? (
           <div>
             {t('billing_your_7_day_trial_is', 'Your 7-day trial is')}{' '}

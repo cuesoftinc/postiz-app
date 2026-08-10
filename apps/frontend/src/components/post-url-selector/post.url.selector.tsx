@@ -118,14 +118,14 @@ export const PostSelector: FC<{
           <div
             className={
               !noModal
-                ? 'text-textColor fixed start-0 top-0 bg-primary/80 z-[300] w-full h-full p-[60px] animate-fade'
+                ? 'text-textColor fixed start-0 top-0 bg-popup z-[300] w-full h-full p-[60px] animate-fade'
                 : ''
             }
           >
             <div
               className={
                 !noModal
-                  ? 'flex flex-col w-full max-w-[1200px] mx-auto h-full bg-sixth border-tableBorder border-2 rounded-xl pb-[20px] px-[20px] relative'
+                  ? 'flex flex-col w-full max-w-[1200px] mx-auto h-full bg-newBgColorInner border border-newTableBorder rounded-[16px] pb-[20px] px-[20px] relative'
                   : ''
               }
             >
@@ -139,10 +139,7 @@ export const PostSelector: FC<{
                       }
                     />
                   </div>
-                  <ModalCloseButton
-                    onClick={onCloseWithEmptyString}
-                    className="bg-primary"
-                  />
+                  <ModalCloseButton onClick={onCloseWithEmptyString} />
                 </div>
               )}
               {!!data && data.length > 0 && (
@@ -152,8 +149,8 @@ export const PostSelector: FC<{
                       <div
                         onClick={select(p.id)}
                         className={clsx(
-                          'cursor-pointer overflow-hidden flex gap-[20px] flex-col w-[200px] h-[200px] text-ellipsis p-3 border border-tableBorder rounded-[8px] hover:bg-primary',
-                          current === p.id ? 'bg-primary' : 'bg-secondary'
+                          'cursor-pointer overflow-hidden flex gap-[20px] flex-col w-[200px] h-[200px] text-ellipsis p-3 border border-newTableBorder rounded-[8px] hover:bg-boxHover',
+                          current === p.id ? 'bg-boxFocused' : 'bg-newBgColorInner'
                         )}
                         key={p.id}
                       >
@@ -164,7 +161,7 @@ export const PostSelector: FC<{
                               className="w-[32px] h-[32px] rounded-full"
                             />
                             <img
-                              className="w-[20px] h-[20px] rounded-full absolute z-10 -bottom-[5px] -end-[5px] border border-fifth"
+                              className="w-[20px] h-[20px] rounded-full absolute z-10 -bottom-[5px] -end-[5px] border border-newTableBorder"
                               src={
                                 `/icons/platforms/` +
                                 p?.integration?.providerIdentifier +

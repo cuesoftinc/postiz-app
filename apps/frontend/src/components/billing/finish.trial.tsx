@@ -5,6 +5,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { Button } from '@gitroom/react/form/button';
 import { ModalCloseButton } from '@gitroom/frontend/components/cuesoft/modal/modal-close-button';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 
 export const FinishTrial: FC<{ close: () => void }> = (props) => {
   const [finished, setFinished] = useState(false);
@@ -32,9 +33,9 @@ export const FinishTrial: FC<{ close: () => void }> = (props) => {
   }, []);
 
   return (
-    <div className="text-textColor fixed start-0 top-0 bg-primary/80 z-[300] w-full h-full p-[60px] animate-fade justify-center flex bg-black/50">
+    <div className="text-textColor fixed start-0 top-0 bg-popup z-[300] w-full h-full p-[60px] animate-fade justify-center flex">
       <div>
-        <div className="flex gap-[10px] flex-col w-[500px] h-auto bg-sixth border-tableBorder border-2 rounded-xl pb-[20px] px-[20px] relative">
+        <div className="flex gap-[10px] flex-col w-[500px] h-auto bg-newBgColorInner border border-newTableBorder rounded-[16px] pb-[20px] px-[20px] relative">
           <div className="flex">
             <div className="flex-1">
               <TopTitle title={'Finishing Trial'} />
@@ -42,7 +43,6 @@ export const FinishTrial: FC<{ close: () => void }> = (props) => {
             <ModalCloseButton
               onClick={props.close}
               offset={{ top: 10, end: 10 }}
-              className="bg-primary"
             />
           </div>
           <div className="relative h-[400px]">
@@ -52,12 +52,12 @@ export const FinishTrial: FC<{ close: () => void }> = (props) => {
                 {finished && (
                   <div className="flex flex-col">
                     <div>
-                      You trial has been successfully finished and you have been charged.
+                      Your trial has ended and your subscription is now active.
                     </div>
-                    <div className="flex gap-[10px] mt-[20px]">
-                      <Button className="flex-1" onClick={() => window.close()}>Close window</Button>
-                      <Button className="flex-1" onClick={() => props.close()}>Close dialog</Button>
-                    </div>
+                    <ModalFooter align="stretch">
+                      <Button secondary={true} onClick={() => window.close()}>Close window</Button>
+                      <Button onClick={() => props.close()}>Close dialog</Button>
+                    </ModalFooter>
                   </div>
                 )}
               </div>

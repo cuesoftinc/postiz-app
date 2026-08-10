@@ -8,6 +8,7 @@ import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Button } from '@gitroom/react/form/button';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 export const CustomerModal: FC<{
   integration: Integration & {
     customer?: {
@@ -55,7 +56,7 @@ export const CustomerModal: FC<{
           value={customer}
           onChange={setCustomer}
           classNames={{
-            label: 'text-white',
+            label: 'text-newTextColor',
           }}
           label={t('select_customer_label', 'Select Customer')}
           placeholder={t('start_typing', 'Start typing...')}
@@ -63,14 +64,14 @@ export const CustomerModal: FC<{
         />
       </div>
 
-      <div className="my-[16px] flex gap-[10px]">
+      <ModalFooter>
         <Button onClick={() => saveCustomer()}>{t('save', 'Save')}</Button>
         {!!integration?.customer?.name && (
-          <Button className="bg-red-700" onClick={removeFromCustomer}>
+          <Button className="!bg-red-700 !text-white" onClick={removeFromCustomer}>
             {t('remove_from_customer', 'Remove from customer')}
           </Button>
         )}
-      </div>
+      </ModalFooter>
     </div>
   );
 };

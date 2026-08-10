@@ -167,28 +167,38 @@ export const Sets: FC = () => {
 
   return (
     <div className="flex flex-col">
-      <h3 className="text-[20px]">Sets ({data?.length || 0})</h3>
-      <div className="text-customColor18 mt-[4px]">
-        Manage your content sets for easy reuse across posts.
+      {/* settings pattern (same as Signatures): display-face title, muted 14
+          helper, hairline-separated field group. data-cs keeps the desktop
+          ladder off the title size. */}
+      <h3 data-cs className="text-[24px] font-[500] font-display">
+        {t('sets', 'Sets')} ({data?.length || 0})
+      </h3>
+      <div className="text-[14px] text-textItemBlur mt-[4px]">
+        {t(
+          'manage_your_content_sets_for_easy_reuse_across_posts',
+          'Manage your content sets for easy reuse across posts.'
+        )}
       </div>
-      <div className="my-[16px] mt-[16px] bg-sixth border-fifth items-center border rounded-[4px] p-[24px] flex gap-[24px]">
+      <div className="my-[16px] pt-[16px] border-t border-newTableBorder items-center flex gap-[16px]">
         <div className="flex flex-col w-full">
           {!!data?.length && (
             <div className="grid grid-cols-[2fr,1fr,1fr] w-full gap-y-[10px]">
-              <div>{t('name', 'Name')}</div>
-              <div>{t('edit', 'Edit')}</div>
-              <div>{t('delete', 'Delete')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('name', 'Name')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('edit', 'Edit')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('delete', 'Delete')}</div>
               {data?.map((p: any) => (
                 <Fragment key={p.id}>
                   <div className="flex flex-col justify-center">{p.name}</div>
                   <div className="flex flex-col justify-center">
                     <div>
-                      <Button onClick={addSet(p)}>{t('edit', 'Edit')}</Button>
+                      <Button secondary={true} onClick={addSet(p)}>
+                        {t('edit', 'Edit')}
+                      </Button>
                     </div>
                   </div>
                   <div className="flex flex-col justify-center">
                     <div>
-                      <Button onClick={deleteSet(p)}>
+                      <Button secondary={true} onClick={deleteSet(p)}>
                         {t('delete', 'Delete')}
                       </Button>
                     </div>
@@ -199,10 +209,11 @@ export const Sets: FC = () => {
           )}
           <div>
             <Button
+              secondary={true}
               onClick={addSet()}
               className={clsx((data?.length || 0) > 0 && 'my-[16px]')}
             >
-              Add a set
+              {t('add_a_set', 'Add a set')}
             </Button>
           </div>
         </div>

@@ -41,7 +41,9 @@ export const SignaturesComponent: FC<{
         await deleteDialog(
           t(
             'are_you_sure_you_want_to_delete',
-            `Are you sure you want to delete?`,
+            `Are you sure you want to delete ${
+              data.content.slice(0, 15) + '...'
+            }?`,
             { name: data.content.slice(0, 15) + '...' }
           )
         )
@@ -197,11 +199,14 @@ const AddOrRemoveSignature: FC<{
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(callBack)}>
         <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] pt-0">
-          <div className="relative bg-customColor2">
+          <div className="relative">
+            <div className={`text-[13px] text-newTextColor/60 mb-[6px]`}>
+              {t('signature', 'Signature')}
+            </div>
             <CopilotTextarea
               disableBranding={true}
               className={clsx(
-                '!min-h-40 !max-h-80 p-2 overflow-x-hidden scrollbar scrollbar-thumb-[#325ea6] bg-bigStrip outline-none'
+                '!min-h-40 !max-h-80 p-2 overflow-x-hidden scrollbar scrollbar-thumb-newColColor bg-newBgColor outline-none border-newTableBorder border rounded-[6px] text-[14px]'
               )}
               value={text}
               onChange={(e) => {

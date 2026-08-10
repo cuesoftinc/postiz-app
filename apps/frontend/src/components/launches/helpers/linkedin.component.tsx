@@ -10,6 +10,7 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { ModalCloseButton } from '@gitroom/frontend/components/cuesoft/modal/modal-close-button';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 const postUrlEmitter = new EventEmitter();
 export const ShowLinkedinCompany = () => {
   const [showPostSelector, setShowPostSelector] = useState(false);
@@ -131,12 +132,12 @@ export const LinkedinCompany: FC<{
   };
   return (
     <div className="text-textColor fixed start-0 top-0 bg-newBackdrop/80 z-[300] w-full h-full p-[60px] animate-fade justify-center flex">
-      <div className="flex flex-col w-[500px] h-[250px] bg-newBgColorInner border-newTableBorder border rounded-[12px] pb-[20px] px-[20px] relative">
+      <div className="flex flex-col w-[500px] h-[250px] bg-newBgColorInner border-newTableBorder border rounded-[16px] pb-[20px] px-[20px] relative">
         <div className="flex">
           <div className="flex-1">
             <TopTitle title={'Select Company'} />
           </div>
-          <ModalCloseButton onClick={onClose} className="bg-primary" />
+          <ModalCloseButton onClick={onClose} />
         </div>
         <div className="mt-[10px]">
           <Input
@@ -147,7 +148,9 @@ export const LinkedinCompany: FC<{
             onChange={(e) => setCompany(e.target.value)}
             placeholder="https://www.linkedin.com/company/gitroom"
           />
-          <Button onClick={getCompany}>{t('add', 'Add')}</Button>
+          <ModalFooter>
+            <Button onClick={getCompany}>{t('add', 'Add')}</Button>
+          </ModalFooter>
         </div>
       </div>
     </div>

@@ -25,7 +25,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
       <style>
         {`#support-discord {display: none}`}
       </style>
-      <div className="flex flex-1 bg-newBgColorInner rounded-[20px] flex-col relative">
+      <div className="flex flex-1 bg-newBgColorInner rounded-[24px] flex-col relative">
         <ModalCloseButton onClick={modals.closeAll} />
         <div className="flex-1 flex p-[40px]">
           <div className="flex flex-col gap-[24px] flex-1">
@@ -166,7 +166,7 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
                   />
                   <SafeImage
                     src={`/icons/platforms/${integration.identifier}.png`}
-                    className="rounded-full absolute -bottom-[3px] -end-[3px] border border-fifth"
+                    className="rounded-full absolute -bottom-[3px] -end-[3px] border border-newTableBorder"
                     alt={integration.identifier}
                     width={14}
                     height={14}

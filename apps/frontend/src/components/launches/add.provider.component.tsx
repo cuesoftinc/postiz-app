@@ -25,10 +25,11 @@ const resolver = classValidatorResolver(ApiKeyDto);
 export const useAddProvider = (update?: () => void, invite?: boolean) => {
   const modal = useModals();
   const fetch = useFetch();
+  const t = useT();
   return useCallback(async () => {
     const data = await (await fetch('/integrations')).json();
     modal.openModal({
-      title: 'Add Channel',
+      title: t('add_channel', 'Connect Channel'),
       withCloseButton: true,
       children: (
         <AddProviderComponent invite={!!invite} update={update} {...data} />
@@ -68,7 +69,7 @@ export const AddProviderButton: FC<{
           </svg>
         </div>
         <div className="text-start text-[14px] group-[.sidebar]:hidden">
-          {t('add_channel', 'Add Channel')}
+          {t('add_channel', 'Connect Channel')}
         </div>
       </button>
       <button
@@ -123,8 +124,17 @@ export const UrlModal: FC<{
     gotoUrl(data.url);
   }, []);
   return (
-    <div className="rounded-[12px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px] relative">
-      <TopTitle title={`Instance URL`} />
+    // Desktop: the new-modal shell already draws the 16-radius card + title
+    // ('Connect Channel URL'), so no self-chrome here. The isMobile path opens
+    // with removeLayout/fullScreen (no shell card), so it keeps its own.
+    <div
+      className={clsx(
+        isMobile &&
+          'rounded-[12px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px]',
+        'relative'
+      )}
+    >
+      {isMobile && <TopTitle title={`Connect Channel URL`} />}
       {isMobile && <ModalCloseButton onClick={() => modals.closeAll()} />}
       <FormProvider {...methods}>
         <form
@@ -213,7 +223,7 @@ export const CustomVariables: FC<{
   const t = useT();
 
   return (
-    <div className="rounded-[4px] relative">
+    <div className="relative">
       <FormProvider {...methods}>
         <form
           className="gap-[8px] flex flex-col pt-[10px]"
@@ -228,7 +238,7 @@ export const CustomVariables: FC<{
                     <span
                       data-tooltip-id="tooltip"
                       data-tooltip-content={variable.hint}
-                      className="w-[16px] h-[16px] rounded-full border border-textColor/60 text-textColor/60 flex items-center justify-center text-[11px] leading-none cursor-help select-none"
+                      className="w-[16px] h-[16px] rounded-full border border-newTextColor/60 text-newTextColor/60 flex items-center justify-center text-[11px] leading-none cursor-help select-none"
                     >
                       i
                     </span>
@@ -431,7 +441,7 @@ export const AddProviderComponent: FC<{
             withCloseButton: true,
             ...(isMobile ? { removeLayout: true, fullScreen: true } : {}),
             classNames: {
-              modal: 'bg-transparent text-textColor',
+              modal: 'text-textColor',
             },
             children: (
               <div
@@ -615,11 +625,11 @@ export const AddProviderComponent: FC<{
         }
         if (isExternal) {
           modal.openModal({
-            title: 'URL',
+            title: 'Connect Channel URL',
             withCloseButton: true,
             ...(isMobile ? { removeLayout: true, fullScreen: true } : {}),
             classNames: {
-              modal: 'bg-transparent text-textColor',
+              modal: 'text-textColor',
             },
             children: (
               <UrlModal gotoUrl={gotoIntegration} isMobile={isMobile} />
@@ -629,11 +639,11 @@ export const AddProviderComponent: FC<{
         }
         if (customFields) {
           modal.openModal({
-            title: t('add_provider_title', 'Add Provider'),
+            title: t('add_provider_title', 'Connect Channel'),
             withCloseButton: true,
             ...(isMobile ? { removeLayout: true, fullScreen: true } : {}),
             classNames: {
-              modal: 'bg-transparent text-textColor',
+              modal: 'text-textColor',
             },
             children: (
               <div
@@ -658,7 +668,7 @@ export const AddProviderComponent: FC<{
   const t = useT();
 
   return (
-    <div className="w-full flex flex-col gap-[20px] rounded-[4px] relative]">
+    <div className="w-full flex flex-col gap-[20px] relative">
       <div className="flex flex-col">
         <div
           className={clsx(

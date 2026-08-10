@@ -23,7 +23,7 @@ import clsx from 'clsx';
 
 const SURFACES = {
   panel:
-    'absolute top-[100%] bg-third text-textColor rounded-[16px] border border-tableBorder z-[600]',
+    'absolute top-[100%] bg-newBgColorInner text-textColor rounded-[16px] border border-tableBorder z-[600]',
   menu: 'absolute top-[100%] p-[8px] px-[20px] bg-fifth flex flex-col gap-[16px] rounded-[8px] border border-tableBorder text-nowrap z-[100]',
   legacy:
     'absolute top-[100%] bg-sixth border border-customColor6 text-textColor z-[999]',

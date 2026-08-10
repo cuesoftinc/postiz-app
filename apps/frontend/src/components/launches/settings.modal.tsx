@@ -6,6 +6,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Button } from '@gitroom/react/form/button';
 import { Slider } from '@gitroom/react/form/slider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 
 export const Element: FC<{
   setting: any;
@@ -74,9 +75,9 @@ export const SettingsModal: FC<{
         ))}
       </div>
 
-      <div className="my-[16px] flex gap-[10px]">
+      <ModalFooter>
         <Button onClick={save}>{t('save', 'Save')}</Button>
-      </div>
+      </ModalFooter>
     </div>
   );
 };

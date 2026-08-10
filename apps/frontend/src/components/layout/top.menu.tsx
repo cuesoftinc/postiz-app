@@ -34,7 +34,7 @@ export const useMenuItem = () => {
 
   const firstMenu = [
     {
-      name: isGeneral ? t('calendar', 'Calendar') : t('launches', 'Launches'),
+      name: isGeneral ? t('calendar', 'Publish') : t('launches', 'Launches'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -73,7 +73,7 @@ export const useMenuItem = () => {
       path: '/agents',
     },
     {
-      name: t('analytics', 'Analytics'),
+      name: t('analytics', 'Insights'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -163,7 +163,7 @@ export const useMenuItem = () => {
       name: t('UGC', 'UGC'),
       icon: (
         <svg
-          fill="#c52e2e"
+          fill="currentColor"
           height="30"
           width="20"
           version="1.1"

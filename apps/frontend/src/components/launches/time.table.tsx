@@ -131,7 +131,7 @@ export const TimeTable: FC<{
     <div className="relative w-full max-w-[400px] mx-auto">
       {/* Add Time Slot Section */}
       <div className="bg-newBgColorInner rounded-[12px] p-[20px] border border-newTableBorder">
-        <div className="text-[15px] font-semibold mb-[16px] flex items-center gap-[8px]">
+        <div className="text-[15px] font-semibold font-display mb-[16px] flex items-center gap-[8px]">
           <DelayIcon size={18} className="text-forth" />
           {t('add_time_slot', 'Add Time Slot')}
         </div>
@@ -172,7 +172,7 @@ export const TimeTable: FC<{
           <button
             type="button"
             onClick={addHour}
-            className="h-[42px] px-[16px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] flex items-center gap-[6px] text-white text-[14px] font-medium"
+            className="h-[42px] px-[16px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] flex items-center gap-[6px] text-[14px] font-medium"
           >
             <PlusIcon size={14} />
             {t('add', 'Add')}
@@ -223,7 +223,7 @@ export const TimeTable: FC<{
 
       {/* Save Button */}
       <div className="mt-[24px]">
-        <Button type="button" className="w-full rounded-[8px]" onClick={save}>
+        <Button type="button" className="w-full" onClick={save}>
           {t('save_changes', 'Save Changes')}
         </Button>
       </div>

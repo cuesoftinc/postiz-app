@@ -104,10 +104,13 @@ export const ChartSocial: FC<{
           },
           tooltip: {
             enabled: true,
-            backgroundColor: mode === 'dark' ? '#1e1d1d' : '#fff',
+            backgroundColor: mode === 'dark' ? '#1e1e1e' : '#fff',
             titleColor: mode === 'dark' ? '#fff' : '#000',
-            bodyColor: mode === 'dark' ? '#9c9c9c' : '#777',
-            borderColor: mode === 'dark' ? '#2b2b2b' : '#e7e9eb',
+            bodyColor: '#ababab',
+            borderColor:
+              mode === 'dark'
+                ? 'rgba(255,255,255,0.10)'
+                : 'rgba(0,0,0,0.10)',
             borderWidth: 1,
             padding: 10,
             cornerRadius: 8,
@@ -137,7 +140,7 @@ export const ChartSocial: FC<{
             pointRadius: 0,
             pointHoverRadius: 6,
             pointHoverBackgroundColor: colors.border,
-            pointHoverBorderColor: mode === 'dark' ? '#1e1d1d' : '#fff',
+            pointHoverBorderColor: mode === 'dark' ? '#1e1e1e' : '#fff',
             pointHoverBorderWidth: 2,
           },
         ],

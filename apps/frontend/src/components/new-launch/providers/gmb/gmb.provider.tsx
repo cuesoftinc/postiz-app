@@ -105,7 +105,7 @@ const GmbSettings: FC = () => {
         )}
 
       {topicType === 'EVENT' && (
-        <div className="flex flex-col gap-[10px] mt-[10px] p-[15px] border border-input rounded-[8px]">
+        <div className="flex flex-col gap-[10px] mt-[10px] p-[15px] border border-newTableBorder rounded-[8px]">
           <div className="text-[14px] font-medium mb-[5px]">Event Details</div>
           <Input
             label="Event Title"
@@ -136,7 +136,7 @@ const GmbSettings: FC = () => {
       )}
 
       {topicType === 'OFFER' && (
-        <div className="flex flex-col gap-[10px] mt-[10px] p-[15px] border border-input rounded-[8px]">
+        <div className="flex flex-col gap-[10px] mt-[10px] p-[15px] border border-newTableBorder rounded-[8px]">
           <div className="text-[14px] font-medium mb-[5px]">Offer Details</div>
           <Input
             label="Coupon Code (optional)"

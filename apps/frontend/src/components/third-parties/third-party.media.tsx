@@ -19,6 +19,7 @@ import './providers/heygen.provider';
 import { thirdPartyList } from '@gitroom/frontend/components/third-parties/third-party.wrapper';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
+import { ChevronLeftIcon } from '@gitroom/frontend/components/ui/icons';
 
 const ThirdPartyContext = createContext({
   id: '',
@@ -59,6 +60,7 @@ export const ThirdPartyPopup: FC<{
   }[];
 }> = (props) => {
   const { closeModal, thirdParties, allData, onChange } = props;
+  const t = useT();
   const [thirdParty, setThirdParty] = useState<any>(null);
   const refNew = useRef(null);
 
@@ -102,7 +104,7 @@ export const ThirdPartyPopup: FC<{
                 setThirdParty(p);
               }}
               key={p.identifier}
-              className="w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[8px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer"
+              className="w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[12px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer"
             >
               <div>
                 <img
@@ -110,10 +112,10 @@ export const ThirdPartyPopup: FC<{
                   src={`/icons/third-party/${p.identifier}.png`}
                 />
               </div>
-              <div className="whitespace-pre-wrap text-left text-lg">
+              <div className="whitespace-pre-wrap text-left text-[15px] font-[600]">
                 {p.title}: {p.name}
               </div>
-              <div className="whitespace-pre-wrap text-left">
+              <div className="whitespace-pre-wrap text-left text-[14px] text-newTextColor/60">
                 {p.description}
               </div>
               <div className="w-full flex">
@@ -126,12 +128,14 @@ export const ThirdPartyPopup: FC<{
       {thirdParty && (
         <>
           <div>
-            <div
-              className="cursor-pointer float-left"
+            <button
+              type="button"
+              className="cursor-pointer float-left flex items-center gap-[4px] text-[14px] text-newTextColor/60 hover:text-newTextColor transition-colors"
               onClick={() => setThirdParty(null)}
             >
-              {'<'} Back
-            </div>
+              <ChevronLeftIcon size={16} />
+              {t('back', 'Back')}
+            </button>
           </div>
           <ThirdPartyContext.Provider
             value={{ ...thirdParty, data: allData, close, onChange }}
@@ -216,7 +220,7 @@ export const ThirdPartyMedia: FC<{
                 />
               </svg>
             </div>
-            <div className="text-[10px] font-[600] iconBreak:hidden block">
+            <div className="text-[11px] font-[600] iconBreak:hidden block">
               {t('integrations', 'Integrations')}
             </div>
           </div>

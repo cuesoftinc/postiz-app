@@ -31,12 +31,10 @@ import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 import { Impersonate } from '@gitroom/frontend/components/layout/impersonate';
 import { AnnouncementBanner } from '@gitroom/frontend/components/layout/announcement.banner';
 import { Title } from '@gitroom/frontend/components/layout/title';
-import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
 import { LanguageComponent } from '@gitroom/frontend/components/layout/language.component';
 import { ChromeExtensionComponent } from '@gitroom/frontend/components/layout/chrome.extension.component';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
-import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
 import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
@@ -60,8 +58,8 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     refreshWhenHidden: false,
   });
 
-  // Buffer's mobile pattern: no bottom tab bar — a hamburger opens the same
-  // sidebar as a drawer.
+  // Phone nav: a hamburger opens the sidebar as a drawer. Spec §Mapping still
+  // says the bottom tab bar stays — see the arbitration note at the drawer.
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   if (!user) return null;
@@ -101,33 +99,43 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                     {/* Desktop nav is the Buffer-replica 240px sidebar (flat on
                         the page bg, no border); it hides itself on phone. */}
                     <Sidebar />
-                    {/* PHONE-ONLY from here: the old rail element survives
-                        solely as the bottom tab bar (`hidden phone:flex`) — on
-                        desktop the Sidebar above replaces it. The bar has to be
-                        a real layout change, not a CSS override: the rail's
-                        items were laying out at their natural width, which made
-                        the page wider than the device, which expanded the layout
-                        viewport — and once that happens every position:fixed
-                        element anchors to the wider viewport and the bar itself
-                        lands off-screen. */}
-                    {/* Buffer mobile: the sidebar becomes a drawer. Clicking
-                        any link inside closes it (capture phase — no Sidebar
-                        API changes needed). */}
+                    {/* Buffer mobile (measured): the menu is a FULL-SCREEN
+                        takeover — no backdrop, no side panel. The close button
+                        sits exactly where the hamburger was, so the icon reads
+                        as morphing in place. Any link click closes it. */}
                     {drawerOpen && (
                       <div
-                        className="hidden phone:block fixed inset-0 z-[600]"
-                        onClick={() => setDrawerOpen(false)}
+                        className="hidden phone:flex flex-col fixed inset-0 z-[600] bg-newBgColor overflow-y-auto"
+                        onClickCapture={(e) => {
+                          if ((e.target as HTMLElement).closest('a')) {
+                            setDrawerOpen(false);
+                          }
+                        }}
                       >
-                        <div className="absolute inset-0 bg-black/60" />
-                        <div
-                          className="absolute inset-y-0 start-0 w-[280px] max-w-[85vw] bg-newBgColor overflow-y-auto p-[12px] animate-normalFadeIn"
-                          onClick={(e) => e.stopPropagation()}
-                          onClickCapture={(e) => {
-                            if ((e.target as HTMLElement).closest('a')) {
-                              setDrawerOpen(false);
-                            }
-                          }}
-                        >
+                        <div className="flex items-center h-[64px] px-[12px] gap-[10px] shrink-0">
+                          <button
+                            type="button"
+                            aria-label="Close menu"
+                            onClick={() => setDrawerOpen(false)}
+                            className="w-[36px] h-[36px] flex items-center justify-center rounded-[8px] hover:bg-boxHover"
+                          >
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 18 18"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M4 4l10 10M14 4L4 14"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="flex-1 px-[12px] pb-[12px]">
                           <Sidebar inDrawer />
                         </div>
                       </div>
@@ -158,12 +166,14 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                             />
                           </svg>
                         </button>
-                        <div className="text-[24px] font-[600] flex flex-1">
+                        {/* page title: display face 20px/400 (spec §Page
+                            header) — the ladder rescales text-[24px] to 20px */}
+                        <div className="text-[24px] font-display font-[400] flex flex-1">
                           <Title />
                         </div>
+                        {/* StreakComponent moved to the sidebar logo row
+                            (spec §Sidebar row 1: logo left, streak right) */}
                         <div className="flex gap-[20px] text-textItemBlur">
-                          <StreakComponent />
-                          <div className="w-[1px] h-[20px] bg-blockSeparator" />
                           <OrganizationSelector />
                           <div className="hover:text-newTextColor">
                             <ModeComponent />

@@ -335,7 +335,7 @@ export const MenuComponent: FC<
         role="Handle"
         className={clsx(
           'group-[.sidebar]:hidden flex-1 whitespace-nowrap text-ellipsis overflow-hidden cursor-move',
-          integration.disabled && 'opacity-50'
+          integration.disabled && 'text-newTextColor/40'
         )}
       >
         {integration.name}
@@ -587,7 +587,7 @@ export const LaunchesComponent = () => {
                 type="button"
                 onClick={() => setManageOpen(false)}
                 className="absolute end-[16px] top-[16px] w-[28px] h-[28px] flex items-center justify-center rounded-[6px] hover:bg-boxHover cursor-pointer"
-                aria-label="Close"
+                aria-label={t('close', 'Close')}
               >
                 <svg
                   viewBox="0 0 15 15"

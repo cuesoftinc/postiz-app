@@ -11,6 +11,7 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { showMediaBox } from '@gitroom/frontend/components/media/media.component';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ModalCloseButton } from '@gitroom/frontend/components/cuesoft/modal/modal-close-button';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 export const BotPicture: FC<{
   integration: Integrations;
   canChangeProfilePicture: boolean;
@@ -47,12 +48,12 @@ export const BotPicture: FC<{
     });
   }, []);
   return (
-    <div className="rounded-[4px] border border-customColor6 bg-sixth px-[16px] pb-[16px] relative w-full">
+    <div className="rounded-[12px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px] relative w-full">
       <TopTitle title={t('change_bot_picture_title', 'Change Bot Picture')} />
       <ModalCloseButton onClick={() => modal.closeAll()} />
 
       <div className="mt-[16px]">
-        <form onSubmit={submitForm} className="gap-[50px] flex flex-col">
+        <form onSubmit={submitForm} className="gap-[24px] flex flex-col">
           {props.canChangeProfilePicture && (
             <div className="flex items-center gap-[20px]">
               <img
@@ -76,9 +77,9 @@ export const BotPicture: FC<{
             />
           )}
 
-          <div className="mt-[50px]">
+          <ModalFooter>
             <Button type="submit">{t('save', 'Save')}</Button>
-          </div>
+          </ModalFooter>
         </form>
       </div>
     </div>

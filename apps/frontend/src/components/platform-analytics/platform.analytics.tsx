@@ -18,6 +18,7 @@ import {
   useSidePanelCollapse,
 } from '@gitroom/frontend/components/new-layout/side-panel-header';
 import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 const allowedIntegrations = [
   'facebook',
   'instagram',
@@ -152,28 +153,31 @@ export const PlatformAnalytics = () => {
 
   if (!sortedIntegrations.length && !isLoading) {
     return (
-      <div className="bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all flex-1 justify-center items-center text-center">
-        <div>
-          <img src="/peoplemarketplace.svg" />
-        </div>
-        <div className="text-[48px]">
-          {t('can_t_show_analytics_yet', "Can't show analytics yet")}
-          <br />
-          {t(
-            'you_have_to_add_social_media_channels',
-            'You have to add Social Media channels'
-          )}
-        </div>
-        <div className="text-[20px]">
-          {t('supported', 'Supported:')}
-          {allowedIntegrations.map((p) => capitalize(p)).join(', ')}
-        </div>
-        <Button onClick={() => router.push('/launches')}>
-          {t(
-            'go_to_the_calendar_to_add_channels',
-            'Go to the calendar to add channels'
-          )}
-        </Button>
+      <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] transition-all items-center justify-center">
+        <EmptyState
+          variant="hero"
+          image={<img src="/peoplemarketplace.svg" />}
+          title={t('can_t_show_analytics_yet', "Can't show insights yet")}
+          description={
+            <>
+              {t(
+                'you_have_to_add_social_media_channels',
+                'You have to add Social Media channels'
+              )}
+              <br />
+              {t('supported', 'Supported:')}{' '}
+              {allowedIntegrations.map((p) => capitalize(p)).join(', ')}
+            </>
+          }
+          action={
+            <Button onClick={() => router.push('/launches')}>
+              {t(
+                'go_to_the_calendar_to_add_channels',
+                'Go to Publish to connect channels'
+              )}
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -199,7 +203,7 @@ export const PlatformAnalytics = () => {
               onClick={() => {
                 if (integration.refreshNeeded) {
                   toaster.show(
-                    'Please refresh the integration from the calendar',
+                    'Please refresh the channel from Publish',
                     'warning'
                   );
                   return;

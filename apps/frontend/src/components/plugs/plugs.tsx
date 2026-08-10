@@ -13,6 +13,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
 import { ToolbarSelect } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 
 /**
  * Buffer-replica treatment (same as analytics): Buffer has NO second channel
@@ -106,7 +107,7 @@ export const Plugs = () => {
     (integration: any) => {
       if (integration.refreshNeeded) {
         toaster.show(
-          'Please refresh the integration from the calendar',
+          'Please refresh the channel from Publish',
           'warning'
         );
         return;
@@ -127,28 +128,26 @@ export const Plugs = () => {
   if (!sortedIntegrations.length && !isLoading) {
     return (
       <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] transition-all items-center justify-center">
-        <div>
-          <img src="/peoplemarketplace.svg" />
-        </div>
-        <div className="text-[16px] font-[600] font-display text-center">
-          {t(
+        <EmptyState
+          variant="hero"
+          image={<img src="/peoplemarketplace.svg" />}
+          title={t(
             'there_are_not_plugs_matching_your_channels',
-            'There are not plugs matching your channels'
+            'There are no plugs matching your channels'
           )}
-          <br />
-          <span className="text-[14px] font-[400] font-sans text-newTextColor/60">
-            {t(
-              'you_have_to_add_x_linkedin_page_threads_or_bluesky',
-              'You have to add: X, LinkedIn Page, Threads or Bluesky'
-            )}
-          </span>
-        </div>
-        <Button onClick={() => router.push('/launches')}>
-          {t(
-            'go_to_the_calendar_to_add_channels',
-            'Go to the calendar to add channels'
+          description={t(
+            'you_have_to_add_x_linkedin_page_threads_or_bluesky',
+            'You have to add: X, LinkedIn Page, Threads or Bluesky'
           )}
-        </Button>
+          action={
+            <Button onClick={() => router.push('/launches')}>
+              {t(
+                'go_to_the_calendar_to_add_channels',
+                'Go to Publish to connect channels'
+              )}
+            </Button>
+          }
+        />
       </div>
     );
   }

@@ -6,6 +6,7 @@ import { useCustomProviderFunction } from '@gitroom/frontend/components/launches
 import { Select } from '@gitroom/react/form/select';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import clsx from 'clsx';
+import { CloseIcon } from '@gitroom/frontend/components/ui/icons';
 
 interface AudioResult {
   id: string;
@@ -181,7 +182,7 @@ export const InstagramAudioSelector: FC<{
               'instagram_audio_facebook_login_only',
               'Only available on Instagram with Facebook Login'
             )}
-            className="h-[42px] px-[16px] inline-flex items-center cursor-not-allowed opacity-50 bg-newBgColorInner border-newTableBorder border rounded-[8px] text-[14px]"
+            className="h-[36px] px-[16px] inline-flex items-center cursor-not-allowed opacity-50 bg-newBgColorInner border-newTableBorder border rounded-[6px] text-[14px]"
           >
             {t('instagram_add_audio', 'Add audio')}
           </div>
@@ -205,14 +206,16 @@ export const InstagramAudioSelector: FC<{
             <div className="flex-1 flex flex-col">
               <div className="text-[14px]">{value.title}</div>
               {!!value.artist && (
-                <div className="text-[12px] opacity-70">{value.artist}</div>
+                <div className="text-[12px] text-newTextColor/60">
+                  {value.artist}
+                </div>
               )}
             </div>
             <div
-              className="cursor-pointer text-[14px] opacity-70 hover:opacity-100"
+              className="cursor-pointer flex items-center justify-center w-[28px] h-[28px] rounded-[6px] hover:bg-newTextColor/10 text-newTextColor/60"
               onClick={removeAudio}
             >
-              X
+              <CloseIcon size={14} />
             </div>
           </div>
           <div className="flex gap-[18px]">
@@ -251,7 +254,7 @@ export const InstagramAudioSelector: FC<{
       ) : !open ? (
         <div>
           <div
-            className="h-[42px] px-[16px] inline-flex items-center cursor-pointer bg-newBgColorInner border-newTableBorder border rounded-[8px] text-[14px]"
+            className="h-[36px] px-[16px] inline-flex items-center cursor-pointer bg-newBgColorInner border-newTableBorder border rounded-[6px] text-[14px]"
             onClick={() => setOpen(true)}
           >
             {t('instagram_add_audio', 'Add audio')}
@@ -275,9 +278,9 @@ export const InstagramAudioSelector: FC<{
                 {t('instagram_original_sound', 'Original sound')}
               </option>
             </Select>
-            <div className="flex-1 h-[42px] bg-newBgColorInner border-newTableBorder border rounded-[8px] flex items-center">
+            <div className="flex-1 h-[36px] bg-newBgColorInner border-newTableBorder border rounded-[6px] flex items-center">
               <input
-                className="h-full w-full bg-transparent outline-none px-[16px] text-[14px] text-textColor placeholder-textColor"
+                className="h-full w-full bg-transparent outline-none px-[16px] text-[14px] text-newTextColor placeholder:text-newTextColor/60"
                 placeholder={t(
                   'instagram_search_audio',
                   'Search audio (empty shows trending)'
@@ -287,7 +290,7 @@ export const InstagramAudioSelector: FC<{
               />
             </div>
             <div
-              className="h-[42px] px-[16px] flex items-center cursor-pointer bg-newBgColorInner border-newTableBorder border rounded-[8px] text-[14px]"
+              className="h-[36px] px-[16px] flex items-center cursor-pointer bg-newBgColorInner border-newTableBorder border rounded-[6px] text-[14px]"
               onClick={() => {
                 stopPreview();
                 setOpen(false);
@@ -298,18 +301,18 @@ export const InstagramAudioSelector: FC<{
           </div>
           <div className="max-h-[250px] overflow-y-auto flex flex-col bg-newBgColorInner border-newTableBorder border rounded-[8px]">
             {loading ? (
-              <div className="p-[12px] text-[14px] opacity-70">
+              <div className="p-[12px] text-[14px] text-newTextColor/60">
                 {t('loading', 'Loading...')}
               </div>
             ) : !results.length ? (
-              <div className="p-[12px] text-[14px] opacity-70">
+              <div className="p-[12px] text-[14px] text-newTextColor/60">
                 {t('instagram_no_audio_found', 'No audio found')}
               </div>
             ) : (
               results.map((audio) => (
                 <div
                   key={audio.id}
-                  className="flex items-center gap-[12px] p-[8px] hover:bg-newTableBorder cursor-pointer"
+                  className="flex items-center gap-[12px] p-[8px] hover:bg-boxHover cursor-pointer"
                   onClick={() => selectAudio(audio)}
                 >
                   {!!audio.image && (
@@ -320,7 +323,7 @@ export const InstagramAudioSelector: FC<{
                   )}
                   <div className="flex-1 flex flex-col">
                     <div className="text-[14px]">{audio.title}</div>
-                    <div className="text-[12px] opacity-70">
+                    <div className="text-[12px] text-newTextColor/60">
                       {[audio.artist, formatDuration(audio.duration)]
                         .filter((f) => f)
                         .join(' · ')}
@@ -329,8 +332,10 @@ export const InstagramAudioSelector: FC<{
                   {!!audio.previewUrl && (
                     <div
                       className={clsx(
-                        'px-[12px] text-[12px] opacity-70 hover:opacity-100',
-                        playingId === audio.id && 'opacity-100'
+                        'px-[12px] text-[12px] hover:text-newTextColor',
+                        playingId === audio.id
+                          ? 'text-newTextColor'
+                          : 'text-newTextColor/60'
                       )}
                       onClick={(e) => {
                         e.stopPropagation();

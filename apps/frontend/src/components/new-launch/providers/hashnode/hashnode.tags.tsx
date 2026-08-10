@@ -73,7 +73,7 @@ export const HashnodeTags: FC<{
         onAdd={onAddition}
         onDelete={onDelete}
       />
-      <div className="text-red-400 text-[12px]">{err || <>&nbsp;</>}</div>
+      <div className="text-[#FF3F3F] text-[12px]">{err || <>&nbsp;</>}</div>
     </div>
   );
 };

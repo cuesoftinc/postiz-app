@@ -57,7 +57,7 @@ export const GmbContinue = withContinueProvider<GmbItem, GmbSelection>({
             alt={item.name}
           />
         ) : (
-          <div className="w-[80px] h-[80px] bg-input rounded-[8px] flex items-center justify-center">
+          <div className="w-[80px] h-[80px] bg-newBgColorInner rounded-[8px] flex items-center justify-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="40"
@@ -75,7 +75,7 @@ export const GmbContinue = withContinueProvider<GmbItem, GmbSelection>({
           </div>
         )}
       </div>
-      <div className="text-sm font-medium">{item.name}</div>
+      <div className="text-[14px] font-[500]">{item.name}</div>
     </>
   ),
 });

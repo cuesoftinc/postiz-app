@@ -178,6 +178,13 @@ export const TeamsComponent = () => {
       </div>
       <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
         <div className="flex flex-col gap-[16px]">
+          {!!data?.length && (
+            <div className="flex items-center text-[13px] font-[500] text-textItemBlur">
+              <div className="flex-1">{t('name', 'Name')}</div>
+              <div className="flex-1">{t('role', 'Role')}</div>
+              <div className="flex-1" />
+            </div>
+          )}
           {(data || []).map((p) => (
             <div key={p.user.id} className="flex items-center">
               <div className="flex-1">
@@ -192,11 +199,7 @@ export const TeamsComponent = () => {
               </div>
               {+myLevel > +getLevel(p.role) ? (
                 <div className="flex-1 flex justify-end">
-                  <Button
-                    className={`!h-[28px] !px-[12px] text-[12px]`}
-                    onClick={remove(p)}
-                    secondary={true}
-                  >
+                  <Button onClick={remove(p)} secondary={true}>
                     <div className="flex justify-center items-center gap-[4px]">
                       <div>
                         <svg

@@ -28,6 +28,7 @@ import { FinishTrial } from '@gitroom/frontend/components/billing/finish.trial';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useDubClickId } from '@gitroom/frontend/components/layout/dubAnalytics';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 
 export const Prorate: FC<{
   period: 'MONTHLY' | 'YEARLY';
@@ -153,17 +154,17 @@ const Accept: FC<{ resolve: (res: boolean) => void }> = ({ resolve }) => {
 
   return (
     <div>
-      <div className="mb-[20px]">
+      <div>
         Would you accept 50% discount for 3 months instead? 🙏🏻
       </div>
-      <div className="flex gap-[10px]">
+      <ModalFooter>
         <Button loading={loading} onClick={apply}>
           Apply 50% discount for 3 months
         </Button>
-        <Button onClick={() => resolve(false)} className="!bg-red-800">
+        <Button onClick={() => resolve(false)} className="!bg-red-700 !text-white">
           Cancel my subscription
         </Button>
-      </div>
+      </ModalFooter>
     </div>
   );
 };
@@ -182,7 +183,7 @@ const Info: FC<{
   const t = useT();
 
   return (
-    <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px]">
+    <div className="relative flex gap-[20px] flex-col flex-1">
       <div>
         {t(
           'would_you_mind_shortly_tell_us_what_we_could_have_done_better',
@@ -324,7 +325,7 @@ export const MainBillingComponent: FC<{
                   title: 'Before you cancel',
                   withCloseButton: true,
                   classNames: {
-                    modal: 'bg-transparent text-textColor',
+                    modal: 'text-textColor',
                   },
                   children: <Accept resolve={res} />,
                 });
@@ -345,7 +346,7 @@ export const MainBillingComponent: FC<{
                 ),
                 withCloseButton: true,
                 classNames: {
-                  modal: 'bg-transparent text-textColor',
+                  modal: 'text-textColor',
                 },
                 children: <Info proceed={(e) => res(e)} />,
               });

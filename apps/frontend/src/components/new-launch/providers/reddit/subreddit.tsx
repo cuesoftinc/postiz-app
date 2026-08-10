@@ -38,10 +38,15 @@ export const RenderOptions: FC<{
     })) || [];
   }, [options]);
   return (
-    <div className="flex">
+    <div className="flex h-[36px] p-[2px] border border-newTextColor/10 bg-newTextColor/5 rounded-[8px] text-[14px] font-[500]">
       {mapValues.map((p) => (
         <Button
-          className={clsx('flex-1', p.id !== value && 'bg-secondary')}
+          secondary={p.id !== value}
+          className={clsx(
+            'flex-1 !h-full !px-[16px] !rounded-[6px] transition-colors',
+            p.id !== value &&
+              '!border-0 !text-newTextColor/60 hover:!text-newTextColor'
+          )}
           key={p.id}
           {...p}
         />
@@ -181,7 +186,7 @@ export const Subreddit: FC<{
     500
   );
   return (
-    <div className="bg-primary p-[20px]">
+    <div className="bg-newBgColorInner border border-newTableBorder rounded-[8px] p-[16px]">
       {value?.subreddit ? (
         <>
           <Input
@@ -251,12 +256,12 @@ export const Subreddit: FC<{
             }}
           />
           {!!results.length && !loading && (
-            <div className="z-[400] w-full absolute bg-input -mt-[20px] outline-none border-fifth border cursor-pointer">
+            <div className="z-[400] w-full absolute bg-newBgColorInner -mt-[20px] outline-none border-newTableBorder border rounded-[8px] shadow-menu overflow-hidden cursor-pointer">
               {results.map((r: { id: string; name: string }) => (
                 <div
                   onClick={setResult(r)}
                   key={r.id}
-                  className="px-[16px] py-[5px] hover:bg-secondary"
+                  className="px-[16px] py-[5px] hover:bg-boxHover"
                 >
                   {r.name}
                 </div>

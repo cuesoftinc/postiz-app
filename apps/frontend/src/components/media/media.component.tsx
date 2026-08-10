@@ -137,7 +137,7 @@ export const Pagination: FC<{
       {paginationItems.map((item, index) => (
         <li key={index}>
           {item === '...' ? (
-            <span className="inline-flex items-center justify-center h-10 w-10 text-textColor select-none">
+            <span className="inline-flex items-center justify-center h-[36px] w-[36px] text-textItemBlur select-none">
               ...
             </span>
           ) : (
@@ -564,7 +564,9 @@ export const MediaBox: FC<{
                         onClick={deleteImage(media)}
                       />
                     )}
-                    <div className="absolute bottom-[10px] end-[10px] z-[100]">{media.originalName}</div>
+                    <div className="absolute bottom-[10px] end-[10px] z-[100] text-[10px] text-white bg-black/50 px-[4px] rounded truncate max-w-[90%]">
+                      {media.originalName}
+                    </div>
                     <div className="w-full h-full rounded-[6px] overflow-hidden relative">
                       <div className="absolute z-[20] left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
                         <div
@@ -773,7 +775,7 @@ export const MultiMediaComponent: FC<{
               handle=".dragging"
             >
               {currentMedia.map((media, index) => (
-                  <div key={media.id} className="cursor-pointer rounded-[5px] w-[40px] h-[40px] border border-newTableBorder relative flex transition-all">
+                  <div key={media.id} className="cursor-pointer rounded-[6px] w-[40px] h-[40px] border border-newTableBorder relative flex transition-all">
                     <DragHandleIcon className="z-[20] dragging absolute pe-[1px] pb-[3px] -start-[4px] -top-[4px] cursor-move" />
 
                     <div className="w-full h-full relative group">
@@ -805,7 +807,7 @@ export const MultiMediaComponent: FC<{
                             ),
                           });
                         }}
-                        className="absolute top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%] bg-black/80 rounded-[10px] opacity-0 group-hover:opacity-100 transition-opacity z-[9]"
+                        className="absolute top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%] bg-black/80 rounded-[6px] opacity-0 group-hover:opacity-100 transition-opacity z-[9]"
                       >
                         <MediaSettingsIcon className="cursor-pointer relative z-[200]" />
                       </div>
@@ -839,7 +841,7 @@ export const MultiMediaComponent: FC<{
                   <div>
                     <InsertMediaIcon />
                   </div>
-                  <div className="text-[10px] font-[600] maxMedia:hidden block">
+                  <div className="text-[11px] font-[600] maxMedia:hidden block">
                     {t('insert_media', 'Insert Media')}
                   </div>
                 </div>
@@ -852,7 +854,7 @@ export const MultiMediaComponent: FC<{
                   <div>
                     <DesignMediaIcon />
                   </div>
-                  <div className="text-[10px] font-[600] iconBreak:hidden block">
+                  <div className="text-[11px] font-[600] iconBreak:hidden block">
                     {t('design_media', 'Design Media')}
                   </div>
                 </div>

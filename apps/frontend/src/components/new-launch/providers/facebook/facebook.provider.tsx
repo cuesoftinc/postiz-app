@@ -105,7 +105,7 @@ export const FacebookSettings = () => {
               );
             })}
           </Select>
-          <div className="text-[12px] opacity-70 mt-[8px]">
+          <div className="text-[12px] text-newTextColor/60 mt-[8px]">
             {t(
               'facebook_background_note',
               'Unofficial list: the colors shown are approximate, an unsupported background is dropped (published as plain text)'

@@ -12,6 +12,7 @@ import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { Subreddit } from './subreddit';
 import { LemmySettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/lemmy.dto';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { CloseIcon } from '@gitroom/frontend/components/ui/icons';
 const LemmySettings: FC = () => {
   const { register, control } = useSettings();
   const { fields, append, remove } = useFieldArray({
@@ -46,9 +47,9 @@ const LemmySettings: FC = () => {
           <div key={field.id} className="flex flex-col relative">
             <div
               onClick={deleteField(index)}
-              className="absolute -start-[10px] justify-center items-center flex -top-[10px] w-[20px] h-[20px] bg-red-600 rounded-full text-textColor"
+              className="absolute -start-[10px] justify-center items-center flex -top-[10px] w-[20px] h-[20px] bg-[#FF3F3F] rounded-full text-white"
             >
-              x
+              <CloseIcon size={10} />
             </div>
             <Subreddit {...register(`subreddit.${index}.value`)} />
           </div>
@@ -56,7 +57,7 @@ const LemmySettings: FC = () => {
       </div>
       <Button onClick={addField}>{t('add_community', 'Add Community')}</Button>
       {fields.length === 0 && (
-        <div className="text-red-500 text-[12px] mt-[10px]">
+        <div className="text-[#FF3F3F] text-[12px] mt-[10px]">
           {t(
             'please_add_at_least_one_subreddit',
             'Please add at least one Subreddit'

@@ -10,6 +10,7 @@ import clsx from 'clsx';
 import { VideoFrame } from '@gitroom/react/helpers/video.frame';
 import { Pagination } from '@gitroom/frontend/components/media/media.component';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
+import { ChevronLeftIcon } from '@gitroom/frontend/components/ui/icons';
 
 const ThirdPartyMediaLibraryBrowser: FC<{
   integration: any;
@@ -162,14 +163,14 @@ const ThirdPartyMediaLibraryBrowser: FC<{
       <div className="flex justify-end gap-[8px]">
         <button
           onClick={() => modals.closeCurrent()}
-          className="cursor-pointer h-[52px] px-[20px] items-center justify-center border border-newTextColor/10 flex rounded-[10px]"
+          className="cursor-pointer h-[40px] px-[16px] text-[14px] items-center justify-center border border-newTableBorder flex rounded-[8px] hover:bg-boxHover"
         >
           {t('cancel', 'Cancel')}
         </button>
         <button
           onClick={importSelected}
           disabled={!selected.length || importing}
-          className="cursor-pointer text-white disabled:opacity-80 disabled:cursor-not-allowed h-[52px] px-[20px] items-center justify-center bg-btnPrimary flex rounded-[10px] gap-[8px]"
+          className="cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed h-[40px] px-[16px] text-[14px] font-[600] items-center justify-center bg-btnPrimary flex rounded-[8px] gap-[8px]"
         >
           {importing && (
             <div className="animate-spin h-[16px] w-[16px] border-2 border-black border-t-transparent rounded-full" />
@@ -191,12 +192,14 @@ const ThirdPartyMediaLibraryPicker: FC<{
   if (selected) {
     return (
       <div className="flex flex-col h-full">
-        <div
-          className="cursor-pointer mb-[10px]"
+        <button
+          type="button"
+          className="cursor-pointer mb-[10px] self-start flex items-center gap-[4px] text-[14px] text-newTextColor/60 hover:text-newTextColor transition-colors"
           onClick={() => setSelected(null)}
         >
-          {'<'} {t('back', 'Back')}
-        </div>
+          <ChevronLeftIcon size={16} />
+          {t('back', 'Back')}
+        </button>
         <ThirdPartyMediaLibraryBrowser
           integration={selected}
           onImported={onImported}
@@ -211,7 +214,7 @@ const ThirdPartyMediaLibraryPicker: FC<{
         <div
           key={p.id}
           onClick={() => setSelected(p)}
-          className="w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[8px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer"
+          className="w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[12px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer"
         >
           <div>
             <img
@@ -219,10 +222,12 @@ const ThirdPartyMediaLibraryPicker: FC<{
               src={`/icons/third-party/${p.identifier}.png`}
             />
           </div>
-          <div className="whitespace-pre-wrap text-left text-lg">
+          <div className="whitespace-pre-wrap text-left text-[15px] font-[600]">
             {p.title}: {p.name}
           </div>
-          <div className="whitespace-pre-wrap text-left">{p.description}</div>
+          <div className="whitespace-pre-wrap text-left text-[14px] text-newTextColor/60">
+            {p.description}
+          </div>
         </div>
       ))}
     </div>

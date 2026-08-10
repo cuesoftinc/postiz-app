@@ -228,7 +228,7 @@ export const ShowAllProviders = forwardRef((props, ref) => {
           }}
         >
           {global?.[0]?.content?.length === 0 ? (
-            <div>
+            <div className="text-[13px] text-newTextColor/60">
               {t(
                 'start_writing_your_post',
                 'Start writing your post for a preview'

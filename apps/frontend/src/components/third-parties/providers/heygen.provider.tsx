@@ -43,10 +43,8 @@ const SelectAvatarComponent: FC<{
           }}
           key={p.avatar_id}
           className={clsx(
-            'w-full h-full p-[20px] min-h-[100px] text-[14px] hover:bg-input transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer',
-            current?.avatar_id === p.avatar_id
-              ? 'bg-input border border-red-500'
-              : 'bg-third'
+            'w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[12px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer',
+            current?.avatar_id === p.avatar_id && 'border border-forth'
           )}
         >
           <div>
@@ -79,10 +77,8 @@ const SelectVoiceComponent: FC<{
           }}
           key={p.avatar_id}
           className={clsx(
-            'w-full h-full p-[20px] min-h-[100px] text-[14px] hover:bg-input transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer',
-            current?.voice_id === p.voice_id
-              ? 'bg-input border border-red-500'
-              : 'bg-third'
+            'w-full h-full p-[20px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[12px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer',
+            current?.voice_id === p.voice_id && 'border border-forth'
           )}
         >
           <div className="text-[14px] text-balance whitespace-pre-line">
@@ -158,13 +154,15 @@ const HeygenProviderComponent = () => {
   return (
     <div>
       {form.formState.isSubmitting && (
-        <div className="fixed left-0 top-0 w-full leading-[50px] pt-[200px] h-screen bg-black/90 z-50 flex flex-col justify-center items-center text-center text-3xl">
-          Grab a coffee and relax, this may take a while...
-          <br />
-          You can also track the progress directly in HeyGen Dashboard.
-          <br />
-          DO NOT CLOSE THIS WINDOW!
-          <br />
+        <div className="fixed left-0 top-0 w-full h-screen bg-black/90 z-50 flex flex-col justify-center items-center text-center gap-[12px] p-[20px]">
+          <div data-cs className="text-[18px] font-[600] font-display">
+            Grab a coffee and relax, this may take a while...
+          </div>
+          <div className="text-[14px] text-newTextColor/60">
+            You can also track the progress directly in the HeyGen dashboard.
+            <br />
+            Do not close this window.
+          </div>
           <LoadingComponent width={200} height={200} />
         </div>
       )}
@@ -192,7 +190,9 @@ const HeygenProviderComponent = () => {
             ))}
           </Select>
 
-          <div className="text-lg mb-3">Voice to generate</div>
+          <div className="text-[15px] font-[600] mb-[12px]">
+            Voice to generate
+          </div>
           {!hideVoiceGenerator && (
             <Button onClick={generateVoice} loading={voiceLoading}>
               Generate Voice From My Post Text
@@ -201,7 +201,9 @@ const HeygenProviderComponent = () => {
           <Textarea label="" {...form.register('voice')} />
           {!!data?.length && (
             <>
-              <div className="text-lg my-3">Select Avatar</div>
+              <div className="text-[15px] font-[600] my-[12px]">
+                Select Avatar
+              </div>
               <SelectAvatarComponent
                 avatarList={data.map((p: any) => ({
                   avatar_id: p.avatar_id || p.id,
@@ -226,7 +228,9 @@ const HeygenProviderComponent = () => {
 
           {!!voices?.length && (
             <>
-              <div className="text-lg my-3">Select Voice</div>
+              <div className="text-[15px] font-[600] my-[12px]">
+                Select Voice
+              </div>
               <SelectVoiceComponent
                 voiceList={voices}
                 onChange={(id: string) => form.setValue('selectedVoice', id)}

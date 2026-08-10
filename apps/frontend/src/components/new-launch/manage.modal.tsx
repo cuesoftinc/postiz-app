@@ -103,7 +103,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       return (
         <div className="flex items-center gap-[10px]">
           <div className="relative">
-            <SettingsIcon size={15} className="text-white" />
+            <SettingsIcon size={15} className="text-newTextColor" />
           </div>
           <div>Settings</div>
         </div>
@@ -122,7 +122,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           />
           <SettingsIcon
             size={15}
-            className="text-white absolute -end-[5px] -bottom-[5px]"
+            className="text-newTextColor absolute -end-[5px] -bottom-[5px]"
           />
         </div>
         <div>
@@ -505,17 +505,17 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   <div
                     onClick={() => setShowSettings(!showSettings)}
                     className={clsx(
-                      'bg-forth rounded-[8px] flex items-center gap-[8px] cursor-pointer p-[12px]',
+                      'bg-newTextColor/10 rounded-[8px] flex items-center gap-[8px] cursor-pointer p-[12px]',
                       showSettings ? '!rounded-b-none' : ''
                     )}
                   >
-                    <div className="flex-1 text-[14px] font-[600] text-white">
+                    <div className="flex-1 text-[14px] font-[600] text-newTextColor">
                       {currentIntegrationText}
                     </div>
                     <div>
                       <ChevronDownIcon
                         rotated={showSettings}
-                        className="text-white"
+                        className="text-newTextColor"
                       />
                     </div>
                   </div>
@@ -539,14 +539,17 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               </div>
             </div>
           </div>
-          <div className="w-[580px] flex flex-col">
+          <div className="w-[420px] flex flex-col">
             {/* Panel heading 16px/600 per spec; the X becomes a quiet 36px
                 icon button (newTextColor/10 hover = white-alpha in dark,
                 black-alpha in light). */}
             <div className="h-[65px] border-b border-newBorder flex items-center px-[16px] text-[16px] font-[600]">
-              <div className="flex-1">{t('post_preview', 'Post Preview')}</div>
-              <div className="cursor-pointer flex items-center justify-center w-[36px] h-[36px] rounded-[8px] hover:bg-newTextColor/10 transition-colors">
-                <CloseIcon onClick={askClose} className="text-newTextColor/60" />
+              <div className="flex-1">{t('post_preview', 'Post Previews')}</div>
+              <div
+                onClick={askClose}
+                className="cursor-pointer flex items-center justify-center w-[36px] h-[36px] rounded-[8px] hover:bg-newTextColor/10 transition-colors"
+              >
+                <CloseIcon className="text-newTextColor/60" />
               </div>
             </div>
             <div className="flex-1 relative">
@@ -674,7 +677,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                     disabled={
                       selectedIntegrations.length === 0 || loading || locked
                     }
-                    className="rounded-[16px] z-[300] disabled:cursor-not-allowed disabled:opacity-80 hidden group-hover:flex absolute bottom-[100%] -left-[12px] p-[12px] w-[206px] bg-newBgColorInner"
+                    className="rounded-[16px] z-[300] disabled:cursor-not-allowed disabled:opacity-80 hidden group-hover:flex absolute bottom-[100%] -left-[12px] p-[12px] w-[206px] bg-newBgColorInner border border-newTableBorder shadow-menu"
                   >
                     <div
                       data-cs

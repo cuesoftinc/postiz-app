@@ -248,7 +248,7 @@ export const withProvider = function <T extends object>(params: {
               (tab === 0 ||
                 (!SettingsComponent && !data?.internalPlugs?.length)) &&
               !value?.[0]?.content?.length && (
-                <div>
+                <div className="text-[13px] text-newTextColor/60">
                   {t(
                     'start_writing_your_post',
                     'Start writing your post for a preview'
@@ -297,9 +297,9 @@ export const withProvider = function <T extends object>(params: {
                       <div className="relative">
                         <SafeImage
                           alt={selectedIntegration?.integration.name!}
-                          width={42}
-                          height={42}
-                          className="min-w-[42px] min-h-[42px] w-[42px] h-[42px] rounded-full"
+                          width={40}
+                          height={40}
+                          className="min-w-[40px] min-h-[40px] w-[40px] h-[40px] rounded-full"
                           src={selectedIntegration?.integration.picture}
                         />
                         <SafeImage

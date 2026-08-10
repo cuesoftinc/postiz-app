@@ -51,7 +51,10 @@ export const Autopost: FC = () => {
           method: 'DELETE',
         });
         mutate();
-        toaster.show(t('webhook_deleted_successfully', 'Webhook deleted successfully'), 'success');
+        toaster.show(
+          t('autopost_deleted_successfully', 'Autopost deleted successfully'),
+          'success'
+        );
       }
     },
     []
@@ -79,7 +82,7 @@ export const Autopost: FC = () => {
       <div className="text-[14px] text-textItemBlur mt-[4px]">
         {t(
           'autopost_can_automatically_posts_your_rss_new_items_to_social_media',
-          'Autopost can automatically posts your RSS new items to social media'
+          'Autopost can automatically post your new RSS items to social media.'
         )}
       </div>
       <div className="my-[16px] pt-[16px] border-t border-newTableBorder items-center flex gap-[16px]">

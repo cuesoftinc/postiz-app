@@ -277,9 +277,9 @@ export const Filters = () => {
 
   const listStateOptions: { value: ListStateFilter; label: string }[] = [
     { value: 'all', label: t('all', 'All') },
-    { value: 'scheduled', label: t('scheduled', 'Scheduled') },
-    { value: 'draft', label: t('draft', 'Draft') },
-    { value: 'published', label: t('published', 'Published') },
+    { value: 'scheduled', label: t('scheduled', 'Queue') },
+    { value: 'draft', label: t('drafts', 'Drafts') },
+    { value: 'published', label: t('published', 'Sent') },
   ];
 
   const previousPage = useCallback(() => {
@@ -363,10 +363,10 @@ export const Filters = () => {
             <div
               onClick={previousPage}
               className={clsx(
-                'text-newTextColor/70 rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center',
+                'rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center',
                 calendar.listPage > 0
-                  ? 'cursor-pointer hover:bg-newTextColor/10 hover:text-newTextColor'
-                  : 'opacity-50 cursor-not-allowed'
+                  ? 'text-newTextColor/70 cursor-pointer hover:bg-newTextColor/10 hover:text-newTextColor'
+                  : 'text-newTextColor/30 cursor-not-allowed'
               )}
             >
               <svg
@@ -393,10 +393,10 @@ export const Filters = () => {
             <div
               onClick={nextPage}
               className={clsx(
-                'text-newTextColor/70 rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center',
+                'rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center',
                 calendar.listPage < calendar.listTotalPages - 1
-                  ? 'cursor-pointer hover:bg-newTextColor/10 hover:text-newTextColor'
-                  : 'opacity-50 cursor-not-allowed'
+                  ? 'text-newTextColor/70 cursor-pointer hover:bg-newTextColor/10 hover:text-newTextColor'
+                  : 'text-newTextColor/30 cursor-not-allowed'
               )}
             >
               <svg

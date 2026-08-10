@@ -12,6 +12,7 @@ import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-a
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
+import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 
 export const ThirdPartyMenuComponent: FC<{
   reload: () => void;
@@ -123,8 +124,12 @@ export const ThirdPartyComponent = () => {
         <div className="text-[12px] uppercase tracking-[0.08em] text-newTextColor/60">
           {t('connected', 'Connected')}
         </div>
-        {!isLoading && !data?.length ? (
-          <EmptyState title={t('no_integrations_yet', 'No Integrations Yet')} />
+        {isLoading ? (
+          <div className="flex justify-center py-[20px]">
+            <LoadingComponent />
+          </div>
+        ) : !data?.length ? (
+          <EmptyState title={t('no_integrations_yet', 'No integrations yet')} />
         ) : data?.length ? (
           // Bordered card list (radius 12). No overflow-hidden: the kebab's
           // DropdownPanel is `absolute top-[100%]` and must escape the card;

@@ -165,7 +165,7 @@ export const SettingsPopup: FC<{
       arr.push({ tab: 'webhooks', label: t('webhooks_1', 'Webhooks') });
     }
     if (user?.tier?.autoPost) {
-      arr.push({ tab: 'autopost', label: t('auto_post', 'Auto Post') });
+      arr.push({ tab: 'autopost', label: t('auto_post', 'Autopost') });
     }
     if (user?.tier.current !== 'FREE') {
       arr.push({ tab: 'sets', label: t('sets', 'Sets') });
@@ -225,12 +225,7 @@ export const SettingsPopup: FC<{
             {!!getRef && (
               <button type="submit" className="hidden" ref={getRef}></button>
             )}
-            <div
-              className={clsx(
-                'w-full mx-auto gap-[24px] flex flex-col relative',
-                !getRef && 'rounded-[4px]'
-              )}
-            >
+            <div className="w-full mx-auto gap-[24px] flex flex-col relative">
               {tab === 'global_settings' && (
                 <div>
                   <GlobalSettings />
@@ -296,7 +291,7 @@ export const SettingsComponent = () => {
     }
     settings.openModal({
       children: (
-        <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] border border-customColor6 bg-sixth p-[16px] w-[500px] mx-auto">
+        <div className="relative flex gap-[20px] flex-col flex-1 rounded-[16px] border border-newTableBorder bg-newBgColorInner p-[16px] w-[500px] mx-auto">
           <SettingsPopup />
         </div>
       ),

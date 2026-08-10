@@ -9,6 +9,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Button } from '@gitroom/react/form/button';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
+import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 
 type AnnouncementColor = 'INFO' | 'WARNING' | 'ERROR';
 
@@ -21,7 +22,7 @@ interface Announcement {
 }
 
 const colorStyles: Record<AnnouncementColor, { bg: string; hover: string }> = {
-  INFO: { bg: 'bg-blue-600', hover: 'hover:bg-blue-500' },
+  INFO: { bg: 'bg-[#325ea6]', hover: 'hover:bg-[#3d6eb8]' },
   WARNING: { bg: 'bg-amber-600', hover: 'hover:bg-amber-500' },
   ERROR: { bg: 'bg-red-600', hover: 'hover:bg-red-500' },
 };
@@ -80,15 +81,15 @@ const AnnouncementDetailModal: FC<{
         {announcement.description}
       </div>
       {isAdmin && (
-        <div className="flex justify-end">
+        <ModalFooter>
           <Button
             onClick={handleDelete}
             loading={deleting}
-            className="!bg-red-700 rounded-[4px]"
+            className="!bg-red-700 !text-white"
           >
             {t('delete_announcement', 'Delete Announcement')}
           </Button>
-        </div>
+        </ModalFooter>
       )}
     </ModalBody>
   );
@@ -142,7 +143,7 @@ export const AnnouncementBanner: FC = () => {
     >
       {latest.title}
       {announcements.length > 1 && (
-        <span className="ml-[8px] opacity-70">
+        <span className="ml-[8px] text-white/70">
           (+{announcements.length - 1} {t('more', 'more')})
         </span>
       )}
