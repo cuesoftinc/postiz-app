@@ -64,15 +64,15 @@ export const Checkbox = forwardRef<
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
-              width="20"
-              height="20"
+              width="16"
+              height="16"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <polyline points="20 6 9 17 4 12"></polyline>
+              <path d="M20 6 9 17l-5-5" />
             </svg>
           </div>
         )}
