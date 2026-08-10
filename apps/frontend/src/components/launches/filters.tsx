@@ -1322,10 +1322,10 @@ export const Filters = () => {
         </div>
       )}
       {isListView && (
-        <div className="flex flex-grow flex-row items-center gap-[10px]">
+        <div className="flex flex-grow flex-row items-end gap-[10px]">
           {/* Buffer shows no pager at all on a single page; when it must
               exist (>100 posts) it trails the tabs */}
-          <div className={clsx('order-3 h-[36px] gap-[2px] flex items-center', calendar.listTotalPages <= 1 && 'hidden')}>
+          <div className={clsx('order-3 h-[36px] mb-[8px] gap-[2px] flex items-center', calendar.listTotalPages <= 1 && 'hidden')}>
             <div
               onClick={previousPage}
               className={clsx(
@@ -1378,7 +1378,9 @@ export const Filters = () => {
               </svg>
             </div>
           </div>
-          <div className="order-1 flex flex-row h-[36px] gap-[28px] text-[14px] font-[500] phone:hidden">
+          {/* Buffer: 45px tabs (12px air under the label), underline on the
+              rule; filters ride 8px above it */}
+          <div className="order-1 flex flex-row h-[45px] gap-[28px] text-[14px] font-[500] phone:hidden">
             {listStateOptions.map((option) => (
               <Fragment key={option.value}>
                 {/* Buffer's Approvals tab sits between Drafts and Sent
@@ -1421,7 +1423,7 @@ export const Filters = () => {
           </div>
           {/* Buffer mobile compresses the state tabs into a "Queue 12 ▾"
               dropdown — same setter, same options */}
-          <div className="order-2 hidden phone:block relative" ref={stateDdRef}>
+          <div className="order-2 hidden phone:block relative self-center" ref={stateDdRef}>
             <button
               type="button"
               onClick={() => setStateDdOpen((v) => !v)}
@@ -1470,7 +1472,15 @@ export const Filters = () => {
           the customer selector is a Postiz capability kept before timezone).
           The List|Calendar view segmented moved up into PageHeader. On phone
           the whole group collapses behind Buffer's funnel → bottom sheet. */}
-      <div className="contents phone:hidden">
+      <div
+        className={clsx(
+          // list view: a real flex wrapper so the filter cluster can sit
+          // Buffer's measured 8px above the hairline track
+          isListView
+            ? 'flex items-center gap-[8px] self-end mb-[8px] phone:hidden'
+            : 'contents phone:hidden'
+        )}
+      >
         <ChannelsFilter />
         {!isListView && <StateFilter />}
         <TagsFilter />
