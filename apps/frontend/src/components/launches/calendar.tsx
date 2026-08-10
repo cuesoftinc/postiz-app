@@ -1042,6 +1042,11 @@ const CalendarItem: FC<{
   const preview = useCallback(() => {
     window.open(`/p/` + post.id + '?share=true', '_blank');
   }, [post]);
+  // Buffer parity: the card actions live in a labeled dropdown behind one
+  // kebab, not a row of bare icons. Same handlers, new surface.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuItemCls =
+    'flex items-center gap-[10px] px-[10px] py-[7px] rounded-[6px] hover:bg-boxHover cursor-pointer text-[13px] whitespace-nowrap text-newTextColor';
   const [{ opacity }, dragRef] = useDrag(
     () => ({
       type: 'post',
@@ -1102,70 +1107,110 @@ const CalendarItem: FC<{
         >
           {post.tags.map((p) => p.tag.name).join(', ')}
         </div>
-        {copyDebugJson && (
-          <div
-            className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
-              post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-            )}
-            onClick={copyDebugJson}
-          >
-            <CopyDebug />
-          </div>
-        )}
         <div
           className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
+            'hidden group-hover:flex items-center cursor-pointer px-[4px]',
             post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
           )}
-          onClick={duplicatePost}
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen((v) => !v);
+          }}
         >
-          <Duplicate />
-        </div>
-        <div
-          className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
-            post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-          )}
-          onClick={preview}
-        >
-          <Preview />
-        </div>{' '}
-        {((post.integration.providerIdentifier === 'x' && disableXAnalytics) || !post.releaseId) ? (
-          <></>
-        ) : post.releaseId === 'missing' && missingRelease ? (
-          <div
-            className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
-              post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-            )}
-            onClick={missingRelease}
-          >
-            <Statistics />
-          </div>
-        ) : post.releaseId !== 'missing' ? (
-          <div
-            className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
-              post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-            )}
-            onClick={statistics}
-          >
-            <Statistics />
-          </div>
-        ) : (
-          <></>
-        )}{' '}
-        <div
-          className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
-            post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-          )}
-          onClick={deletePost}
-        >
-          <DeletePost />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="5" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="12" cy="19" r="2" />
+          </svg>
         </div>
       </div>
+      {menuOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-[290]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(false);
+            }}
+          />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-[26px] end-0 z-[300] min-w-[180px] p-[6px] bg-fifth rounded-[8px] border border-tableBorder flex flex-col"
+          >
+            <div
+              className={menuItemCls}
+              onClick={() => {
+                setMenuOpen(false);
+                preview();
+              }}
+            >
+              <Preview />
+              {t('post_details', 'Post Details')}
+            </div>
+            <div
+              className={menuItemCls}
+              onClick={() => {
+                setMenuOpen(false);
+                duplicatePost();
+              }}
+            >
+              <Duplicate />
+              {t('duplicate', 'Duplicate')}
+            </div>
+            {!(
+              (post.integration.providerIdentifier === 'x' &&
+                disableXAnalytics) ||
+              !post.releaseId
+            ) &&
+              (post.releaseId === 'missing' && missingRelease ? (
+                <div
+                  className={menuItemCls}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    missingRelease();
+                  }}
+                >
+                  <Statistics />
+                  {t('statistics', 'Statistics')}
+                </div>
+              ) : post.releaseId !== 'missing' ? (
+                <div
+                  className={menuItemCls}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    statistics();
+                  }}
+                >
+                  <Statistics />
+                  {t('statistics', 'Statistics')}
+                </div>
+              ) : null)}
+            {copyDebugJson && (
+              <div
+                className={menuItemCls}
+                onClick={() => {
+                  setMenuOpen(false);
+                  copyDebugJson();
+                }}
+              >
+                <CopyDebug />
+                {t('copy_debug_json', 'Copy Debug JSON')}
+              </div>
+            )}
+            <div className="h-[1px] bg-tableBorder my-[4px]" />
+            <div
+              className={clsx(menuItemCls, '!text-red-400')}
+              onClick={() => {
+                setMenuOpen(false);
+                deletePost();
+              }}
+            >
+              <DeletePost />
+              {t('delete', 'Delete')}
+            </div>
+          </div>
+        </>
+      )}
       <div
         onClick={editPost}
         className={clsx(
