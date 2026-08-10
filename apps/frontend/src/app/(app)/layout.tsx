@@ -1,5 +1,5 @@
 import { SentryComponent } from '@gitroom/frontend/components/layout/sentry.component';
-import { Inter, Outfit } from 'next/font/google';
+import { Inter, Outfit, Fustat } from 'next/font/google';
 
 export const dynamic = 'force-dynamic';
 import '../global.scss';
@@ -28,6 +28,8 @@ import { ChangeDirClient } from '@gitroom/frontend/components/new-layout/change.
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
+// Brand wordmark face — "cuesoft" is always lowercase in Fustat
+const fustat = Fustat({ subsets: ['latin'], variable: '--font-fustat' });
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
@@ -50,7 +52,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </head>
       <ChangeDirClient />
       <body
-        className={clsx(inter.variable, outfit.variable, 'font-sans', 'dark text-primary !bg-primary')}
+        className={clsx(inter.variable, outfit.variable, fustat.variable, 'font-sans', 'dark text-primary !bg-primary')}
       >
         <VariableContextComponent
           storageProvider={

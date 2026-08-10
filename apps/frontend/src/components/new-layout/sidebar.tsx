@@ -1058,13 +1058,14 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
               height={collapsed ? 24 : 28}
               className="block dark:hidden object-contain"
             />
-            {/* Buffer anchors the sidebar with mark + bold wordmark */}
+            {/* Buffer anchors the sidebar with mark + wordmark. Brand rule:
+                "cuesoft" is always lowercase, set in Fustat. */}
             {!collapsed && (
               <span
                 data-cs
-                className="ms-[8px] font-display text-[20px] font-[700] leading-none text-newTextColor"
+                className="ms-[8px] [font-family:var(--font-fustat)] text-[20px] font-[700] leading-none text-newTextColor"
               >
-                Cuesoft
+                cuesoft
               </span>
             )}
           </Link>

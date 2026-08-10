@@ -136,11 +136,12 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       height={24}
                       className="block dark:hidden object-contain"
                     />
+                    {/* brand rule: lowercase "cuesoft" in Fustat */}
                     <span
                       data-cs
-                      className="font-display text-[20px] font-[700] text-newTextColor"
+                      className="[font-family:var(--font-fustat)] text-[20px] font-[700] text-newTextColor"
                     >
-                      Cuesoft
+                      cuesoft
                     </span>
                     <div className="flex-1" />
                     <StreakComponent />
