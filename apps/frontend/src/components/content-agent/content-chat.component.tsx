@@ -235,7 +235,9 @@ export const ContentChatComponent: FC<{
     // (agent.chat.tsx) — exact `h` because this pane's list is in-flow, so a
     // min-h alone would let history grow the pane past the viewport
     <div
-      className="flex flex-col flex-1 min-h-0 pb-[56px] phone:h-[65dvh]"
+      // px/pb: the pane's seam lines must never touch the composer box (the
+      // messages align to the same inset)
+      className="flex flex-col flex-1 min-h-0 px-[16px] pb-[56px] phone:h-[65dvh] phone:px-[12px]"
       data-cs
     >
       {/* messages — scrollbar chrome matches the sibling kit panes (Threads
