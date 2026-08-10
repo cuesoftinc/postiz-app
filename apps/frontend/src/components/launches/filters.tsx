@@ -306,22 +306,20 @@ export const Filters = () => {
           <div className="h-[36px] gap-[2px] flex items-center">
             <div
               onClick={previous}
-              className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center hover:bg-newTextColor/10 hover:text-newTextColor"
+              className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center hover:bg-newTextColor/10 hover:text-newTextColor transition-colors duration-150"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="8"
-                height="12"
-                viewBox="0 0 8 12"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
                 fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path
-                  d="M6.5 11L1.5 6L6.5 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="m15 18-6-6 6-6" />
               </svg>
             </div>
             <div className="min-w-[200px] text-center h-full flex items-center justify-center">
@@ -331,22 +329,20 @@ export const Filters = () => {
             </div>
             <div
               onClick={next}
-              className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center hover:bg-newTextColor/10 hover:text-newTextColor"
+              className="cursor-pointer text-newTextColor/70 rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center hover:bg-newTextColor/10 hover:text-newTextColor transition-colors duration-150"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="8"
-                height="12"
-                viewBox="0 0 8 12"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
                 fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path
-                  d="M1.5 11L6.5 6L1.5 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="m9 18 6-6-6-6" />
               </svg>
             </div>
           </div>
@@ -368,7 +364,7 @@ export const Filters = () => {
             <div
               onClick={previousPage}
               className={clsx(
-                'rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center',
+                'rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center transition-colors duration-150',
                 calendar.listPage > 0
                   ? 'text-newTextColor/70 cursor-pointer hover:bg-newTextColor/10 hover:text-newTextColor'
                   : 'text-newTextColor/30 cursor-not-allowed'
@@ -376,18 +372,16 @@ export const Filters = () => {
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="8"
-                height="12"
-                viewBox="0 0 8 12"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
                 fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path
-                  d="M6.5 11L1.5 6L6.5 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="m15 18-6-6 6-6" />
               </svg>
             </div>
             <div className="min-w-[200px] text-center h-full flex items-center justify-center">
@@ -398,7 +392,7 @@ export const Filters = () => {
             <div
               onClick={nextPage}
               className={clsx(
-                'rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center',
+                'rtl:rotate-180 w-[28px] h-[28px] rounded-[6px] flex items-center justify-center transition-colors duration-150',
                 calendar.listPage < calendar.listTotalPages - 1
                   ? 'text-newTextColor/70 cursor-pointer hover:bg-newTextColor/10 hover:text-newTextColor'
                   : 'text-newTextColor/30 cursor-not-allowed'
@@ -406,18 +400,16 @@ export const Filters = () => {
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="8"
-                height="12"
-                viewBox="0 0 8 12"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
                 fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path
-                  d="M1.5 11L6.5 6L1.5 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="m9 18 6-6-6-6" />
               </svg>
             </div>
           </div>
@@ -450,8 +442,8 @@ export const Filters = () => {
               <span className="text-[13px] font-[400] text-newTextColor/60">
                 {calendar.listTotal}
               </span>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <path d="m6 9 6 6 6-6" />
               </svg>
             </button>
             {stateDdOpen && (
@@ -468,7 +460,7 @@ export const Filters = () => {
                       setListStateFilter(option.value)();
                     }}
                     className={clsx(
-                      'px-[10px] py-[8px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover',
+                      'px-[10px] py-[8px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150',
                       calendar.listState === option.value
                         ? 'text-newTextColor font-[600]'
                         : 'text-newTextColor/70'
@@ -530,18 +522,19 @@ export const Filters = () => {
           {/*calendar*/}
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="17"
-            height="19"
-            viewBox="0 0 17 19"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
             fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path
-              d="M15.75 7.41667H0.75M11.5833 0.75V4.08333M4.91667 0.75V4.08333M4.75 17.4167H11.75C13.1501 17.4167 13.8502 17.4167 14.385 17.1442C14.8554 16.9045 15.2378 16.522 15.4775 16.0516C15.75 15.5169 15.75 14.8168 15.75 13.4167V6.41667C15.75 5.01654 15.75 4.31647 15.4775 3.78169C15.2378 3.31129 14.8554 2.92883 14.385 2.68915C13.8502 2.41667 13.1501 2.41667 11.75 2.41667H4.75C3.34987 2.41667 2.6498 2.41667 2.11502 2.68915C1.64462 2.92883 1.26217 3.31129 1.02248 3.78169C0.75 4.31647 0.75 5.01654 0.75 6.41667V13.4167C0.75 14.8168 0.75 15.5169 1.02248 16.0516C1.26217 16.522 1.64462 16.9045 2.11502 17.1442C2.6498 17.4167 3.34987 17.4167 4.75 17.4167Z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M8 2v4" />
+            <path d="M16 2v4" />
+            <rect width="18" height="18" x="3" y="4" rx="2" />
+            <path d="M3 10h18" />
           </svg>
         </div>
         <div
@@ -554,18 +547,21 @@ export const Filters = () => {
           {/*list*/}
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
             fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path
-              d="M17.5 10L7.5 10M17.5 5.00002L7.5 5.00002M17.5 15L7.5 15M4.16667 10C4.16667 10.4603 3.79357 10.8334 3.33333 10.8334C2.8731 10.8334 2.5 10.4603 2.5 10C2.5 9.53978 2.8731 9.16669 3.33333 9.16669C3.79357 9.16669 4.16667 9.53978 4.16667 10ZM4.16667 5.00002C4.16667 5.46026 3.79357 5.83335 3.33333 5.83335C2.8731 5.83335 2.5 5.46026 2.5 5.00002C2.5 4.53978 2.8731 4.16669 3.33333 4.16669C3.79357 4.16669 4.16667 4.53978 4.16667 5.00002ZM4.16667 15C4.16667 15.4603 3.79357 15.8334 3.33333 15.8334C2.8731 15.8334 2.5 15.4603 2.5 15C2.5 14.5398 2.8731 14.1667 3.33333 14.1667C3.79357 14.1667 4.16667 14.5398 4.16667 15Z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M3 12h.01" />
+            <path d="M3 18h.01" />
+            <path d="M3 6h.01" />
+            <path d="M8 12h13" />
+            <path d="M8 18h13" />
+            <path d="M8 6h13" />
           </svg>
         </div>
       </div>

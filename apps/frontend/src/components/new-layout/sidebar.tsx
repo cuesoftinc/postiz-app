@@ -3,6 +3,7 @@
 import React, { FC, ReactNode, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
+import useCookie from 'react-use-cookie';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { orderBy } from 'lodash';
@@ -41,9 +42,37 @@ import { StreakComponent } from '@gitroom/frontend/components/layout/streak.comp
  * Active/hover fills use CSS-var tokens only: bg-newBorder is the 10%-alpha
  * fill (white-alpha in dark, black-alpha in light — the spec's mirroring),
  * boxHover is the quieter wash.
+ *
+ * Collapse (Buffer parity): a cookie-persisted ('sidebarCollapsed', pure UI
+ * state, same react-use-cookie pattern as the panels' 'collapseMenu') 52px
+ * icon rail — logo mark 24, 32x32 green [+] square, icon-only nav rows with
+ * native title tooltips, hairline, 24px channel avatar stack (presence dots
+ * kept, same channelHref), then panel-left expand control + org mark at the
+ * bottom. The collapse control lives in the expanded org footer row; width
+ * animates 0.15s ease-in-out. The phone drawer never collapses.
  */
 
 type SidebarMenuItem = ReturnType<typeof useMenuItem>['firstMenu'][number];
+
+/** Lucide panel-left, the measured collapse/expand glyph (16x16, viewBox 24,
+ *  stroke 2.2, round caps/joins) — same icon on both the collapse control in
+ *  the expanded footer and the expand control at the rail's bottom. */
+const PanelLeftIcon: FC = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
+  </svg>
+);
 
 /** TopMenu's visibility rules, verbatim, so the sidebar and the phone bar can
  *  never disagree about which routes a user sees. */
@@ -87,13 +116,19 @@ const NavRow: FC<{
   icon: ReactNode;
   path: string;
   onClick?: () => void;
-}> = ({ label, icon, path, onClick }) => {
+  /** Icon rail mode: 32x32 icon-only square, label survives as the native
+   *  title tooltip (already set on both render branches below). */
+  collapsed?: boolean;
+}> = ({ label, icon, path, onClick, collapsed }) => {
   const currentPath = usePathname();
   // Same active test as menu-item.tsx.
   const isActive = currentPath.indexOf(path) === 0;
 
   const className = clsx(
-    'flex w-full items-center gap-[10px] h-[32px] px-[8px] rounded-[8px] text-[14px] font-[400] transition-colors',
+    'flex items-center rounded-[8px] text-[14px] font-[400] transition-[padding-inline-start,background-color,color] duration-150 ease-in-out',
+    collapsed
+      ? 'w-[32px] h-[32px] shrink-0 justify-center'
+      : 'w-full gap-[10px] h-[32px] px-[8px]',
     isActive
       ? 'bg-newBorder text-newTextColor'
       : 'text-textItemBlur hover:bg-boxHover hover:text-newTextColor'
@@ -105,7 +140,7 @@ const NavRow: FC<{
       <div className="w-[20px] h-[20px] shrink-0 flex items-center justify-center [&_svg]:max-w-[18px] [&_svg]:max-h-[18px]">
         {icon}
       </div>
-      <div className="flex-1 truncate text-start">{label}</div>
+      {!collapsed && <div className="flex-1 truncate text-start">{label}</div>}
     </>
   );
 
@@ -138,8 +173,10 @@ const channelRowClassName = (disabled?: boolean) =>
 
 /** Read-only channel list. Same sort as the launches panel. Each row opens
  *  that channel's queue (/launches?integration=<id> — the calendar context
- *  filters both views by the id); management stays in the launches panel. */
-const SidebarChannels: FC = () => {
+ *  filters both views by the id); management stays in the launches panel.
+ *  In the collapsed rail the same rows render as a bare 24px avatar stack
+ *  (presence dots kept, same channelHref navigation, name as title). */
+const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
   const t = useT();
   const { data: integrations } = useIntegrationList();
   const searchParams = useSearchParams();
@@ -165,6 +202,44 @@ const SidebarChannels: FC = () => {
     [integrations]
   );
 
+  if (collapsed) {
+    return (
+      <div className="flex flex-col items-center gap-[8px] pt-[12px]">
+        {sorted.map((integration: any) => (
+          <Link
+            key={integration.id}
+            prefetch={true}
+            href={channelHref(integration.id)}
+            title={integration.name}
+            className={clsx(
+              'relative flex shrink-0',
+              integration.disabled && 'opacity-50'
+            )}
+          >
+            <ChannelAvatar
+              picture={integration.picture}
+              identifier={integration.identifier}
+              name={integration.name}
+              size={24}
+              badgeSize={12}
+              badgeOffset="-bottom-[2px] -end-[2px]"
+              fallback="placeholder"
+              className="min-w-[24px] min-h-[24px]"
+            />
+            {!integration.disabled && (
+              <span
+                className={clsx(
+                  'absolute -top-[2px] -start-[2px] z-10 w-[8px] h-[8px] rounded-full border-2 border-newBgColor',
+                  integration.refreshNeeded ? 'bg-red-500' : 'bg-green-500'
+                )}
+              />
+            )}
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-[2px] pt-[16px]">
       <div className="px-[8px] pb-[4px] flex items-center text-[13px] text-textItemBlur">
@@ -173,11 +248,11 @@ const SidebarChannels: FC = () => {
           prefetch={true}
           href="/launches?manageChannels=1"
           title={t('manage_channels', 'Manage channels')}
-          className="w-[24px] h-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover hover:text-newTextColor"
+          className="w-[24px] h-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="1.6"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" strokeWidth="1.6"/>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/>
+            <circle cx="12" cy="12" r="3"/>
           </svg>
         </Link>
       </div>
@@ -227,12 +302,12 @@ const SidebarChannels: FC = () => {
               e.stopPropagation();
               router.push('/launches?manageChannels=1');
             }}
-            className="opacity-0 group-hover/chrow:opacity-100 focus-visible:opacity-100 w-[24px] h-[24px] min-w-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover"
+            className="opacity-0 group-hover/chrow:opacity-100 focus-visible:opacity-100 w-[24px] h-[24px] min-w-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover transition-colors duration-150"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="5" r="1.6" />
-              <circle cx="12" cy="12" r="1.6" />
-              <circle cx="12" cy="19" r="1.6" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="12" cy="5" r="1" />
+              <circle cx="12" cy="19" r="1" />
             </svg>
           </span>
         </Link>
@@ -252,7 +327,7 @@ const SidebarChannels: FC = () => {
                 prefetch={true}
                 href="/launches?manageChannels=1"
                 title={t('manage_channels', 'Manage channels')}
-                className="w-[24px] h-[24px] rounded-[6px] flex items-center justify-center hover:bg-boxHover"
+                className="w-[24px] h-[24px] rounded-[6px] flex items-center justify-center hover:bg-boxHover transition-colors duration-150"
               >
                 <img
                   src={`/icons/platforms/${identifier}.png`}
@@ -268,21 +343,21 @@ const SidebarChannels: FC = () => {
             prefetch={true}
             href="/launches?manageChannels=1"
             title={t('manage_channels', 'Manage channels')}
-            className="w-[24px] h-[24px] rounded-[6px] border border-newBorder flex items-center justify-center text-textItemBlur hover:bg-boxHover hover:text-newTextColor"
+            className="w-[24px] h-[24px] rounded-[6px] border border-newBorder flex items-center justify-center text-textItemBlur hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="12"
-              height="12"
-              viewBox="0 0 16 16"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
               fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <path
-                d="M8 3.33334V12.6667M3.33334 8H12.6667"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
             </svg>
           </Link>
         </div>
@@ -294,8 +369,13 @@ const SidebarChannels: FC = () => {
 /** Org footer row: mark 32 + org name 14 + tier 12 muted. OrganizationSelector
  *  is a header-shaped hover dropdown (and renders null for single-org users),
  *  so it does not drop in here; org switching stays in the top bar. The name
- *  reuses OrganizationSelector's own SWR key, so no new request is made. */
-const SidebarOrganization: FC = () => {
+ *  reuses OrganizationSelector's own SWR key, so no new request is made.
+ *  `onCollapse` (desktop only — the drawer never collapses) appends the
+ *  panel-left collapse control to the row, Buffer-style. */
+const SidebarOrganization: FC<{ onCollapse?: () => void }> = ({
+  onCollapse,
+}) => {
+  const t = useT();
   const fetch = useFetch();
   const user = useUser();
   const { billingEnabled } = useVariables();
@@ -347,6 +427,16 @@ const SidebarOrganization: FC = () => {
           </div>
         )}
       </div>
+      {onCollapse && (
+        <button
+          type="button"
+          onClick={onCollapse}
+          title={t('collapse_sidebar', 'Collapse sidebar')}
+          className="w-[24px] h-[24px] shrink-0 flex items-center justify-center rounded-[6px] text-textItemBlur hover:bg-boxHover hover:text-newTextColor transition-colors"
+        >
+          <PanelLeftIcon />
+        </button>
+      )}
     </div>
   );
 };
@@ -354,13 +444,15 @@ const SidebarOrganization: FC = () => {
 
 /** Buffer's "+ New" pill opens a creation menu, not the composer directly.
  *  Every item maps to an EXISTING mechanism: Post -> the composer deep link,
- *  Connect -> the manage-channels deep link, Invite -> team settings. */
-const NewMenu: FC = () => {
+ *  Connect -> the manage-channels deep link, Invite -> team settings.
+ *  Collapsed rail: the pill becomes the measured 32x32 green SQUARE (radius
+ *  8, lucide plus) — same trigger, same dropdown, same links. */
+const NewMenu: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
   const t = useT();
   const { open, toggle, ref } = useDropdown();
 
   const item =
-    'flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] hover:bg-boxHover text-[14px] text-newTextColor';
+    'flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] hover:bg-boxHover text-[14px] text-newTextColor transition-colors duration-150';
   const tile =
     'w-[36px] h-[36px] min-w-[36px] rounded-[8px] flex items-center justify-center';
 
@@ -370,23 +462,47 @@ const NewMenu: FC = () => {
         data-cs
         type="button"
         onClick={toggle}
-        className="h-[44px] w-full flex items-center justify-center gap-[8px] rounded-full bg-btnPrimary text-textItemFocused text-[14px] font-[600]"
+        title={collapsed ? t('new', 'New') : undefined}
+        className={
+          collapsed
+            ? 'w-[32px] h-[32px] mx-auto flex items-center justify-center rounded-[8px] bg-btnPrimary text-textItemFocused transition-colors duration-150'
+            : 'h-[44px] w-full flex items-center justify-center gap-[8px] rounded-full bg-btnPrimary text-textItemFocused text-[14px] font-[600] transition-colors duration-150'
+        }
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-        >
-          <path
-            d="M8 3.33334V12.6667M3.33334 8H12.6667"
+        {collapsed ? (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.2"
             strokeLinecap="round"
-          />
-        </svg>
-        {t('new', 'New')}
+            strokeLinejoin="round"
+          >
+            <path d="M5 12h14" />
+            <path d="M12 5v14" />
+          </svg>
+        ) : (
+          <>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
+            {t('new', 'New')}
+          </>
+        )}
       </button>
       {open && (
         <DropdownPanel
@@ -398,9 +514,9 @@ const NewMenu: FC = () => {
         >
           <Link prefetch={true} href="/launches?newPost=1" className={item}>
             <span className={clsx(tile, 'bg-seventh')}>
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11.6667 2.5H5.83333C5.39131 2.5 4.96738 2.67559 4.65482 2.98816C4.34226 3.30072 4.16667 3.72464 4.16667 4.16667V15.8333C4.16667 16.2754 4.34226 16.6993 4.65482 17.0118C4.96738 17.3244 5.39131 17.5 5.83333 17.5H14.1667C14.6087 17.5 15.0326 17.3244 15.3452 17.0118C15.6577 16.6993 15.8333 16.2754 15.8333 15.8333V6.66667L11.6667 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M11.6667 2.5V6.66667H15.8333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/>
+                <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
               </svg>
             </span>
             <span className="flex flex-col">
@@ -413,8 +529,9 @@ const NewMenu: FC = () => {
           <div className="h-[1px] bg-newTableBorder my-[4px]" />
           <Link prefetch={true} href="/launches?manageChannels=1" className={item}>
             <span className={clsx(tile, 'border border-newTableBorder')}>
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 4.16666V15.8333M4.16667 10H15.8333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 12h14"/>
+                <path d="M12 5v14"/>
               </svg>
             </span>
             <span className="font-[500]">
@@ -423,8 +540,11 @@ const NewMenu: FC = () => {
           </Link>
           <Link prefetch={true} href="/settings" className={item}>
             <span className={clsx(tile, 'border border-newTableBorder')}>
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13.3333 17.5V15.8333C13.3333 14.9493 12.9821 14.1014 12.357 13.4763C11.7319 12.8512 10.884 12.5 10 12.5H5C4.11594 12.5 3.2681 12.8512 2.64298 13.4763C2.01786 14.1014 1.66667 14.9493 1.66667 15.8333V17.5M17.5 6.66666V11.6667M20 9.16666H15M10.8333 5.83333C10.8333 7.67428 9.34095 9.16666 7.5 9.16666C5.65905 9.16666 4.16667 7.67428 4.16667 5.83333C4.16667 3.99238 5.65905 2.5 7.5 2.5C9.34095 2.5 10.8333 3.99238 10.8333 5.83333Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M19 8v6"/>
+                <path d="M22 11h-6"/>
               </svg>
             </span>
             <span className="font-[500]">
@@ -441,12 +561,28 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
   const t = useT();
   const { first, second } = useVisibleMenu();
 
+  // Buffer's collapse: cookie-persisted pure-UI state (same react-use-cookie
+  // pattern as the side panels' 'collapseMenu'). The phone drawer never
+  // collapses, so inDrawer skips the whole mechanism.
+  const [sidebarCollapsed, setSidebarCollapsed] = useCookie(
+    'sidebarCollapsed',
+    '0'
+  );
+  const collapsed = !inDrawer && sidebarCollapsed === '1';
+  const toggleCollapsed = useCallback(
+    () => setSidebarCollapsed(sidebarCollapsed === '1' ? '0' : '1'),
+    [sidebarCollapsed, setSidebarCollapsed]
+  );
+
   return (
     <aside
       className={clsx(
         inDrawer
           ? 'w-full' // inside the phone drawer the sidebar IS the content
-          : 'phone:hidden w-[240px] shrink-0'
+          : clsx(
+              'phone:hidden shrink-0 transition-[width] duration-150 ease-in-out',
+              collapsed ? 'w-[52px]' : 'w-[240px]'
+            )
       )}
     >
       {/* sticky (not fixed): banners in normal flow (Impersonate,
@@ -455,34 +591,44 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
       <div className="sticky top-[12px] h-[calc(100dvh-24px)] flex flex-col px-[8px]">
         {/* logo row — the ONLY logo on desktop; the content column's top bar
             keeps Title + the icon cluster and never duplicates it. Spec
-            §Sidebar row 1: logo left, streak icon right. */}
+            §Sidebar row 1: logo left, streak icon right. Rail: mark 24
+            centered, streak stays a rail-less nicety. */}
         <div
           data-cs
-          className="h-[48px] shrink-0 flex items-center justify-between px-[8px]"
+          className={clsx(
+            'h-[48px] shrink-0 flex items-center',
+            collapsed ? 'justify-center' : 'justify-between px-[8px]'
+          )}
         >
           <Link prefetch={true} href="/launches" className="flex items-center">
             <img
               src="/cuesoft-mark-white.png"
               alt="Cuesoft"
-              width={28}
-              height={28}
+              width={collapsed ? 24 : 28}
+              height={collapsed ? 24 : 28}
               className="hidden dark:block object-contain"
             />
             <img
               src="/cuesoft-mark-primary.png"
               alt="Cuesoft"
-              width={28}
-              height={28}
+              width={collapsed ? 24 : 28}
+              height={collapsed ? 24 : 28}
               className="block dark:hidden object-contain"
             />
           </Link>
-          <StreakComponent />
+          {!collapsed && <StreakComponent />}
         </div>
         {/* "+ New" pill — h-44 r-999 lime, dark ink (data-cs: the ladder
-            rescales h-[44px] to 36). Navigation, not a new modal mechanism. */}
-        <NewMenu />
+            rescales h-[44px] to 36). Navigation, not a new modal mechanism.
+            Collapsed: the measured 32x32 green square. */}
+        <NewMenu collapsed={collapsed} />
         {/* nav + channels scroll on short viewports; footer stays put */}
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-[2px] pt-[16px] pb-[8px]">
+        <div
+          className={clsx(
+            'flex-1 min-h-0 overflow-y-auto flex flex-col gap-[2px] pt-[16px] pb-[8px]',
+            collapsed && 'items-center'
+          )}
+        >
           {first.map((item) => (
             <NavRow
               key={item.name}
@@ -490,6 +636,7 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
               label={item.name}
               icon={item.icon}
               onClick={item.onClick}
+              collapsed={collapsed}
             />
           ))}
           {second.map((item) => (
@@ -499,13 +646,48 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
               label={item.name}
               icon={item.icon}
               onClick={item.onClick}
+              collapsed={collapsed}
             />
           ))}
-          <SidebarChannels />
+          {/* rail spec: hairline separator between nav icons and channels */}
+          {collapsed && (
+            <div className="h-[1px] w-[24px] shrink-0 bg-newTableBorder mt-[8px]" />
+          )}
+          <SidebarChannels collapsed={collapsed} />
         </div>
-        <div className="shrink-0 pb-[4px]">
-          <SidebarOrganization />
-        </div>
+        {collapsed ? (
+          /* rail footer: expand control (panel-left) over the org mark */
+          <div className="shrink-0 pb-[8px] flex flex-col items-center gap-[8px]">
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              title={t('expand_sidebar', 'Expand sidebar')}
+              className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] text-textItemBlur hover:bg-boxHover hover:text-newTextColor transition-colors"
+            >
+              <PanelLeftIcon />
+            </button>
+            <img
+              src="/cuesoft-mark-white.png"
+              alt=""
+              width={24}
+              height={24}
+              className="hidden dark:block object-contain"
+            />
+            <img
+              src="/cuesoft-mark-primary.png"
+              alt=""
+              width={24}
+              height={24}
+              className="block dark:hidden object-contain"
+            />
+          </div>
+        ) : (
+          <div className="shrink-0 pb-[4px]">
+            <SidebarOrganization
+              onCollapse={inDrawer ? undefined : toggleCollapsed}
+            />
+          </div>
+        )}
       </div>
     </aside>
   );
