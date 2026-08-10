@@ -206,7 +206,9 @@ const NavRow: FC<{
     'flex items-center rounded-[8px] text-[14px] font-[400] transition-[padding-inline-start,background-color,color] duration-150 ease-in-out',
     collapsed
       ? 'w-[32px] h-[32px] shrink-0 justify-center'
-      : 'w-full gap-[10px] h-[32px] px-[8px]',
+      : // shrink-0: children of the height-constrained scroll column compress
+        // to min-content (21px) on short viewports (tablets) without it
+        'w-full gap-[10px] h-[32px] px-[8px] shrink-0',
     isActive
       ? 'bg-newBorder text-newTextColor'
       : 'text-textItemBlur hover:bg-boxHover hover:text-newTextColor'

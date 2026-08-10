@@ -762,7 +762,9 @@ export const ListView = () => {
 
   // Buffer: the queue scrolls with the page — no nested scroll region
   return (
-    <div className="flex flex-col flex-1">
+    // min-w-0: as a flex item this column's min-width:auto otherwise pins it
+    // at content width (573px measured at 390) and the right side clips
+    <div className="flex flex-col flex-1 min-w-0">
       {groupedPosts.map(([dateKey, datePosts]) => (
         <Fragment key={dateKey}>
           {/* Buffer §Queue two-tone header: weekday prefix bold/bright, date
