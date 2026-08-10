@@ -26,7 +26,7 @@ import { Slider } from '@gitroom/react/form/slider';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ModalWrapperComponent } from '@gitroom/frontend/components/new-launch/modal.wrapper.component';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { SkeletonCard } from '@gitroom/frontend/components/layout/skeleton';
 export function convertBackRegex(s: string) {
   const matches = s.match(/\/(.*)\/([a-z]*)/);
   const pattern = matches?.[1] || '';
@@ -275,9 +275,13 @@ export const Plug = () => {
     [data]
   );
   if (isLoading) {
+    // skeleton cards in the same grid the PlugItems render into — never
+    // a spinner
     return (
-      <div className="flex flex-1 items-center justify-center p-[20px]">
-        <LoadingComponent />
+      <div className="grid grid-cols-3 mobile:grid-cols-2 phone:grid-cols-1 gap-[16px]">
+        {[0, 1, 2].map((i) => (
+          <SkeletonCard key={i} />
+        ))}
       </div>
     );
   }

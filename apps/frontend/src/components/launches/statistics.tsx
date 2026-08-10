@@ -4,7 +4,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ChartSocial } from '@gitroom/frontend/components/analytics/chart-social';
 import { Select } from '@gitroom/react/form/select';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { MissingReleaseModal } from '@gitroom/frontend/components/launches/missing-release.modal';
 
@@ -77,8 +77,25 @@ export const StatisticsModal: FC<{
   return (
     <div className="relative min-h-[200px]">
       {isLoading ? (
-        <div className="flex items-center justify-center py-[40px]">
-          <LoadingComponent />
+        // skeleton mirroring the analytics section below: header row
+        // (title bar + range select) over the three chart cards
+        <div className="flex flex-col gap-[14px]">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-[18px] w-[160px]" />
+            <Skeleton className="h-[38px] w-[150px]" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex flex-col border border-newTableBorder rounded-[12px] p-[16px] gap-[12px]"
+              >
+                <Skeleton className="h-[15px] w-[40%]" />
+                <Skeleton className="h-[120px] w-full" />
+                <Skeleton className="h-[36px] w-[80px]" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : isMissing ? (
         <MissingReleaseModal postId={postId} onSuccess={() => mutateAnalytics()} />

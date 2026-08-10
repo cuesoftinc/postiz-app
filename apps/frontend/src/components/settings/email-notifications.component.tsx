@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { Slider } from '@gitroom/react/form/slider';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 
 interface EmailNotifications {
   sendSuccessEmails: boolean;
@@ -97,11 +98,20 @@ const EmailNotificationsComponent = () => {
   );
 
   if (isLoading) {
+    // Skeleton shaped like the section below: 16/550 heading bar + three
+    // label/description rows each with a slider-sized block on the end
     return (
-      <div className="my-[16px] pt-[16px] border-t border-newTableBorder">
-        <div className="animate-pulse">
-          {t('loading', 'Loading...')}
-        </div>
+      <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
+        <Skeleton className="h-[16px] w-[180px]" />
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex items-center justify-between gap-[16px]">
+            <div className="flex flex-col flex-1 gap-[8px]">
+              <Skeleton className="h-[14px] w-[130px]" />
+              <Skeleton className="h-[12px] w-[320px] max-w-full" />
+            </div>
+            <Skeleton className="h-[24px] w-[44px] !rounded-full shrink-0" />
+          </div>
+        ))}
       </div>
     );
   }

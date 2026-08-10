@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { FC, useCallback, useState } from 'react';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import ReactLoading from '@gitroom/frontend/components/layout/loading';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -82,13 +82,15 @@ export const NotificationOpenComponent = () => {
 
       <div className="flex flex-col max-h-[400px] overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
         {isLoading && (
-          <div className="flex-1 flex justify-center pt-12">
-            <ReactLoading
-              type="spin"
-              color="var(--new-textItemBlur)"
-              width={36}
-              height={36}
-            />
+          // skeleton rows shaped like ShowNotification entries (date line +
+          // content line) — never a spinner
+          <div className="flex flex-col gap-[16px] p-[16px]">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex flex-col gap-[8px]">
+                <Skeleton className="h-[12px] w-[35%]" />
+                <Skeleton className="h-[14px] w-full" />
+              </div>
+            ))}
           </div>
         )}
         {!isLoading && !data.notifications.length && (

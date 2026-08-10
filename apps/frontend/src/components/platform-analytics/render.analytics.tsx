@@ -2,10 +2,10 @@ import { FC, useCallback, useMemo, useState } from 'react';
 import { Integration } from '@prisma/client';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { TilesSkeleton } from '@gitroom/frontend/components/platform-analytics/analytics.skeletons';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
-interface AnalyticsDataItem {
+export interface AnalyticsDataItem {
   label: string;
   data: Array<{ total: number; date: string }>;
   average?: boolean;
@@ -223,11 +223,9 @@ export const RenderAnalytics: FC<{
   }, [data]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-[48px]">
-        <LoadingComponent />
-      </div>
-    );
+    // Buffer loading: tile-shaped grey blocks in the tiles' own layout —
+    // never a spinner.
+    return <TilesSkeleton />;
   }
 
   // Buffer Summary tile row: ALL metrics in one wrapping row with 8px gaps

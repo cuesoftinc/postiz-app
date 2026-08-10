@@ -24,6 +24,7 @@ import {
   useSidePanelCollapse,
 } from '@gitroom/frontend/components/new-layout/side-panel-header';
 import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 
 export const MediaPortal: FC<{
   media: { path: string; id: string }[];
@@ -285,7 +286,19 @@ const Threads: FC = () => {
             {t('start_a_new_chat', 'Start a new chat')}
           </span>
         </Link>
-        {data?.threads && !data.threads.length ? (
+        {!data ? (
+          /* /copilot/list still loading — Buffer-style skeleton: three bars
+             shaped like the 32px thread rows below, never a spinner */
+          <div className="flex flex-col gap-[2px] group-[.sidebar]:hidden">
+            {[...new Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center h-[32px] px-[10px]">
+                <Skeleton
+                  className={clsx('h-[14px]', i === 2 ? 'w-[55%]' : 'w-[80%]')}
+                />
+              </div>
+            ))}
+          </div>
+        ) : data?.threads && !data.threads.length ? (
           /* S2 empty state — 64px muted circle + 24px stroke icon +
              16/600 heading + muted subline */
           <div className="flex flex-col items-center text-center gap-[4px] px-[12px] mt-[40px] group-[.sidebar]:hidden">

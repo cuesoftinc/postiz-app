@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { Select } from '@gitroom/react/form/select';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 
 type ShortLinkPreference = 'ASK' | 'YES' | 'NO';
 
@@ -64,9 +65,18 @@ const ShortlinkPreferenceComponent = () => {
   );
 
   if (isLoading) {
+    // Skeleton shaped like the section below: 16/550 heading bar, then the
+    // label+description column with the select control on the trailing edge
     return (
-      <div className="my-[16px] pt-[16px] border-t border-newTableBorder">
-        <div className="animate-pulse">{t('loading', 'Loading...')}</div>
+      <div className="my-[16px] pt-[16px] border-t border-newTableBorder flex flex-col gap-[16px]">
+        <Skeleton className="h-[16px] w-[160px]" />
+        <div className="flex items-center justify-between gap-[24px] phone:flex-col phone:items-stretch phone:gap-[8px]">
+          <div className="flex flex-col flex-1 gap-[8px]">
+            <Skeleton className="h-[14px] w-[150px]" />
+            <Skeleton className="h-[12px] w-[280px] max-w-full" />
+          </div>
+          <Skeleton className="h-[38px] w-[180px] phone:w-full shrink-0" />
+        </div>
       </div>
     );
   }

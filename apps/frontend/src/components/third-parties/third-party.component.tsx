@@ -12,7 +12,7 @@ import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-a
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
-import Spinner from '@gitroom/frontend/components/layout/loading';
+import { SkeletonAvatarRow } from '@gitroom/frontend/components/layout/skeleton';
 
 export const ThirdPartyMenuComponent: FC<{
   reload: () => void;
@@ -177,10 +177,17 @@ export const ThirdPartyComponent = () => {
           {t('connected_integrations', 'Connected integrations')}
         </div>
         {isLoading ? (
-          // bare 24px Spinner (not LoadingComponent — its wrapper hardcodes
-          // pt-[100px], which would shove a section spinner off-center)
-          <div className="flex justify-center py-[20px]">
-            <Spinner width={24} height={24} />
+          // Buffer-style skeleton: two rows shaped like the ChannelRow list
+          // below (40px round avatar + name bar in the bordered card) — never
+          // a spinner where content is about to appear
+          <div className="flex flex-col border border-newTableBorder rounded-[12px]">
+            {[0, 1].map((i) => (
+              <SkeletonAvatarRow
+                key={i}
+                size={40}
+                className="px-[12px] py-[12px] border-b border-newTableBorder last:border-b-0"
+              />
+            ))}
           </div>
         ) : !data?.length ? (
           // S2 empty state: 64px muted circle + 24px stroke icon, 16/600

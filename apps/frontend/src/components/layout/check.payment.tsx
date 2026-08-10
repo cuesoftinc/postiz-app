@@ -1,5 +1,8 @@
 import { FC, ReactNode, useCallback, useEffect, useState } from 'react';
-import Loading from '@gitroom/frontend/components/layout/loading';
+import {
+  Skeleton,
+  SkeletonText,
+} from '@gitroom/frontend/components/layout/skeleton';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { useToaster } from '@gitroom/react/toaster/toaster';
@@ -66,10 +69,13 @@ export const CheckPaymentInner: FC<{
     checkSubscription();
   }, []);
   if (showLoader) {
+    // Buffer-style: a ghost card of skeleton rows (shaped like the payment
+    // confirmation that is about to appear) instead of a 250px spinner
     return (
       <div className="fixed bg-black/40 w-full h-full flex justify-center items-center z-[400]">
-        <div>
-          <Loading type="spin" color="#612BD3" height={250} width={250} />
+        <div className="w-[360px] max-w-[calc(100vw-48px)] bg-newBgColorInner border border-newTableBorder rounded-[12px] p-[20px] flex flex-col gap-[16px]">
+          <Skeleton className="h-[16px] w-[55%]" />
+          <SkeletonText rows={3} />
         </div>
       </div>
     );

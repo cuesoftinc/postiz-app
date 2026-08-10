@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { Button } from '@gitroom/react/form/button';
@@ -63,9 +63,13 @@ export const MissingReleaseModal: FC<{
   }, [selected, postId, fetch, toaster, t, onSuccess, modal]);
 
   if (isLoading) {
+    // skeleton tiles in the same grid the provider content renders into —
+    // never a spinner
     return (
-      <div className="flex items-center justify-center py-[40px]">
-        <LoadingComponent />
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-[10px] p-[4px]">
+        {[...new Array(10)].map((_, i) => (
+          <Skeleton key={i} className="aspect-square" />
+        ))}
       </div>
     );
   }

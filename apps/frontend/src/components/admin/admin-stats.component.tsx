@@ -5,7 +5,10 @@ import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Button } from '@gitroom/react/form/button';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import {
+  SkeletonCard,
+  SkeletonTable,
+} from '@gitroom/frontend/components/layout/skeleton';
 
 interface PerSocial {
   provider: string;
@@ -220,7 +223,20 @@ export const AdminStatsComponent: FC = () => {
       </div>
 
       {isLoading ? (
-        <LoadingComponent />
+        // content-shaped skeleton mirroring the grids below: three summary
+        // cards, then three per-social tables — never a spinner
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px]">
+            {[0, 1, 2].map((i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px]">
+            {[0, 1, 2].map((i) => (
+              <SkeletonTable key={i} rows={4} />
+            ))}
+          </div>
+        </>
       ) : error || !data ? (
         <div className="text-red-400">Failed to load stats.</div>
       ) : (

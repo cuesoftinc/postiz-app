@@ -12,7 +12,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { AnalyticsPageSkeleton } from '@gitroom/frontend/components/platform-analytics/analytics.skeletons';
+import { AnalyticsChartSection } from '@gitroom/frontend/components/platform-analytics/analytics-chart';
+import { ChannelsSummarySection } from '@gitroom/frontend/components/platform-analytics/channels-summary';
+import { RecentPostsSection } from '@gitroom/frontend/components/platform-analytics/recent-posts';
 import { sidePanelRoot } from '@gitroom/frontend/components/new-layout/side-panel';
 import {
   SidePanelHeader,
@@ -206,11 +209,9 @@ export const PlatformAnalytics = () => {
   const pageTitle = t('analytics', 'Insights');
 
   if (isLoading) {
-    return (
-      <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] items-center justify-center">
-        <LoadingComponent />
-      </div>
-    );
+    // Buffer loading: the page's own shape in soft grey blocks (header chip,
+    // toolbar, Summary section with tile blocks) — never a spinner.
+    return <AnalyticsPageSkeleton />;
   }
 
   if (!sortedIntegrations.length && !isLoading) {
@@ -402,6 +403,34 @@ export const PlatformAnalytics = () => {
                 )}
               </div>
             </div>
+            {/* Insights enrichment — every number below is a real payload:
+                Trends re-reads the SAME /analytics/:id response the tiles use
+                (shared SWR key, one request); Recent posts joins
+                /posts/list?state=published with /analytics/post/:id; Channels
+                fans the per-channel /analytics call across the connected
+                list. Sections that have nothing real to show render null. */}
+            {!!keys && !!currentIntegration && (
+              <>
+                <AnalyticsChartSection
+                  key={`chart-${currentIntegration.id}-${keys}`}
+                  integration={currentIntegration}
+                  date={keys}
+                  subtitle={dateRangeLabel}
+                />
+                <RecentPostsSection
+                  key={`recent-${currentIntegration.id}-${keys}`}
+                  integration={currentIntegration}
+                  date={keys}
+                  subtitle={dateRangeLabel}
+                />
+                <ChannelsSummarySection
+                  integrations={sortedIntegrations}
+                  date={keys}
+                  currentId={currentIntegration.id}
+                  subtitle={dateRangeLabel}
+                />
+              </>
+            )}
           </div>
         )}
       </div>

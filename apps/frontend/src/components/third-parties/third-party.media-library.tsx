@@ -11,6 +11,7 @@ import { VideoFrame } from '@gitroom/react/helpers/video.frame';
 import { Pagination } from '@gitroom/frontend/components/media/media.component';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { ChevronLeftIcon } from '@gitroom/frontend/components/ui/icons';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 
 const ThirdPartyMediaLibraryBrowser: FC<{
   integration: any;
@@ -95,10 +96,7 @@ const ThirdPartyMediaLibraryBrowser: FC<{
           {isLoading && (
             <div className="grid grid-cols-4 gap-[8px]">
               {[...new Array(8)].map((_, i) => (
-                <div
-                  key={i}
-                  className="aspect-square bg-newSep rounded-[6px] animate-pulse"
-                />
+                <Skeleton key={i} className="aspect-square !rounded-[6px]" />
               ))}
             </div>
           )}

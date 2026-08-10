@@ -50,7 +50,7 @@ import {
 } from '@gitroom/frontend/components/ui/icons';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
 import { useDebounce } from 'use-debounce';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
 import { PagerButton } from '@gitroom/frontend/components/cuesoft/pressables';
@@ -611,7 +611,7 @@ export const MediaBox: FC<{
                     )}
                     key={i}
                   >
-                    <div className="w-full h-full bg-newSep rounded-[8px] animate-pulse" />
+                    <Skeleton className="w-full h-full" />
                   </div>
                 ))}
               </>

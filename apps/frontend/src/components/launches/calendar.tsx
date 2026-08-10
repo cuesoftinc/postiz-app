@@ -696,12 +696,19 @@ export const ListView = () => {
       ? t('no_upcoming_posts', 'No posts in your queue')
       : listState === 'draft'
       ? t('no_draft_posts', 'No draft posts')
+      : listState === 'approvals'
+      ? t('no_approval_posts', 'Nothing awaiting approval')
       : listState === 'published'
       ? t('no_published_posts', 'No sent posts')
       : t('no_posts', 'No posts');
   const emptySubline =
     listState === 'draft'
       ? t('drafts_appear_here', 'Drafts will appear here.')
+      : listState === 'approvals'
+      ? t(
+          'approvals_appear_here',
+          'Tag a draft with "needs-approval" to route it here for review.'
+        )
       : listState === 'published'
       ? t('sent_posts_appear_here', 'Posts you have sent will appear here.')
       : t('scheduled_posts_appear_here', 'Posts you schedule will appear here.');
@@ -1422,7 +1429,7 @@ const CalendarItem: FC<{
   const { disableXAnalytics } = useVariables();
   const user = useUser();
   const fetch = useFetch();
-  const { reloadCalendarView } = useCalendar();
+  const { reloadCalendarView, listState } = useCalendar();
   const displayTimezone = useDisplayTimezone();
   // First attached image of the post's media field (backend now selects it
   // through the minified payload); undefined when absent/broken/video-only
@@ -1481,6 +1488,90 @@ const CalendarItem: FC<{
           date: dayjs.utc().format('YYYY-MM-DDTHH:mm:ss'),
           action: 'schedule',
         }),
+      });
+      reloadCalendarView();
+    },
+    [fetch, post.id, reloadCalendarView, t]
+  );
+  // Draft 'Publish Now' (Buffer): move the date to now, then flip the state
+  // to QUEUE via the status route — the workflow re-arms and fires
+  // immediately. Both calls are existing/approved surface.
+  const publishDraftNow = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (
+        !(
+          await deleteDialog(
+            t(
+              'publish_draft_now_description',
+              'This draft will be published immediately. Continue?'
+            ),
+            t('yes_publish_now', 'Yes, publish now!'),
+            t('publish_now', 'Publish Now')
+          )
+        )
+      ) {
+        return;
+      }
+      await fetch(`/posts/${post.id}/date`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          date: dayjs.utc().format('YYYY-MM-DDTHH:mm:ss'),
+          action: 'schedule',
+        }),
+      });
+      await fetch(`/posts/${post.id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'schedule' }),
+      });
+      reloadCalendarView();
+    },
+    [fetch, post.id, reloadCalendarView, t]
+  );
+  // Approvals v1: 'request changes' = leave feedback on the post's comments
+  const itemModals = useModals();
+  const openCommentsForPost = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      itemModals.openModal({
+        title: '',
+        closeOnClickOutside: true,
+        closeOnEscape: true,
+        withCloseButton: false,
+        classNames: {
+          modal: 'w-[100%] max-w-[600px]',
+        },
+        children: (
+          <CommentComponent
+            postId={post.id}
+            date={dayjs.utc(post.publishDate)}
+          />
+        ),
+      });
+    },
+    [itemModals, post.id, post.publishDate]
+  );
+  // Approvals v1: approve = schedule the draft at its planned time
+  const approvePost = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (
+        !(
+          await deleteDialog(
+            t(
+              'approve_post_description',
+              'Approve this post? It will be scheduled at its planned time.'
+            ),
+            t('yes_approve', 'Yes, approve!'),
+            t('approve', 'Approve')
+          )
+        )
+      ) {
+        return;
+      }
+      await fetch(`/posts/${post.id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'schedule' }),
       });
       reloadCalendarView();
     },
@@ -1762,6 +1853,57 @@ const CalendarItem: FC<{
               <button
                 type="button"
                 onClick={publishNow}
+                className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 3 14 9-14 9z" />
+                </svg>
+                {t('publish_now', 'Publish Now')}
+              </button>
+            )}
+            {state === 'DRAFT' && listState === 'approvals' && (
+              <>
+                <button
+                  type="button"
+                  onClick={openCommentsForPost}
+                  className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
+                >
+                  {t('request_changes', 'Request changes')}
+                </button>
+                <button
+                  type="button"
+                  onClick={approvePost}
+                  className="h-[32px] px-[10px] rounded-[8px] bg-btnPrimary text-black flex items-center gap-[6px] text-[14px] font-[500] whitespace-nowrap transition-all duration-150 hover:opacity-90"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  {t('approve', 'Approve')}
+                </button>
+              </>
+            )}
+            {state === 'DRAFT' && listState !== 'approvals' && (
+              <button
+                type="button"
+                onClick={publishDraftNow}
                 className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
               >
                 <svg

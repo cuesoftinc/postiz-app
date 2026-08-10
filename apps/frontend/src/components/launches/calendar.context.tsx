@@ -26,14 +26,24 @@ import { expandPostsList, expandPosts } from '@gitroom/helpers/utils/posts.list.
 extend(isoWeek);
 extend(weekOfYear);
 
-export type ListStateFilter = 'all' | 'scheduled' | 'draft' | 'published';
+export type ListStateFilter =
+  | 'all'
+  | 'scheduled'
+  | 'draft'
+  | 'published'
+  | 'approvals';
 
 const STATE_FILTER_VALUES: readonly string[] = [
   'all',
   'scheduled',
   'draft',
   'published',
+  'approvals',
 ];
+
+/** Approvals v1: a draft carrying this tag is "awaiting approval". The tag is
+ *  a plain org tag (created via the existing tags UI) — no new write surface. */
+export const APPROVAL_TAG_NAME = 'needs-approval';
 
 /** ?state= is user-editable — anything outside the enum collapses to 'all'
  *  (absent), so the backend never sees an invalid value. */
@@ -106,6 +116,8 @@ export const CalendarContext = createContext({
   state: 'all' as ListStateFilter,
   /** Comma-separated tag-id filter (?tags=), applied to both views. */
   tags: null as string | null,
+  /** The org tag named 'needs-approval' when it exists (Approvals v1). */
+  approvalTag: null as { id: string; name: string } | null,
   /** Presentation-only timezone the calendar renders times in
    *  (cookie-persisted; scheduling stays in the org timezone). */
   displayTimezone: '' as string,
@@ -279,6 +291,25 @@ export const CalendarWeekProvider: FC<{
     return expandPosts(data);
   }, [filters, params]);
 
+  // Approvals v1: resolve the org's 'needs-approval' tag (read-path; the tag
+  // itself is created through the existing tags UI)
+  const { data: approvalTagData } = useSWR(
+    // resolved for the whole list view — the tab count pills need it too
+    filters.display === 'list' ? '/posts/tags?approvals' : null,
+    async () => {
+      const data = await (await fetch('/posts/tags')).json();
+      const tags = Array.isArray(data?.tags) ? data.tags : [];
+      return (
+        tags.find(
+          (tag: any) =>
+            (tag.name || '').toLowerCase().trim().replace(/\s+/g, '-') ===
+            APPROVAL_TAG_NAME
+        ) || null
+      );
+    }
+  );
+  const approvalTag = approvalTagData || null;
+
   // List view data fetcher
   const listParams = useMemo(() => {
     const search = new URLSearchParams({
@@ -286,11 +317,24 @@ export const CalendarWeekProvider: FC<{
       limit: '100',
       customer: filters?.customer?.toString() || '',
       integration: filters?.integration?.toString() || '',
-      state: listState,
+      // Approvals = drafts carrying the needs-approval tag
+      state: listState === 'approvals' ? 'draft' : listState,
     });
-    if (filters.tags) search.set('tags', filters.tags);
+    if (listState === 'approvals') {
+      // unknown id yields an empty (not unfiltered) feed when the tag is absent
+      search.set('tags', approvalTag?.id || '__no-approval-tag__');
+    } else if (filters.tags) {
+      search.set('tags', filters.tags);
+    }
     return search.toString();
-  }, [listPage, filters.customer, filters.integration, filters.tags, listState]);
+  }, [
+    listPage,
+    filters.customer,
+    filters.integration,
+    filters.tags,
+    listState,
+    approvalTag?.id,
+  ]);
 
   const loadListData = useCallback(async () => {
     const response = await fetch(`/posts/list?${listParams}`);
@@ -467,6 +511,7 @@ export const CalendarWeekProvider: FC<{
         setListPage,
         listState,
         setListState,
+        approvalTag,
         displayTimezone,
         setDisplayTimezone,
         lastCalendarDisplay,

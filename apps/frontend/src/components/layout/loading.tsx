@@ -1,7 +1,12 @@
 'use client';
 
 import { FC } from 'react';
+import { SkeletonPage } from '@gitroom/frontend/components/layout/skeleton';
 
+// Spinner stays exported for ACTION progress only (inside buttons while a
+// user-triggered request runs — ai.image's generate chip). Content loading
+// must use the skeletons in layout/skeleton.tsx instead (Buffer never shows
+// a spinner where content is about to appear).
 const Spinner: FC<{
   type?: string;
   color?: string;
@@ -27,17 +32,16 @@ const Spinner: FC<{
 
 export { Spinner as default };
 
+// Kept exported under its old name/signature (width/height are accepted and
+// ignored) so every existing consumer keeps compiling, but it now renders
+// the Buffer-style generic page skeleton instead of the pt-[100px] spinner.
 export const LoadingComponent: FC<{
   width?: number;
   height?: number;
-}> = (props) => {
+}> = () => {
   return (
-    <div className="flex-1 flex justify-center pt-[100px]">
-      <Spinner
-        color="#325ea6"
-        width={props.width || 100}
-        height={props.height || 100}
-      />
+    <div className="flex-1 w-full p-[20px]">
+      <SkeletonPage />
     </div>
   );
 };

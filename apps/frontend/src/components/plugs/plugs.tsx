@@ -10,7 +10,7 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { PlugsContext } from '@gitroom/frontend/components/plugs/plugs.context';
 import { Plug } from '@gitroom/frontend/components/plugs/plug';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { SkeletonPage } from '@gitroom/frontend/components/layout/skeleton';
 import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
 import { ToolbarSelect } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
@@ -118,9 +118,11 @@ export const Plugs = () => {
   );
 
   if (isLoading || plugLoading) {
+    // page-shaped skeleton (header chip + title bar over content blocks)
+    // in the same shell the loaded page uses — never a spinner
     return (
-      <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] transition-all items-center justify-center">
-        <LoadingComponent />
+      <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] transition-all">
+        <SkeletonPage />
       </div>
     );
   }

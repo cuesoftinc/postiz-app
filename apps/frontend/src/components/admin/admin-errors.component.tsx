@@ -8,7 +8,7 @@ import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Button } from '@gitroom/react/form/button';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { SkeletonTable } from '@gitroom/frontend/components/layout/skeleton';
 import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
 import { DataTable } from '@gitroom/frontend/components/cuesoft/data-table';
 import { TablePagination } from '@gitroom/frontend/components/cuesoft/table-pagination';
@@ -330,7 +330,8 @@ export const AdminErrorsComponent: FC = () => {
       </ToolbarRow>
 
       {isLoading ? (
-        <LoadingComponent />
+        // table-shaped skeleton (header wash + row bars), never a spinner
+        <SkeletonTable rows={8} />
       ) : error ? (
         <div className="text-red-400">Failed to load errors.</div>
       ) : !data || data.items.length === 0 ? (

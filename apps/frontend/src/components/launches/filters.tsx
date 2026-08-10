@@ -1227,15 +1227,15 @@ export const Filters = () => {
   );
 
   // Buffer's list tabs: Queue · Drafts · Approvals · Sent — no 'All', Queue is
-  // the default landing state. Approvals renders between Drafts and Sent.
+  // the default landing state. Approvals = drafts tagged 'needs-approval'.
   const listStateOptions: {
     value: ListStateFilter;
     label: string;
-    approvalsBefore?: boolean;
   }[] = [
     { value: 'scheduled', label: t('queue', 'Queue') },
     { value: 'draft', label: t('drafts', 'Drafts') },
-    { value: 'published', label: t('sent', 'Sent'), approvalsBefore: true },
+    { value: 'approvals', label: t('approvals', 'Approvals') },
+    { value: 'published', label: t('sent', 'Sent') },
   ];
 
   useEffect(() => {
@@ -1251,24 +1251,39 @@ export const Filters = () => {
   }-${(calendar as any).tags || ''}-${calendar.listTotal}`;
   const loadTabCounts = useCallback(async () => {
     const entries = await Promise.all(
-      (['scheduled', 'draft', 'published'] as const).map(async (state) => {
-        const search = new URLSearchParams({
-          page: '1',
-          limit: '1',
-          customer: calendar.customer?.toString() || '',
-          integration: ((calendar as any).integration || '').toString(),
-          state,
-        });
-        const tags = (calendar as any).tags;
-        if (tags) search.set('tags', tags);
-        const raw = expandPostsList(
-          await (await fetch(`/posts/list?${search.toString()}`)).json()
-        );
-        return [state, (raw as any)?.total ?? 0] as const;
-      })
+      (['scheduled', 'draft', 'approvals', 'published'] as const).map(
+        async (state) => {
+          const search = new URLSearchParams({
+            page: '1',
+            limit: '1',
+            customer: calendar.customer?.toString() || '',
+            integration: ((calendar as any).integration || '').toString(),
+            state: state === 'approvals' ? 'draft' : state,
+          });
+          if (state === 'approvals') {
+            // drafts carrying the needs-approval tag; unknown id = empty feed
+            search.set(
+              'tags',
+              (calendar as any).approvalTag?.id || '__no-approval-tag__'
+            );
+          } else {
+            const tags = (calendar as any).tags;
+            if (tags) search.set('tags', tags);
+          }
+          const raw = expandPostsList(
+            await (await fetch(`/posts/list?${search.toString()}`)).json()
+          );
+          return [state, (raw as any)?.total ?? 0] as const;
+        }
+      )
     );
     return Object.fromEntries(entries) as Record<string, number>;
-  }, [calendar.customer, (calendar as any).integration, (calendar as any).tags]);
+  }, [
+    calendar.customer,
+    (calendar as any).integration,
+    (calendar as any).tags,
+    (calendar as any).approvalTag?.id,
+  ]);
   const { data: tabCounts } = useSWR(isListView ? countsKey : null, loadTabCounts);
 
   const previousPage = useCallback(() => {
@@ -1388,22 +1403,6 @@ export const Filters = () => {
           <div className="order-1 flex flex-row h-[45px] gap-[28px] text-[14px] font-[500] phone:hidden">
             {listStateOptions.map((option) => (
               <Fragment key={option.value}>
-                {/* Buffer's Approvals tab sits between Drafts and Sent
-                    (lavender ⚡ pill) — visual anatomy until the approval
-                    workflow is wired in this fork */}
-                {option.approvalsBefore && (
-                  <div
-                    className="relative flex items-center gap-[6px] text-newTextColor/60 cursor-default"
-                    title={t('approvals_soon', 'Approvals — coming soon')}
-                  >
-                    {t('approvals', 'Approvals')}
-                    <span className="rounded-full bg-[#EDE9FE] px-[6px] h-[18px] flex items-center" data-cs>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="#7C3AED" stroke="none">
-                        <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
-                      </svg>
-                    </span>
-                  </div>
-                )}
                 <div
                   onClick={setListStateFilter(option.value)}
                   className={clsx(

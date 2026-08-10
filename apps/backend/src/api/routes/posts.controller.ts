@@ -89,6 +89,17 @@ export class PostsController {
     };
   }
 
+  // Approvals/drafts: same semantics as the public API's status change —
+  // draft <-> queue, re-arming the publish workflow when queued
+  @Put('/:id/status')
+  async changePostStatus(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string,
+    @Body() body: { status: 'draft' | 'schedule' }
+  ) {
+    return this._postsService.changePostStatus(org.id, id, body.status);
+  }
+
   @Get('/tags')
   async getTags(@GetOrgFromRequest() org: Organization) {
     return { tags: await this._postsService.getTags(org.id) };
