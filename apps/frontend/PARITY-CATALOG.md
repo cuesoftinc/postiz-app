@@ -24,6 +24,28 @@ changelog line). Statuses:
 **The loop ends when no `NEEDS-WORK` or `NEEDS-BUFFER-MEASUREMENT` rows remain.**
 
 **Changelog**
+- 2026-08-10 — native Buffer URLs (route flip): /schedule/* stop being aliases
+  and become the REAL Publish routes — `/schedule/calendar/month|week|day` and
+  `/schedule/list` render `launches.component.tsx` directly, the view read
+  from the pathname (new `launches/schedule.routes.ts`: scheduleViewPath /
+  displayFromPathname / withQueryString); `/schedule` redirects to the
+  `calendar-display`-cookie view (month default) and `/schedule/calendar` to
+  week (Buffer's defaults), both query-preserving; `/launches` is now the
+  legacy leg — a query-preserving redirect mapping `?display=` into the path.
+  The calendar context's replaceState writer emits the native paths (dates/
+  filters stay as query; `?display=` remains a legacy deep-link override; the
+  ?state/?tags carry and the searchParams sync effect are unchanged). Full
+  link sweep to /schedule: top.menu Publish nav path, sidebar (logo, "+ New"
+  Post `?newPost=1`, Manage channels `?manageChannels=1` ×5, channel rows
+  `?integration=` + hover New post, scheduledTotal badge path check), plugs +
+  insights empty-state buttons, agents connect-channels link, onboarding
+  close, layout.context onboarding hop, stars-table week link, proxy `/`
+  redirect, continue.integration OAuth legs (?precondition/?msg/?added +
+  error Redirect), launches.component continueIntegration push. Title-bar
+  exclusion list gains '/schedule' (keeps '/launches' for the redirect
+  moment). ?newPost=1/?manageChannels=1 consumers are path-agnostic
+  (url.pathname-preserving replaceState) so they work on the native routes.
+  tsc clean.
 - 2026-08-10 — typography parity r4 (26 audited violations) + Buffer weight
   calibration: admin-stats/admin-errors page titles ("Admin Stats", "Errors")
   adopt the page-title spec (`data-cs font-display text-[20px] font-[400]
@@ -283,8 +305,9 @@ changelog line). Statuses:
 
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
-| `/launches` (Publish home) | `app/(app)/(site)/launches/page.tsx` → `launches/launches.component.tsx` | VERIFIED-PARITY | Maps to Buffer Publish; calendar/list/toolbar measured r1 |
-| `/schedule`, `/schedule/list`, `/schedule/calendar`, `/schedule/calendar/[view]` aliases | `app/(app)/(site)/schedule/**` | VERIFIED-PARITY | Buffer URL-shape aliases → /launches (de6ca24f) |
+| `/schedule/calendar/month`, `/schedule/calendar/week`, `/schedule/calendar/day`, `/schedule/list` (Publish home, native Buffer URLs) | `app/(app)/(site)/schedule/calendar/[view]/page.tsx`, `schedule/list/page.tsx` → `launches/launches.component.tsx` (view read from the pathname via `launches/schedule.routes.ts`) | VERIFIED-PARITY | Maps to Buffer Publish; calendar/list/toolbar measured r1. The view lives in the PATH; dates/filters stay as query (startDate/endDate ≈ Buffer's ?date=). The calendar context's replaceState writer emits these URLs; `?display=` kept as a legacy override |
+| `/schedule` (cookie hop), `/schedule/calendar` (→ week, Buffer default) | `app/(app)/(site)/schedule/page.tsx`, `schedule/calendar/page.tsx` | VERIFIED-PARITY | `/schedule` redirects to the `calendar-display`-cookie view (month default) like publish.buffer.com; both hops preserve every query param (?newPost=1, ?manageChannels=1, ?integration=, ...) |
+| `/launches` legacy redirect | `app/(app)/(site)/launches/page.tsx` | N/A-INTERNAL | Query-preserving redirect to the native /schedule URL (display=list → /schedule/list, week/day → /schedule/calendar/week\|day, month/absent → /schedule/calendar/month); kept for old deep links + backend-emitted URLs (stripe/integration emails) |
 | `/analytics` (Insights) | `app/(app)/(site)/analytics/page.tsx` → `platform-analytics/platform.analytics.tsx` | VERIFIED-PARITY | Measured vs buffer-insights-1440/390 + structure JSON |
 | `/agents` → redirect `/agents/new` | `app/(app)/(site)/agents/page.tsx` | POSTIZ-ONLY-KEEP | No Buffer counterpart |
 | `/agents/[id]` (AI agent chat + Content segment) | `agents/agent.tsx` + `agents/agent.chat.tsx` | POSTIZ-ONLY-KEEP | Restyled to token system (de7f7dc3); admin [Assistant \| Content] segmented hosts the bridge chat |
@@ -353,8 +376,8 @@ changelog line). Statuses:
 | Insights "New" nav badge (10–11px violet pill after the label) | `new-layout/sidebar.tsx` `InsightsNewBadge` | VERIFIED-PARITY | Purely visual Buffer-ships-one pill (#EDE9FE/#7C3AED, rounded-full, data-cs); removable by deleting the single const + its one call site |
 | Utility rows demoted below hairline (Plugs, Integrations, Settings) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Utilities-in-footer move (87488ff3) |
 | "Channels" section header + hover-revealed search/gear + inline filter | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Search toggles a 32px hairline input filtering rows client-side (case-insensitive name match); Esc or blur-while-empty closes |
-| Channel rows (avatar 32 + platform badge, name, resting scheduled count, hover actions) | `new-layout/sidebar.tsx` + `new-layout/channel-row.tsx` | VERIFIED-PARITY | Buffer anatomy: link = name + per-channel scheduled count (exact, batched 1-row count queries in ONE SWR key, 60s refresh, rail-collapsed skip); hover swaps count for 24px "New post" (`/launches?newPost=1&integration=<id>`) + Submenu kebab (Manage channels / Channel analytics `/analytics?integration=<id>`), desktop-only (`phone:hidden` — drawer rows stay one tap target) |
-| Per-channel queue views (channel row opens its own queue) | `new-layout/sidebar.tsx` → `/launches?channel=` | VERIFIED-PARITY | a3311c74; additive nav behavior |
+| Channel rows (avatar 32 + platform badge, name, resting scheduled count, hover actions) | `new-layout/sidebar.tsx` + `new-layout/channel-row.tsx` | VERIFIED-PARITY | Buffer anatomy: link = name + per-channel scheduled count (exact, batched 1-row count queries in ONE SWR key, 60s refresh, rail-collapsed skip); hover swaps count for 24px "New post" (`/schedule?newPost=1&integration=<id>`) + Submenu kebab (Manage channels / Channel analytics `/analytics?integration=<id>`), desktop-only (`phone:hidden` — drawer rows stay one tap target) |
+| Per-channel queue views (channel row opens its own queue) | `new-layout/sidebar.tsx` → `/schedule?integration=` | VERIFIED-PARITY | a3311c74; additive nav behavior |
 | Connect-more quick icons (unconnected-only, 24px full-bleed tiles, + button) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Filtered to unconnected, cap 3 |
 | "Locked channels · N ›" expander | `new-layout/sidebar.tsx` | VERIFIED-PARITY | Billing-gated; hidden when N=0 |
 | Channels-limit upsell card (progress dashes, Upgrade for More) | `new-layout/sidebar.tsx` | VERIFIED-PARITY | FREE-tier gated, dismissable |

@@ -77,7 +77,8 @@ export const NewPost = () => {
   }, [integrations, sets]);
 
   // Deep link for the sidebar's "+ New" pill (Buffer parity): landing on
-  // /launches?newPost=1 opens the composer. The param is consumed immediately
+  // /schedule?newPost=1 (any native view) opens the composer. The param is
+  // consumed immediately
   // so refresh/back never re-triggers it; the ref guards StrictMode double
   // effects, then resets so a second pill click (same page) works too.
   const searchParams = useSearchParams();

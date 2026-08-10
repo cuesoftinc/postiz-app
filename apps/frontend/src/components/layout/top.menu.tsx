@@ -53,7 +53,7 @@ export const useMenuItem = () => {
           <path d="M3 10h18" />
         </svg>
       ),
-      path: '/launches',
+      path: '/schedule',
     },
     {
       name: 'Agent',

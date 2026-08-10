@@ -15,7 +15,11 @@ import dayjs from 'dayjs';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Post, Integration, Tags } from '@prisma/client';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import {
+  displayFromPathname,
+  scheduleViewPath,
+} from '@gitroom/frontend/components/launches/schedule.routes';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
 import { extend } from 'dayjs';
@@ -193,10 +197,18 @@ export const CalendarWeekProvider: FC<{
   const [internalData, setInternalData] = useState([] as any[]);
   const [trendings] = useState<string[]>([]);
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   // Buffer defaults to the month calendar; the cookie tracks the last view so
-  // a refresh never resets it (URL param still wins for deep links).
+  // a refresh never resets it. The native /schedule routes encode the view in
+  // the PATH (/schedule/list, /schedule/calendar/month|week|day —
+  // schedule.routes.ts); ?display= stays as a legacy deep-link override, and
+  // the cookie backs any mount that carries neither.
   const [displaySaved, setDisplaySaved] = useCookie('calendar-display', 'month');
-  const display = searchParams.get('display') || displaySaved || 'month';
+  const display =
+    searchParams.get('display') ||
+    displayFromPathname(pathname) ||
+    displaySaved ||
+    'month';
   // The last non-list calendar view — what the List|Calendar segmented
   // restores when switching back to Calendar (Buffer behavior).
   const [lastCalendarDisplay, setLastCalendarDisplay] = useCookie(
@@ -242,10 +254,11 @@ export const CalendarWeekProvider: FC<{
     display,
   });
 
-  // The sidebar's channel rows navigate to /launches?integration=<id>, and the
+  // The sidebar's channel rows navigate to /schedule?integration=<id>, and the
   // toolbar dropdowns (state/tags) write their params with history.replaceState.
-  // When we are ALREADY on /launches only searchParams changes — filters state
-  // was initialized once — so keep the URL-driven filters in sync with the URL.
+  // When we are ALREADY on a /schedule route only searchParams changes — filters
+  // state was initialized once — so keep the URL-driven filters in sync with
+  // the URL.
   useEffect(() => {
     const urlIntegration = searchParams.get('integration') || null;
     const urlState = readStateParam(searchParams.get('state'));
@@ -435,16 +448,23 @@ export const CalendarWeekProvider: FC<{
       const carriedState = readStateParam(carried.get('state'));
       const carriedTags = carried.get('tags');
 
-      const path = [
+      // Native Buffer-shaped URL: the view is encoded in the PATH
+      // (/schedule/list, /schedule/calendar/month|week|day) and the dates
+      // stay as query — startDate/endDate ≈ Buffer's ?date= handling. Next
+      // syncs usePathname/useSearchParams from native replaceState.
+      const query = [
         `startDate=${newFilters.startDate}`,
         `endDate=${newFilters.endDate}`,
-        `display=${newFilters.display}`,
         newFilters.customer ? `customer=${newFilters.customer}` : ``,
         newFilters.integration ? `integration=${newFilters.integration}` : ``,
         carriedState !== 'all' ? `state=${carriedState}` : ``,
         carriedTags ? `tags=${encodeURIComponent(carriedTags)}` : ``,
       ].filter((f) => f);
-      window.history.replaceState(null, '', `/launches?${path.join('&')}`);
+      window.history.replaceState(
+        null,
+        '',
+        `${scheduleViewPath(newFilters.display)}?${query.join('&')}`
+      );
     },
     []
   );

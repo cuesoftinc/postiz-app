@@ -371,7 +371,7 @@ const ChannelRow: FC<{
           {!integration.disabled && (
             <Link
               prefetch={true}
-              href={`/launches?newPost=1&integration=${integration.id}`}
+              href={`/schedule?newPost=1&integration=${integration.id}`}
               title={t('new_post', 'New post')}
               className="w-[24px] h-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
             >
@@ -402,7 +402,7 @@ const ChannelRow: FC<{
           >
             <Link
               prefetch={true}
-              href="/launches?manageChannels=1"
+              href="/schedule?manageChannels=1"
               onClick={close}
               className={menuItem}
             >
@@ -434,7 +434,7 @@ const ChannelRow: FC<{
 };
 
 /** Read-only channel list. Same sort as the launches panel. Each row opens
- *  that channel's queue (/launches?integration=<id> — the calendar context
+ *  that channel's queue (/schedule?integration=<id> — the calendar context
  *  filters both views by the id); management stays in the launches panel.
  *  In the collapsed rail the same rows render as a bare 24px avatar stack
  *  (presence dots kept, same channelHref navigation, name as title). */
@@ -456,7 +456,7 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
       ? `/analytics?integration=${id}`
       : pathname?.startsWith('/plugs')
       ? `/plugs?integration=${id}`
-      : `/launches?integration=${id}`;
+      : `/schedule?integration=${id}`;
 
   const sorted = useMemo(
     () =>
@@ -566,7 +566,7 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
         </button>
         <Link
           prefetch={true}
-          href="/launches?manageChannels=1"
+          href="/schedule?manageChannels=1"
           title={t('manage_channels', 'Manage channels')}
           className="opacity-0 group-hover/chead:opacity-100 focus-visible:opacity-100 w-[24px] h-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover hover:text-newTextColor transition-opacity duration-150"
         >
@@ -623,7 +623,7 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
             <Link
               key={identifier}
               prefetch={true}
-              href="/launches?manageChannels=1"
+              href="/schedule?manageChannels=1"
               title={t('manage_channels', 'Manage channels')}
               className="w-[24px] h-[24px] rounded-[6px] overflow-hidden hover:opacity-80 transition-opacity duration-150"
             >
@@ -638,7 +638,7 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
           ))}
           <Link
             prefetch={true}
-            href="/launches?manageChannels=1"
+            href="/schedule?manageChannels=1"
             title={t('manage_channels', 'Manage channels')}
             className="w-[24px] h-[24px] rounded-[6px] border border-newBorder flex items-center justify-center text-textItemBlur hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
           >
@@ -1118,7 +1118,7 @@ const NewMenu: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
           // bg-third navy; float on the elevated-surface token instead
           className="mt-[6px] w-[248px] p-[6px] flex flex-col gap-[2px]"
         >
-          <Link prefetch={true} href="/launches?newPost=1" className={item}>
+          <Link prefetch={true} href="/schedule?newPost=1" className={item}>
             <span className={clsx(tile, 'bg-seventh')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
                 <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/>
@@ -1133,7 +1133,7 @@ const NewMenu: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
             </span>
           </Link>
           <div className="h-[1px] bg-newTableBorder my-[4px]" />
-          <Link prefetch={true} href="/launches?manageChannels=1" className={item}>
+          <Link prefetch={true} href="/schedule?manageChannels=1" className={item}>
             <span className={clsx(tile, 'border border-newTableBorder')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5 12h14"/>
@@ -1288,7 +1288,7 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
             inDrawer && 'hidden'
           )}
         >
-          <Link prefetch={true} href="/launches" className="flex items-center">
+          <Link prefetch={true} href="/schedule" className="flex items-center">
             <img
               src="/cuesoft-mark-white.png"
               alt="Cuesoft"
@@ -1340,7 +1340,7 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
               onClick={item.onClick}
               collapsed={collapsed}
               trailing={
-                item.path === '/launches' &&
+                item.path === '/schedule' &&
                 typeof scheduledTotal === 'number' ? (
                   <span className="text-[14px] text-textItemBlur">
                     {scheduledTotal}

@@ -214,7 +214,7 @@ export const PlatformAnalytics = () => {
               </>
             }
             action={
-              <Button onClick={() => router.push('/launches')}>
+              <Button onClick={() => router.push('/schedule')}>
                 {t(
                   'go_to_the_calendar_to_add_channels',
                   'Go to Publish to connect channels'

@@ -128,7 +128,7 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
       </div>
       {!sortedIntegrations.length && (
         <Link
-          href="/launches"
+          href="/schedule"
           className="text-[13px] text-newTextColor/60 underline hover:text-newTextColor transition-colors whitespace-nowrap"
         >
           {t('connect_channels', 'Connect channels')}

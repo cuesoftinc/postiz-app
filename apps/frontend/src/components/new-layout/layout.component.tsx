@@ -175,13 +175,15 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           The utility cluster (bell, theme, language, extension,
                           feedback, org switch) moved into the sidebar footer so
                           it stays reachable on phone too (the sidebar renders
-                          inside the drawer). /launches and /third-party carry
+                          inside the drawer). /schedule (and /launches, kept for
+                          the redirect moment) and /third-party carry
                           their own page headers, and on /settings the settings
                           rail carries the title — the bar would be an empty
                           duplicate strip on those routes, so they are excluded;
                           every other route keeps it for the Title. */}
                       {![
                         '/launches',
+                        '/schedule',
                         '/settings',
                         '/third-party',
                         '/analytics',
