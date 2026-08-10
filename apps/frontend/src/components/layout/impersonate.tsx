@@ -26,6 +26,7 @@ import {
   UserSearchDropdown,
   UserSearchItem,
 } from '@gitroom/frontend/components/cuesoft/dropdown/user-search-dropdown';
+import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 
 interface Charge {
   id: string;
@@ -795,10 +796,7 @@ const AddTeamMember = () => {
 const ViewErrors = () => {
   const t = useT();
   return (
-    <Chip
-      href="/admin/errors"
-      className="bg-white/15 border border-white/40 !rounded-[6px]"
-    >
+    <Chip href="/admin/errors" className="bg-forth !rounded-[6px]">
       {t('view_errors', 'View Errors')}
     </Chip>
   );
@@ -807,7 +805,7 @@ const ViewErrors = () => {
 const ViewStats = () => {
   const t = useT();
   return (
-    <Chip href="/admin/stats" className="bg-black/30 !rounded-[6px]">
+    <Chip href="/admin/stats" className="bg-black/70 !rounded-[6px]">
       {t('view_stats', 'View Stats')}
     </Chip>
   );
@@ -953,6 +951,8 @@ const SwitchUser = () => {
       </Button>
       {!!mapData?.length && !selected && (
         <UserSearchDropdown
+          // the pill popover sits at the viewport bottom — results open upward
+          className="!top-auto bottom-[100%]"
           items={mapData}
           onPick={pick}
           onDismiss={() => setName('')}
@@ -965,6 +965,7 @@ const SwitchUser = () => {
 export const Impersonate = () => {
   const fetch = useFetch();
   const [name, setName] = useState('');
+  const [open, setOpen] = useState(false);
   const { isSecured, billingEnabled } = useVariables();
   const user = useUser();
   const load = useCallback(async () => {
@@ -1020,66 +1021,115 @@ export const Impersonate = () => {
       []
     );
   }, [data]);
+  // Buffer parity r1: Buffer has no full-width top strip — the admin tool is
+  // a fixed bottom-center pill (out of the layout flow, reserves no height).
+  // The pill shows the impersonation state; the full toolset (search, debug
+  // post, announcements, errors/stats, switch/billing) expands into a
+  // DropdownPanel popover above it. The outer strip is pointer-events-none so
+  // only the pill/popover intercept clicks.
   return (
-    <div>
-      <div className="bg-forth min-h-[52px] py-[8px] flex justify-center items-center border-input border rounded-[8px] text-white">
-        <div
-          className={`relative flex flex-col ${
-            user?.impersonate ? 'w-full px-[20px]' : 'w-[600px] phone:w-full phone:px-[12px]'
-          }`}
-        >
-          <div className="relative z-[1]">
-            {user?.impersonate ? (
-              <div className="text-center flex justify-center items-center gap-[10px] phone:flex-wrap">
-                <div className="whitespace-nowrap">
-                  {t('currently_impersonating', 'Currently Impersonating')}
+    <div className="fixed bottom-[16px] inset-x-0 z-[600] flex flex-col items-center gap-[8px] pointer-events-none">
+      {open && (
+        <>
+          {/* click-away layer — painted under the panel/pill (source order) */}
+          <div
+            className="fixed inset-0 pointer-events-auto"
+            onClick={() => setOpen(false)}
+          />
+          <div className="pointer-events-auto w-[560px] max-w-[calc(100vw-24px)]">
+            <DropdownPanel className="!static w-full p-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+              {user?.impersonate ? (
+                <div className="flex flex-col gap-[12px]">
+                  <div className="text-[14px] font-[600]">
+                    {t('currently_impersonating', 'Currently Impersonating')}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-[8px]">
+                    {user?.tier?.current === 'FREE' && <Subscription />}
+                    {user?.tier?.team_members && <AddTeamMember />}
+                    {billingEnabled && <ManageBilling />}
+                  </div>
+                  <SwitchUser />
                 </div>
-                <div>
-                  <Chip
-                    className="bg-red-500 !rounded-[6px]"
-                    onClick={stopImpersonating}
-                    aria-label={t(
-                      'stop_impersonating',
-                      'Stop impersonating'
+              ) : (
+                <div className="flex flex-col gap-[12px]">
+                  <div className="text-[14px] font-[600]">
+                    {t('admin_tools', 'Admin tools')}
+                  </div>
+                  <div className="relative">
+                    <Input
+                      autoComplete="off"
+                      placeholder="Write the user details"
+                      name="impersonate"
+                      disableForm={true}
+                      label=""
+                      removeError={true}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                    {!!data?.length && (
+                      <UserSearchDropdown
+                        // popover sits at the viewport bottom — open upward
+                        className="!top-auto bottom-[100%]"
+                        items={mapData || []}
+                        onPick={(item) => setUser(item.id)()}
+                        onDismiss={() => setName('')}
+                      />
                     )}
-                  >
-                    X
-                  </Chip>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-[8px]">
+                    <ImportDebugPost />
+                    <AddAnnouncement />
+                    <ViewErrors />
+                    <ViewStats />
+                  </div>
                 </div>
-                {user?.tier?.current === 'FREE' && <Subscription />}
-                {user?.tier?.team_members && <AddTeamMember />}
-                {billingEnabled && <ManageBilling />}
-                <SwitchUser />
-              </div>
-            ) : (
-              <div className="flex items-center gap-[10px] phone:flex-wrap phone:justify-center">
-                <div className="flex-1">
-                  <Input
-                    autoComplete="off"
-                    placeholder="Write the user details"
-                    name="impersonate"
-                    disableForm={true}
-                    label=""
-                    removeError={true}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-                <ImportDebugPost />
-                <AddAnnouncement />
-                <ViewErrors />
-                <ViewStats />
-              </div>
-            )}
+              )}
+            </DropdownPanel>
           </div>
-          {!!data?.length && (
-            <UserSearchDropdown
-              items={mapData || []}
-              onPick={(item) => setUser(item.id)()}
-              onDismiss={() => setName('')}
-            />
-          )}
-        </div>
+        </>
+      )}
+      <div
+        data-cs
+        className="pointer-events-auto flex items-center h-[32px] rounded-full bg-forth text-white shadow-[0_4px_12px_rgba(0,0,0,0.18)] overflow-hidden"
+      >
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-[8px] h-full ps-[14px] pe-[12px] text-[13px] font-[500] hover:bg-white/10 transition-colors duration-150"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+          </svg>
+          {user?.impersonate
+            ? `${t('impersonating', 'Impersonating')}: ${
+                user?.name || user?.email || ''
+              }`
+            : t('admin', 'Admin')}
+        </button>
+        {user?.impersonate && (
+          <>
+            <div className="w-[1px] h-[16px] bg-white/30" />
+            <button
+              type="button"
+              onClick={stopImpersonating}
+              aria-label={t('stop_impersonating', 'Stop impersonating')}
+              className="h-full ps-[12px] pe-[14px] text-[13px] font-[600] hover:bg-white/10 transition-colors duration-150"
+            >
+              {t('stop', 'Stop')}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

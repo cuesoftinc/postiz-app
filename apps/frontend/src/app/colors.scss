@@ -47,10 +47,14 @@
     --new-back-drop: #0a0a0a;
     --new-settings: #eceef1;
     --new-sep: rgba(0, 0, 0, 0.14);
-    --new-border: rgba(0, 0, 0, 0.10);
-    --new-bgColor: #f7f7f7;
+    /* Buffer parity r1: warm cream neutrals. Canvas #f7f6f3 (Buffer sampled
+       rgb(247,246,243)); border softened so the active-row fill composites to
+       ~#eae8e5 over the cream instead of the old cool #d8d9db; hairlines match
+       Buffer's card border #eae8e5. Dark mode untouched. */
+    --new-border: rgba(0, 0, 0, 0.06);
+    --new-bgColor: #f7f6f3;
     --new-bgColorInner: #ffffff;
-    --new-bgLineColor: #e7e9eb;
+    --new-bgLineColor: #eae8e5;
     --new-textItemFocused: #000000;
     --new-textItemBlur: #6b6f73;
     --new-boxFocused: #e4f6c6;
@@ -168,7 +172,8 @@
     --color-modalCustom: #000000;
   }
   .light {
-    --color-primary: #f0f2f4;
+    /* Buffer parity r1: page canvas = warm cream #f7f6f3 (was cool #f0f2f4) */
+    --color-primary: #f7f6f3;
     --color-secondary: #fff;
     --color-text: #000;
     --color-third: white;

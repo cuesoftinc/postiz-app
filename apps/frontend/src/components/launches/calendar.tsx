@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -59,6 +60,7 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
 import { ModalBody } from '@gitroom/frontend/components/cuesoft/modal/modal-body';
+import { CommentComponent } from '@gitroom/frontend/components/launches/comments/comment.component';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -79,12 +81,22 @@ i18next.on('languageChanged', () => {
 // Initial setup
 updateDayjsLocale();
 
-const convertTimeFormatBasedOnLocality = (time: number) => {
-  if (isUSCitizen()) {
-    return `${time === 12 ? 12 : time % 12}:00 ${time >= 12 ? 'PM' : 'AM'}`;
-  } else {
-    return `${time}:00`;
-  }
+// Buffer hour-rail label: 'h A' with no minutes ('12 AM', '2 PM')
+const formatHourLabel = (hour: number) =>
+  `${((hour + 11) % 12) + 1} ${hour >= 12 ? 'PM' : 'AM'}`;
+
+// Buffer phone calendar swaps month/week for a rolling 3-day hour grid; the
+// same breakpoint global.scss uses for its phone rules (max-width: 767px).
+const useIsPhone = () => {
+  const [isPhone, setIsPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsPhone(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  return isPhone;
 };
 
 // ---------------------------------------------------------------------------
@@ -403,7 +415,7 @@ export const DayView = () => {
                     .startOf('day')
                     .add(option[0].time, 'minute')
                     .local()
-              ).format(isUSCitizen() ? 'hh:mm A' : 'LT')}
+              ).format(isUSCitizen() ? 'h:mm A' : 'LT')}
             </div>
             <div
               key={option[0].time}
@@ -431,68 +443,115 @@ export const DayView = () => {
 };
 export const WeekView = () => {
   const { startDate, endDate } = useCalendar();
-  const t = useT();
+  const isPhone = useIsPhone();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Use dayjs to get localized day names
+  // Every day of the fetched range (a week on desktop; possibly a whole month
+  // grid range when the phone 3-day view is standing in for month display).
   const localizedDays = useMemo(() => {
     const currentLanguage = i18next.resolvedLanguage || 'en';
     dayjs.locale(currentLanguage);
 
     const days = [];
-    const weekStart = newDayjs(startDate);
-    for (let i = 0; i < 7; i++) {
-      const day = weekStart.add(i, 'day');
-      days.push({
-        name: day.format('dddd'),
-        day: day.format('L'),
-        date: day,
-      });
+    const rangeStart = newDayjs(startDate).startOf('day');
+    const rangeEnd = newDayjs(endDate).startOf('day');
+    const total = Math.max(1, rangeEnd.diff(rangeStart, 'day') + 1);
+    for (let i = 0; i < total; i++) {
+      days.push({ date: rangeStart.add(i, 'day') });
     }
     return days;
-  }, [i18next.resolvedLanguage, startDate]);
+  }, [i18next.resolvedLanguage, startDate, endDate]);
 
+  // Buffer phone: a rolling THREE-day hour grid starting today, sliced
+  // client-side from the already-fetched range (never a new fetch). When
+  // today is outside the range, the first three days of the range show.
+  const visibleDays = useMemo(() => {
+    if (!isPhone) {
+      return localizedDays.slice(0, 7);
+    }
+    const today = newDayjs().startOf('day');
+    const idx = localizedDays.findIndex((d) => d.date.isSame(today, 'day'));
+    const start =
+      idx === -1 ? 0 : Math.max(0, Math.min(idx, localizedDays.length - 3));
+    return localizedDays.slice(start, start + 3);
+  }, [localizedDays, isPhone]);
+
+  // Buffer opens the hour grid scrolled to "now" (one row of context above)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const now = newDayjs();
+    const rangeStart = newDayjs(startDate).startOf('day');
+    const rangeEnd = newDayjs(endDate).endOf('day');
+    if (now.isBefore(rangeStart) || now.isAfter(rangeEnd)) {
+      return;
+    }
+    el.scrollTop = Math.max(0, (now.hour() - 1) * (isPhone ? 80 : 106));
+  }, [startDate, endDate, isPhone]);
+
+  const today = newDayjs();
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 relative">
-        <div className="grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] gap-[1px] bg-newTableBorder rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
-          <div className="z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] sticky top-0"></div>
-          {localizedDays.map((day, index) => (
-            <div
-              key={day.name}
-              className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] sticky top-0 z-[20]"
-            >
-              <div className="text-[14px] font-[500] text-newTableText">
-                {day.name}
-              </div>
+        <div
+          ref={scrollRef}
+          className="grid gap-[1px] bg-newTableBorder border border-newTableBorder absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
+          style={{
+            gridTemplateColumns: isPhone
+              ? `48px repeat(${visibleDays.length}, minmax(0, 1fr))`
+              : `repeat(${visibleDays.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {isPhone && (
+            <div className="z-[20] bg-newBgColorInner h-[36px] sticky top-0" />
+          )}
+          {visibleDays.map((day) => {
+            const isToday = day.date.isSame(today, 'day');
+            return (
               <div
+                key={day.date.format('YYYY-MM-DD')}
                 className={clsx(
-                  'text-[14px] font-[600] flex items-center justify-center gap-[6px]',
-                  day.day === newDayjs().format('L') &&
-                    'text-newTableTextFocused'
+                  'text-center bg-newBgColorInner flex justify-center items-center gap-[8px] h-[36px] sticky top-0 z-[20] text-[14px]',
+                  isToday
+                    ? 'font-[500] text-newTableTextFocused border-b-[2px] border-newTableTextFocused'
+                    : 'text-newTextColor'
                 )}
               >
-                {day.day === newDayjs().format('L') && (
-                  <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
-                )}
-                {day.day}
+                <span>{day.date.format(isPhone ? 'ddd' : 'dddd')}</span>
+                <span>{day.date.format('D')}</span>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {hours.map((hour) => (
             <Fragment key={hour}>
-              <div className="p-2 pe-4 text-center items-center justify-center flex text-[14px] text-newTableText bg-newBgColorInner">
-                {convertTimeFormatBasedOnLocality(hour)}
-              </div>
-              {localizedDays.map((day, indexDay) => (
-                <Fragment
-                  key={`${startDate}-${day.date.format('YYYY-MM-DD')}-${hour}`}
+              {isPhone && (
+                <div className="relative bg-newBgColorInner">
+                  {hour % 2 === 0 && (
+                    <div className="absolute end-[6px] top-0 -translate-y-1/2 z-[10] text-[12px] font-[500] text-newTableText pointer-events-none">
+                      {formatHourLabel(hour)}
+                    </div>
+                  )}
+                </div>
+              )}
+              {visibleDays.map((day, indexDay) => (
+                <div
+                  key={`${day.date.format('YYYY-MM-DD')}-${hour}`}
+                  className={clsx(
+                    'relative bg-newBgColorInner',
+                    isPhone ? 'min-h-[79px]' : 'min-h-[105px]'
+                  )}
                 >
-                  <div className="relative bg-newBgColorInner">
-                    <CalendarColumn
-                      getDate={day.date.hour(hour).startOf('hour')}
-                    />
-                  </div>
-                </Fragment>
+                  {!isPhone && indexDay === 0 && hour % 2 === 0 && (
+                    <div className="absolute start-[10px] top-0 -translate-y-1/2 z-[10] text-[12px] font-[500] text-newTableText pointer-events-none">
+                      {formatHourLabel(hour)}
+                    </div>
+                  )}
+                  <CalendarColumn
+                    getDate={day.date.hour(hour).startOf('hour')}
+                  />
+                </div>
               ))}
             </Fragment>
           ))}
@@ -503,33 +562,35 @@ export const WeekView = () => {
 };
 export const MonthView = () => {
   const { startDate } = useCalendar();
-  const t = useT();
 
-  // Use dayjs to get localized day names
+  // Use dayjs to get localized day names — Buffer is Sunday-first
   const localizedDays = useMemo(() => {
     const currentLanguage = i18next.resolvedLanguage || 'en';
     dayjs.locale(currentLanguage);
 
     const days = [];
-    // Starting from Monday (1) to Sunday (7)
-    for (let i = 1; i <= 7; i++) {
+    // Sunday (0) through Saturday (6)
+    for (let i = 0; i <= 6; i++) {
       days.push(newDayjs().day(i).format('dddd'));
     }
     return days;
   }, [i18next.resolvedLanguage]);
 
   const calendarDays = useMemo(() => {
-    const monthStart = newDayjs(startDate);
-    const currentMonth = monthStart.month();
-    const currentYear = monthStart.year();
+    // The fetch range is either the exact month or the grid-extended
+    // Sunday→Saturday range (calendar.context getDateRange); the middle of
+    // either shape lands inside the displayed month.
+    const monthAnchor = newDayjs(startDate).add(15, 'day');
+    const currentMonth = monthAnchor.month();
+    const currentYear = monthAnchor.year();
 
     const startOfMonth = newDayjs(new Date(currentYear, currentMonth, 1));
 
-    // Calculate the day offset for Monday (isoWeekday() returns 1 for Monday)
-    const startDayOfWeek = startOfMonth.isoWeekday(); // 1 for Monday, 7 for Sunday
-    const daysBeforeMonth = startDayOfWeek - 1; // Days to show from the previous month
+    // Days to show from the previous month — Sunday-first, so .day()
+    // (0 = Sunday) is the offset directly
+    const daysBeforeMonth = startOfMonth.day();
 
-    // Get the start date (Monday of the first week that includes this month)
+    // Get the start date (Sunday of the first week that includes this month)
     const calendarStartDate = startOfMonth.subtract(daysBeforeMonth, 'day');
 
     // Create an array to hold the calendar days (6 weeks * 7 days = 42 days max)
@@ -537,8 +598,14 @@ export const MonthView = () => {
     let currentDay = calendarStartDate;
     for (let i = 0; i < 42; i++) {
       let label = 'current-month';
-      if (currentDay.month() < currentMonth) label = 'previous-month';
-      if (currentDay.month() > currentMonth) label = 'next-month';
+      if (
+        currentDay.month() !== currentMonth ||
+        currentDay.year() !== currentYear
+      ) {
+        label = currentDay.isBefore(startOfMonth)
+          ? 'previous-month'
+          : 'next-month';
+      }
       calendarDays.push({
         day: currentDay,
         label,
@@ -553,13 +620,15 @@ export const MonthView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
-        <div className="grid grid-cols-7 grid-rows-[62px_auto] gap-[1px] bg-newTableBorder rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+        <div className="grid grid-cols-7 grid-rows-[36px] [grid-auto-rows:minmax(205px,auto)] gap-[1px] bg-newTableBorder border border-newTableBorder absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
           {localizedDays.map((day) => (
             <div
               key={day}
-              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-full sticky top-0"
+              className="z-[20] p-2 bg-newBgColorInner flex justify-center items-center flex-col h-full sticky top-0"
             >
-              <div className="text-[14px] font-[500] text-newTableText">{day}</div>
+              <div className="text-[14px] font-[500] text-newTextColor/70">
+                {day}
+              </div>
             </div>
           ))}
           {calendarDays.map((date, index) => (
@@ -570,6 +639,7 @@ export const MonthView = () => {
               <CalendarColumn
                 getDate={newDayjs(date.day).endOf('day')}
                 randomHour={true}
+                monthLabel={date.label}
               />
             </div>
           ))}
@@ -581,6 +651,7 @@ export const MonthView = () => {
 export const ListView = () => {
   const t = useT();
   const user = useUser();
+  const modal = useModals();
   const { integrations, loading, listPosts, listState } = useCalendar();
   const emptyMessage =
     listState === 'scheduled'
@@ -590,10 +661,35 @@ export const ListView = () => {
       : listState === 'published'
       ? t('no_published_posts', 'No sent posts')
       : t('no_posts', 'No posts');
+  const emptySubline =
+    listState === 'draft'
+      ? t('drafts_appear_here', 'Drafts will appear here.')
+      : listState === 'published'
+      ? t('sent_posts_appear_here', 'Posts you have sent will appear here.')
+      : t('scheduled_posts_appear_here', 'Posts you schedule will appear here.');
 
   // Use shared post actions hook
   const { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease } = usePostActions();
   const displayTimezone = useDisplayTimezone();
+
+  // Buffer §Queue: a floating comment bubble outside each card opens the
+  // comments thread for the post's time slot (read/annotate only — the
+  // existing comments component owns its own data)
+  const openComments = useCallback(
+    (post: any) => () => {
+      modal.openModal({
+        title: '',
+        closeOnClickOutside: true,
+        closeOnEscape: true,
+        withCloseButton: false,
+        classNames: {
+          modal: 'w-[100%] max-w-[600px]',
+        },
+        children: <CommentComponent date={dayjs.utc(post.publishDate)} />,
+      });
+    },
+    [modal]
+  );
 
   // Group posts by date (display-only: which day header a card renders under;
   // projected into the display timezone so headers agree with the card times)
@@ -629,82 +725,179 @@ export const ListView = () => {
 
   if (listPosts.length === 0) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center">
-        <div className="text-textColor text-[16px]">{emptyMessage}</div>
+      <div className="flex flex-col flex-1 items-center justify-center gap-[8px] py-[64px]">
+        {/* Buffer empty pattern: doc icon in a 64px grey circle, bold heading,
+            muted subline */}
+        <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+            <path d="M10 9H8" />
+            <path d="M16 13H8" />
+            <path d="M16 17H8" />
+          </svg>
+        </div>
+        <div className="text-[16px] font-[600] text-newTextColor">
+          {emptyMessage}
+        </div>
+        <div className="text-[14px] text-newTextColor/60">{emptySubline}</div>
       </div>
     );
   }
 
+  // Buffer: the queue scrolls with the page — no nested scroll region
   return (
-    <div className="flex flex-col gap-[10px] flex-1 relative">
-      <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
-        {groupedPosts.map(([dateKey, datePosts]) => (
-          <Fragment key={dateKey}>
-            {/* Buffer §Queue two-tone header: weekday prefix bright, rest muted
-                (tones live in global.scss, keyed to this element's classes).
-                Today/Tomorrow is pure presentation of the same date. */}
-            <div className="text-start text-[17px] text-newTextColor font-[500] mt-[32px] first:mt-[8px] mb-[12px] px-[10px]">
-              <span>
-                {(newDayjs(dateKey).isSame(displayNow, 'day')
-                  ? t('today', 'Today')
-                  : newDayjs(dateKey).isSame(displayNow.add(1, 'day'), 'day')
-                  ? t('tomorrow', 'Tomorrow')
-                  : newDayjs(dateKey).format('dddd')) + ','}
-              </span>{' '}
-              <span>
-                {newDayjs(dateKey).format(isUSCitizen() ? 'MMMM D' : 'D MMMM')}
-              </span>
-            </div>
-            <div className="cs-queue flex flex-col gap-[12px] mb-[16px] px-[10px]">
-              {datePosts.map((post) => (
-                <CalendarItem
-                  key={post.id}
-                  display="day"
-                  isBeforeNow={false}
-                  date={newDayjs(post.publishDate)}
-                  state={post.state}
-                  statistics={openStatistics(post.id)}
-                  missingRelease={openMissingRelease(post.id)}
-                  editPost={editPost(post, false)}
-                  duplicatePost={editPost(post, true)}
-                  copyDebugJson={user?.isSuperAdmin ? copyDebugJson(post) : undefined}
-                  post={post}
-                  integrations={integrations}
-                  deletePost={deletePost(post)}
-                  showTime={true}
-                />
-              ))}
-            </div>
-          </Fragment>
-        ))}
-      </div>
+    <div className="flex flex-col flex-1">
+      {groupedPosts.map(([dateKey, datePosts]) => (
+        <Fragment key={dateKey}>
+          {/* Buffer §Queue two-tone header: weekday prefix bold/bright, date
+              muted. Today/Tomorrow is pure presentation of the same date. */}
+          <div className="text-start text-[16px] mt-[32px] first:mt-[8px] mb-[16px] px-[10px]">
+            <span className="font-[600] text-newTextColor">
+              {(newDayjs(dateKey).isSame(displayNow, 'day')
+                ? t('today', 'Today')
+                : newDayjs(dateKey).isSame(displayNow.add(1, 'day'), 'day')
+                ? t('tomorrow', 'Tomorrow')
+                : newDayjs(dateKey).format('dddd')) + ','}
+            </span>{' '}
+            <span className="text-newTextColor/60">
+              {newDayjs(dateKey).format(isUSCitizen() ? 'MMMM D' : 'D MMMM')}
+            </span>
+          </div>
+          <div className="cs-queue flex flex-col gap-[32px] mb-[16px] px-[10px]">
+            {datePosts.map((post) => (
+              <div key={post.id} className="flex items-start gap-[12px]">
+                {/* Buffer time rail OUTSIDE the card: time full-ink 14/500,
+                    pin + 'Custom' muted below */}
+                <div className="w-[100px] min-w-[100px] pt-[20px] flex flex-col gap-[2px] phone:w-[64px] phone:min-w-[64px]">
+                  <div className="text-[14px] font-[500] text-newTextColor whitespace-nowrap text-start">
+                    {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
+                  </div>
+                  <div className="flex items-center gap-[4px] text-[12px] text-newTextColor/60">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 17v5" />
+                      <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                    </svg>
+                    {t('custom', 'Custom')}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 max-w-[700px]">
+                  <CalendarItem
+                    display="day"
+                    isBeforeNow={false}
+                    date={newDayjs(post.publishDate)}
+                    state={post.state}
+                    statistics={openStatistics(post.id)}
+                    missingRelease={openMissingRelease(post.id)}
+                    editPost={editPost(post, false)}
+                    duplicatePost={editPost(post, true)}
+                    copyDebugJson={
+                      user?.isSuperAdmin ? copyDebugJson(post) : undefined
+                    }
+                    post={post}
+                    integrations={integrations}
+                    deletePost={deletePost(post)}
+                  />
+                </div>
+                {/* floating comment bubble outside the card, top-right */}
+                <button
+                  type="button"
+                  onClick={openComments(post)}
+                  aria-label={t('comments', 'Comments')}
+                  className="w-[32px] h-[32px] min-w-[32px] rounded-[10px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </Fragment>
+      ))}
     </div>
   );
 };
 
 export const Calendar = () => {
-  const { display } = useCalendar();
-  return (
-    <>
-      {display === 'list' ? (
-        <ListView />
-      ) : display === 'day' ? (
-        <DayView />
-      ) : display === 'week' ? (
+  const calendar = useCalendar();
+  const isPhone = useIsPhone();
+  const { display } = calendar;
+  if (display === 'list') {
+    return <ListView />;
+  }
+  if (display === 'day') {
+    return <DayView />;
+  }
+  if (display === 'week') {
+    return <WeekView />;
+  }
+  if (isPhone) {
+    // Buffer phone renders a rolling 3-day hour grid instead of the month
+    // grid. Reuse the week machinery over the already-fetched month range;
+    // display is overridden so the hour cells filter posts per-hour.
+    return (
+      <CalendarContext.Provider value={{ ...calendar, display: 'week' }}>
         <WeekView />
-      ) : (
-        <MonthView />
-      )}
-    </>
-  );
+      </CalendarContext.Provider>
+    );
+  }
+  return <MonthView />;
 };
+// Buffer 'N More' / 'Show less' chevron: quiet 16px stroke glyph, muted ink
+const ExpandChevron: FC<{ up?: boolean }> = ({ up }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="text-newTextColor/60"
+    aria-hidden="true"
+  >
+    <path d={up ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6'} />
+  </svg>
+);
+
 export const CalendarColumn: FC<{
   getDate: dayjs.Dayjs;
   randomHour?: boolean;
+  /** month grid only: 'previous-month' | 'current-month' | 'next-month' */
+  monthLabel?: string;
 }> = memo((props) => {
   const t = useT();
 
-  const { getDate, randomHour } = props;
+  const { getDate, randomHour, monthLabel } = props;
   const [num, setNum] = useState(0);
   const user = useUser();
   const {
@@ -937,46 +1130,58 @@ export const CalendarColumn: FC<{
   }, [integrations, getDate, sets, signature]);
 
   const addProvider = useAddProvider();
+  const isToday = getDate.isSame(newDayjs(), 'day');
+  const isWeekend = getDate.day() === 0 || getDate.day() === 6;
+  const isOtherMonth = !!monthLabel && monthLabel !== 'current-month';
   return (
     <div
       className={clsx(
         'flex flex-col w-full min-h-full relative',
         isBeforeNow && 'repeated-strip',
         loading && 'animate-pulse',
-        // week/month cells sit in a collapsed hairline grid (the 1px gaps carry
-        // the border token) with a near-invisible wash; day view keeps its own
-        // bordered rows
-        display !== 'day' && 'bg-newTextColor/[0.02]',
-        isBeforeNow
-          ? 'cursor-not-allowed'
-          : display === 'day'
-          ? 'border border-newTableBorder rounded-[8px]'
-          : ''
+        // Buffer tint model: weekend columns, other-month days and past cells
+        // washed; today/future current-month weekday cells flat white
+        display !== 'day' &&
+          (isBeforeNow || isWeekend || isOtherMonth
+            ? 'bg-newTableHeader'
+            : 'bg-newBgColorInner'),
+        display === 'day' &&
+          (isBeforeNow
+            ? 'cursor-not-allowed'
+            : 'border border-newTableBorder rounded-[8px]')
       )}
       ref={drop as any}
     >
       {display === 'month' && (
-        <div
-          className={clsx(
-            'pt-[6px] px-[8px] text-[14px] text-start text-newTableText flex items-center gap-[6px]',
-            getDate.isSame(newDayjs(), 'day') &&
-              'cs-today text-newTableTextFocused'
-          )}
-        >
-          {getDate.date()}
+        <div className="pt-[6px] px-[8px] text-[14px] text-start flex items-center">
+          {/* Buffer three-tone day numbers; today = filled circle (their green
+              -> our lime; the global primary-surface rule paints black ink) */}
+          <span
+            className={clsx(
+              isToday
+                ? 'w-[24px] h-[24px] -ms-[4px] rounded-full bg-btnPrimary text-black flex items-center justify-center'
+                : isOtherMonth
+                ? 'text-newTextColor/40'
+                : isBeforeNow
+                ? 'text-newTextColor/60'
+                : 'text-newTextColor'
+            )}
+          >
+            {getDate.date()}
+          </span>
         </div>
       )}
       <div
         className={clsx(
-          'relative flex flex-col flex-1 rounded-[8px] min-h-[70px]',
+          'relative flex flex-col flex-1 rounded-[8px]',
+          display === 'day' && 'min-h-[70px]',
           canDrop && 'border border-forth'
         )}
       >
         <div
           className={clsx(
             'flex-col text-[12px] pointer w-full flex scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
-            isBeforeNow ? 'flex-1' : 'cursor-pointer',
-            isBeforeNow && postList.length === 0 && 'col-calendar'
+            isBeforeNow ? 'flex-1' : 'cursor-pointer'
           )}
         >
           {loading && (
@@ -988,10 +1193,10 @@ export const CalendarColumn: FC<{
             <div
               key={post.id}
               className={clsx(
-                'text-textColor p-[2.5px] relative flex flex-col justify-center items-center'
+                'text-textColor p-[2px] relative flex flex-col justify-center items-center'
               )}
             >
-              <div className="relative w-full flex flex-col items-center p-[2.5px]">
+              <div className="relative w-full flex flex-col items-center p-[2px]">
                 <CalendarItem
                   display={display as 'day' | 'week' | 'month'}
                   isBeforeNow={isBeforeNow}
@@ -1011,19 +1216,22 @@ export const CalendarColumn: FC<{
           ))}
           {!showAll && postList.length > 3 && (
             <div
-              className="text-center cursor-pointer py-[5px] text-[14px] text-newTextColor/60 hover:text-newTextColor"
+              className="h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer"
               onClick={showAllFunc}
             >
-              <span aria-hidden="true">⌄</span> {postList.length - 3}{' '}
-              {t('show_more', 'More')}
+              <ExpandChevron />
+              <span>
+                {postList.length - 3} {t('show_more', 'More')}
+              </span>
             </div>
           )}
           {showAll && postList.length > 3 && (
             <div
-              className="text-center hover:underline py-[5px] text-forth"
+              className="h-[24px] flex items-center gap-[8px] ps-[10px] py-[4px] text-start text-[14px] font-[500] text-newTextColor cursor-pointer"
               onClick={showLessFunc}
             >
-              {t('show_less', '- Show less')}
+              <ExpandChevron up />
+              <span>{t('show_less', 'Show less')}</span>
             </div>
           )}
         </div>
@@ -1043,14 +1251,15 @@ export const CalendarColumn: FC<{
               )}
             >
               {display !== 'day' && (
-                <div
-                  className={clsx(
-                    'group hover:before:h-[30px] w-full h-full rounded-[10px] flex justify-center items-center'
-                  )}
-                >
-                  <div
-                    className={`group-hover:before:content-["+"] pb-[5px] flex justify-center items-center rounded-[8px] transition-all group-hover:bg-btnPrimary w-full h-full max-w-[40px] max-h-[40px]`}
-                  />
+                // Buffer-style quiet affordance: a ghost '+' on a faint wash,
+                // not a filled brand square
+                <div className="group w-full h-full rounded-[8px] flex justify-center items-center transition-all duration-150 hover:bg-newTextColor/[0.04]">
+                  <span
+                    data-cs
+                    className="opacity-0 group-hover:opacity-100 text-[24px] leading-none text-newTextColor/40 transition-all duration-150"
+                  >
+                    +
+                  </span>
                 </div>
               )}
               {display === 'day' && (
@@ -1151,6 +1360,20 @@ const CalendarItem: FC<{
   const preview = useCallback(() => {
     window.open(`/p/` + post.id + '?share=true', '_blank');
   }, [post]);
+  // Buffer list cards clamp copy to ~3 lines and reveal a quiet lowercase
+  // 'see more' only when the copy actually overflows the clamp
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (display !== 'day' || expanded) {
+      return;
+    }
+    const el = contentRef.current;
+    if (el) {
+      setOverflowing(el.scrollHeight > el.clientHeight + 1);
+    }
+  }, [post.content, display, expanded]);
   // Buffer parity: the card actions live in a labeled dropdown behind one
   // kebab, not a row of bare icons. Same handlers, new surface.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1322,36 +1545,78 @@ const CalendarItem: FC<{
       )}
       <div
         onClick={editPost}
+        // data-cs: month pills and week cards own their compact Buffer
+        // metrics — the global size ladder and the list-card override in
+        // global.scss (scoped to .cs-queue) must leave them alone
+        data-cs={display !== 'day' ? true : undefined}
         className={clsx(
-          'gap-[5px] w-full flex h-full flex-1 rounded-br-[10px] rounded-bl-[10px] text-[14px] bg-newColColor border border-newTableBorder',
-          display === 'month' ? 'p-[5px] items-center' : 'p-[8px]',
-          'relative',
-          isBeforeNow && '!grayscale'
+          'w-full flex text-[14px] bg-newColColor border border-newTableBorder relative cursor-pointer',
+          // Buffer month pill: 33px tall, r8, hairline border, chip + time
+          display === 'month' &&
+            'h-[33px] min-h-[33px] rounded-[8px] px-[6px] py-[4px] items-center gap-[6px]',
+          // Buffer week card: white r8 hairline, 8px padding, column layout
+          display === 'week' &&
+            'flex-col h-full flex-1 rounded-[8px] p-[8px] items-start gap-[4px]',
+          display === 'day' &&
+            'gap-[5px] h-full flex-1 rounded-br-[10px] rounded-bl-[10px] p-[8px] items-center'
         )}
       >
-        <div className={clsx('relative min-w-[20px]')}>
-          <img
-            className="w-[20px] h-[20px] rounded-[8px]"
-            src={post.integration.picture! || '/no-picture.jpg'}
-          />
-          <img
-            className="w-[12px] h-[12px] rounded-[8px] absolute z-10 top-[10px] end-0 border border-fifth"
-            src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
-          />
-        </div>
+        {display === 'day' && (
+          <div className={clsx('relative min-w-[20px]')}>
+            <img
+              className="w-[20px] h-[20px] rounded-[8px]"
+              src={post.integration.picture! || '/no-picture.jpg'}
+            />
+            <img
+              className="w-[12px] h-[12px] rounded-[8px] absolute z-10 top-[10px] end-0 border border-fifth"
+              src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
+            />
+          </div>
+        )}
         {display === 'month' ? (
-          // Buffer month cells carry compact pills — platform icon + time,
-          // plus a tiny rounded media thumbnail on the right when the post
-          // has an attached image
-          <div className="flex-1 flex items-center gap-[6px] text-[12px] text-newTextColor whitespace-nowrap">
-            <span>
-              {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
-              {formatPostTime(
-                post.publishDate,
-                displayTimezone,
-                isUSCitizen() ? 'h:mm A' : 'HH:mm'
+          // Buffer month pill anatomy: [16px platform chip] [time] [24px
+          // media thumbnail right]
+          <>
+            <img
+              className="w-[16px] h-[16px] min-w-[16px] rounded-[3px]"
+              src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
+              alt=""
+            />
+            <div className="flex-1 flex items-center gap-[6px] text-[13px] text-newTextColor whitespace-nowrap overflow-hidden">
+              <span className="truncate">
+                {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
+                {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
+              </span>
+              {mediaUrl && (
+                <img
+                  src={mediaUrl}
+                  alt=""
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  className="w-[24px] h-[24px] min-w-[24px] rounded-[4px] object-cover ms-auto"
+                />
               )}
-            </span>
+            </div>
+          </>
+        ) : display === 'week' ? (
+          // Buffer week card anatomy: [16px platform chip + time] row, 2-line
+          // snippet, 36px media thumbnail bottom-right
+          <>
+            <div className="w-full flex items-center gap-[6px]">
+              <img
+                className="w-[16px] h-[16px] min-w-[16px] rounded-[3px]"
+                src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
+                alt=""
+              />
+              <div className="text-[14px] font-[500] text-newTextColor whitespace-nowrap">
+                {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
+              </div>
+            </div>
+            <div className="w-full text-[13px] text-start break-words line-clamp-2">
+              {state === 'DRAFT' ? t('draft', 'Draft') + ': ' : ''}
+              {stripHtmlValidation('none', post.content, false, true, false)}
+            </div>
             {mediaUrl && (
               <img
                 src={mediaUrl}
@@ -1359,29 +1624,43 @@ const CalendarItem: FC<{
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
-                className="w-[24px] h-[24px] min-w-[24px] rounded-[4px] object-cover ms-auto"
+                className="w-[36px] h-[36px] min-w-[36px] rounded-[8px] object-cover ms-auto self-end"
               />
             )}
-          </div>
+          </>
         ) : (
-          <div className="w-full flex-1 flex flex-col min-h-[40px]">
-            <div className="text-start">
-              {state === 'DRAFT' ? t('draft', 'Draft') + ': ' : ''}
+          <div className="w-full flex-1 flex flex-col">
+            {state === 'DRAFT' && (
+              <div className="text-start">{t('draft', 'Draft') + ':'}</div>
+            )}
+            <div
+              ref={contentRef}
+              className={clsx(
+                'w-full text-[15px] text-start break-words',
+                !expanded && 'line-clamp-3'
+              )}
+            >
+              {stripHtmlValidation('none', post.content, false, true, false)}
             </div>
-            <div className="w-full relative">
-              <div className="absolute top-0 start-0 w-full text-ellipsis break-words line-clamp-1 text-start">
-                {stripHtmlValidation('none', post.content, false, true, false) ||
-                  t('no_content', 'no content')}
+            {overflowing && !expanded && (
+              <div
+                className="mt-[4px] text-[14px] text-newTextColor/60 text-start cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(true);
+                }}
+              >
+                {t('see_more', 'see more')}
               </div>
-            </div>
+            )}
           </div>
         )}
         {showTime && (
-          <div className="text-newTextColor text-[15px] whitespace-nowrap flex items-center justify-end text-end">
+          <div className="text-newTextColor text-[14px] font-[500] whitespace-nowrap flex items-center justify-end text-end">
             {formatPostTime(
               post.publishDate,
               displayTimezone,
-              isUSCitizen() ? 'hh:mm A' : 'HH:mm'
+              isUSCitizen() ? 'h:mm A' : 'H:mm'
             )}
           </div>
         )}

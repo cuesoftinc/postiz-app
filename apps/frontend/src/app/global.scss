@@ -427,18 +427,6 @@ div div .set-font-family {
   font-weight: 400 !important;
 }
 
-.col-calendar:hover:before {
-  content: 'Date passed';
-  color: var(--color-text);
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  white-space: nowrap;
-  opacity: 30%;
-  font-size: 14px;
-}
-
 .loading-shimmer {
   position: relative;
   color: rgba(255, 255, 255, 0.5);
@@ -655,14 +643,10 @@ html[dir='rtl'] [dir='ltr'] {
   min-height: 24px;
 }
 
+/* Buffer past-time treatment: a flat light wash, no hatching (the class name
+   is historical — the diagonal stripe pattern is retired). */
 .repeated-strip {
-  background: repeating-linear-gradient(
-    135deg,
-    var(--new-bgColorInner),
-    var(--new-bgColorInner) 4px,
-    var(--new-big-strips) 4px,
-    var(--new-big-strips) 8px
-  );
+  background: var(--new-big-strips);
 }
 
 .mantine-Modal-inner {
@@ -949,21 +933,6 @@ html {
 
 /* the channels panel's 260->224 narrowing now lives in side-panel.ts, where a
    `phone:w-full` can actually beat it */
-/* calendar day-of-week header row 62->48 */
-[class*="grid-rows-[62px_auto]"] { grid-template-rows: 48px auto !important; }
-
-/* Buffer §Calendar grid: today's date number carries a lime dot beside it.
-   `.cs-today` is a class-only hook on the month cell's date div in
-   calendar.tsx; the ink token mirrors (lime in dark, dark lime in light).
-   The date div is flex with a 6px gap, so the pseudo needs no positioning. */
-.cs-today::before {
-  content: '';
-  flex: 0 0 auto;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--new-table-text-focused);
-}
 button { white-space: nowrap; }
 
 /* ---------------------------------------------------------------------------
@@ -1028,8 +997,10 @@ button { white-space: nowrap; }
 }
 
 /* card body: real padding + gap so the copy never touches the avatar, the
-   timestamp or the card edge */
-[class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] {
+   timestamp or the card edge. Scoped to the list view (.cs-queue): calendar
+   month pills and week cards own their compact Buffer metrics in calendar.tsx
+   (their body divs carry data-cs and no longer use the rounded-br/bl pair). */
+.cs-queue [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] {
   border-radius: 12px !important;
   padding: 14px 16px !important;
   gap: 12px !important;
@@ -1037,36 +1008,7 @@ button { white-space: nowrap; }
   background-color: var(--new-bgColorInner) !important; /* elevated, like Buffer */
   border-color: transparent !important;
 }
-/* Buffer parity: time as a left gutter column, muted. Keyed on the time
-   element's `whitespace-nowrap` (unique among the card-body children; only
-   ListView passes showTime): a bare `div:last-child:not(:only-child)` also
-   caught the post-copy wrapper in the day/week/month cards — no time div
-   there — and reordered/muted the copy. */
-[class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] > div[class*="whitespace-nowrap"]:last-child:not(:only-child) {
-  order: -1;
-  min-width: 76px;
-  justify-content: flex-start !important;
-  color: var(--new-textItemBlur);
-  font-size: 14px !important;
-}
-[class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] img { margin-inline-end: 4px; }
-
-/* list view day headers (Buffer §Queue): sentence case 17px/500 with a
-   generous top margin — size/spacing styled inline on the element in
-   calendar.tsx (ListView), which renders two spans: weekday prefix
-   ("Today," / "Monday,") then the rest of the date. Buffer two-tone: the
-   container goes muted and the weekday span keeps the primary ink. Anchored to
-   the header's own class strings (`text-[17px]` is unique to it — grepped);
-   the attribute pair out-specifies the element's `text-newTextColor` utility,
-   which stays on as the no-scss fallback. The old muted-uppercase-with-divider
-   rule that lived here anchored on `mt-[10px]`, which no longer exists in the
-   markup. */
-[class*="text-[17px]"][class*="mt-[32px]"][class*="mb-[12px]"] {
-  color: var(--new-textItemBlur);
-}
-[class*="text-[17px]"][class*="mt-[32px]"][class*="mb-[12px]"] > span:first-child {
-  color: rgb(var(--new-textColor));
-}
+.cs-queue [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] img { margin-inline-end: 4px; }
 
 /* ===== Mobile (<768px) =====
    The shell is desktop-only: the nav column is `position: fixed` at a hardcoded
@@ -1091,15 +1033,6 @@ button { white-space: nowrap; }
      bar and drew one violet line across all seven tabs. */
   /* the bottom tab bar is retired (Buffer mobile = hamburger drawer) */
   body { padding-bottom: env(safe-area-inset-bottom); }
-
-  /* Buffer mobile queue: the time sits ABOVE the card content as its own row */
-  [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] {
-    flex-wrap: wrap !important;
-  }
-  [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] > div:last-child:not(:only-child) {
-    flex-basis: 100%;
-    min-width: 0;
-  }
 
   /* touch has no hover: the card action strip renders at rest, right-aligned
      under the content, instead of the desktop hover pill */
@@ -1215,15 +1148,10 @@ button { white-space: nowrap; }
   [class^="p-[12px]"], [class*=" p-[12px]"] { padding: 10px !important; }
   [class^="p-[20px]"], [class*=" p-[20px]"] { padding: 12px !important; }
 
-  /* month grid keeps real (tappable) columns and scrolls horizontally */
+  /* month grid keeps real (tappable) columns and scrolls horizontally (only a
+     pre-hydration fallback now — once mounted, phone month/week render the
+     Buffer 3-day hour grid from calendar.tsx, which sizes its own columns) */
   .grid[class*="grid-cols-7"] { grid-template-columns: repeat(7, minmax(88px, 1fr)) !important; }
-  /* week/day grid is a separate arbitrary template: [136px gutter + 7 x
-     minmax(0,1fr)], which at 390px leaves ~30px per day and the weekday
-     headers overlap into mush. It already has overflow:auto, so give it real
-     columns and let it scroll. */
-  [class*="grid-template-columns:136px"] {
-    grid-template-columns: 72px repeat(7, minmax(92px, 1fr)) !important;
-  }
 
   /* content grids are authored for desktop: grid-cols-3 gave 95px plug cards at
      390px, wrapping one word per line. grid-cols-7 is the calendar and is

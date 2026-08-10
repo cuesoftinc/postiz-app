@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FC, ReactNode, useCallback, useMemo } from 'react';
+import React, { FC, ReactNode, useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
 import useCookie from 'react-use-cookie';
@@ -36,9 +36,10 @@ import { StreakComponent } from '@gitroom/frontend/components/layout/streak.comp
  *    endDate, customer, added/continue, msg are the only handled params), and
  *    inventing one would be a new mechanism.
  *
- * Sizes come from the spec (rows h-32 r-8, pill h-44 r-999, labels 14px,
- * section header 13px). `data-cs` marks the two spots where the global.scss
- * ladder would rescale spec sizes (h-[44px] pill, h-[48px] logo row).
+ * Sizes come from the spec (rows h-32 r-8, pill h-40 r-999, labels 14px,
+ * section header 13px). `data-cs` marks the spots where the global.scss
+ * ladder would rescale spec sizes (the 40px pill, the 48px logo row, the
+ * 20px wordmark).
  * Active/hover fills use CSS-var tokens only: bg-newBorder is the 10%-alpha
  * fill (white-alpha in dark, black-alpha in light — the spec's mirroring),
  * boxHover is the quieter wash.
@@ -54,10 +55,11 @@ import { StreakComponent } from '@gitroom/frontend/components/layout/streak.comp
 
 type SidebarMenuItem = ReturnType<typeof useMenuItem>['firstMenu'][number];
 
-/** Lucide panel-left, the measured collapse/expand glyph (16x16, viewBox 24,
- *  stroke 2.2, round caps/joins) — same icon on both the collapse control in
- *  the expanded footer and the expand control at the rail's bottom. */
-const PanelLeftIcon: FC = () => (
+/** Lucide panel-left-close / panel-left-open, the measured collapse/expand
+ *  glyphs (16x16, viewBox 24, stroke 2.2, round caps/joins). Buffer uses the
+ *  directional pair: an inward arrow on the collapse control in the expanded
+ *  footer, the mirrored outward arrow on the rail's expand button. */
+const PanelLeftCloseIcon: FC = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="16"
@@ -71,8 +73,68 @@ const PanelLeftIcon: FC = () => (
   >
     <rect width="18" height="18" x="3" y="3" rx="2" />
     <path d="M9 3v18" />
+    <path d="m16 15-3-3 3-3" />
   </svg>
 );
+
+const PanelLeftOpenIcon: FC = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
+    <path d="m14 9 3 3-3 3" />
+  </svg>
+);
+
+/** Single lightweight read of the scheduled queue (existing list endpoint,
+ *  display-only): the exact org-wide total feeds the Publish nav badge, and
+ *  grouping the first page (max the endpoint allows) by integration feeds the
+ *  per-channel counts. Counts render only once data exists — a null count
+ *  simply hides the badge slot. Per-channel numbers can undercount past 100
+ *  queued posts; the total stays exact. */
+const useScheduledCounts = () => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    return await (
+      await fetch('/posts/list?state=scheduled&page=0&limit=100')
+    ).json();
+  }, []);
+  const { data } = useSWR('sidebar-scheduled-counts', load, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    refreshWhenHidden: false,
+    refreshWhenOffline: false,
+  });
+
+  return useMemo(() => {
+    if (!data || !Array.isArray(data.posts)) {
+      return {
+        total: undefined as number | undefined,
+        perIntegration: undefined as Record<string, number> | undefined,
+      };
+    }
+    const perIntegration: Record<string, number> = {};
+    for (const post of data.posts) {
+      const id = post?.integration?.id;
+      if (id) {
+        perIntegration[id] = (perIntegration[id] || 0) + 1;
+      }
+    }
+    return {
+      total: typeof data.total === 'number' ? data.total : undefined,
+      perIntegration,
+    };
+  }, [data]);
+};
 
 /** TopMenu's visibility rules, verbatim, so the sidebar and the phone bar can
  *  never disagree about which routes a user sees. */
@@ -119,7 +181,10 @@ const NavRow: FC<{
   /** Icon rail mode: 32x32 icon-only square, label survives as the native
    *  title tooltip (already set on both render branches below). */
   collapsed?: boolean;
-}> = ({ label, icon, path, onClick, collapsed }) => {
+  /** Right-aligned badge slot (Buffer parity: plain muted counts, tinted
+   *  pills). Hidden in the collapsed rail. */
+  trailing?: ReactNode;
+}> = ({ label, icon, path, onClick, collapsed, trailing }) => {
   const currentPath = usePathname();
   // Same active test as menu-item.tsx.
   const isActive = currentPath.indexOf(path) === 0;
@@ -136,11 +201,15 @@ const NavRow: FC<{
 
   const inner = (
     <>
-      {/* stock icons range 18-23px; box them at 20 so rows never jitter */}
-      <div className="w-[20px] h-[20px] shrink-0 flex items-center justify-center [&_svg]:max-w-[18px] [&_svg]:max-h-[18px]">
+      {/* leading icons render at 16 (Buffer's measured size); the 20px box
+          keeps rows from jittering when a stock icon is drawn wider */}
+      <div className="w-[20px] h-[20px] shrink-0 flex items-center justify-center [&_svg]:max-w-[16px] [&_svg]:max-h-[16px]">
         {icon}
       </div>
       {!collapsed && <div className="flex-1 truncate text-start">{label}</div>}
+      {!collapsed && trailing != null && (
+        <div className="shrink-0 flex items-center">{trailing}</div>
+      )}
     </>
   );
 
@@ -171,6 +240,97 @@ const channelRowClassName = (disabled?: boolean) =>
     disabled && 'opacity-50'
   );
 
+/** Buffer shows quick-connect tiles only for platforms NOT yet connected;
+ *  this pool is ordered to surface the trio Buffer leads with. */
+const QUICK_CONNECT_POOL = [
+  'instagram',
+  'threads',
+  'bluesky',
+  'facebook',
+  'linkedin',
+  'x',
+  'tiktok',
+  'youtube',
+  'pinterest',
+  'mastodon',
+];
+
+/** One expanded channel row: avatar + presence dot + name + a fixed 24px
+ *  right slot. Buffer parity: the slot shows the muted scheduled-post count
+ *  at rest and swaps to the manage kebab on row hover — both are absolutely
+ *  stacked in the same box so nothing shifts. A null count simply hides. */
+const ChannelRow: FC<{
+  integration: any;
+  href: string;
+  active: boolean;
+  count?: number;
+}> = ({ integration, href, active, count }) => {
+  const t = useT();
+  const router = useRouter();
+
+  return (
+    <Link
+      prefetch={true}
+      href={href}
+      title={integration.name}
+      className={clsx(
+        'group/chrow',
+        channelRowClassName(integration.disabled),
+        active && 'bg-newBorder text-newTextColor'
+      )}
+    >
+      {/* spec §Sidebar 5: presence dot top-left — green for healthy
+          channels, red-family when a refresh is needed, omitted for
+          disabled ones. Driven by fields already on this SWR row. */}
+      <span className="relative flex shrink-0">
+        <ChannelAvatar
+          picture={integration.picture}
+          identifier={integration.identifier}
+          name={integration.name}
+          size={32}
+          badgeSize={14}
+          badgeOffset="-bottom-[2px] -end-[2px]"
+          fallback="placeholder"
+          className="min-w-[32px] min-h-[32px]"
+        />
+        {!integration.disabled && (
+          <span
+            className={clsx(
+              'absolute -top-[2px] -start-[2px] z-10 w-[9px] h-[9px] rounded-full border-2 border-newBgColor',
+              integration.refreshNeeded ? 'bg-red-500' : 'bg-green-500'
+            )}
+          />
+        )}
+      </span>
+      <div className="flex-1 truncate">{integration.name}</div>
+      <span className="relative w-[24px] h-[24px] min-w-[24px]">
+        {count != null && (
+          <span className="absolute inset-0 flex items-center justify-end text-[14px] text-textItemBlur group-hover/chrow:opacity-0 transition-opacity duration-150">
+            {count}
+          </span>
+        )}
+        <span
+          role="button"
+          tabIndex={0}
+          title={t('manage_channels', 'Manage channels')}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            router.push('/launches?manageChannels=1');
+          }}
+          className="absolute inset-0 opacity-0 group-hover/chrow:opacity-100 focus-visible:opacity-100 flex items-center justify-center rounded-[6px] hover:bg-boxHover transition-opacity duration-150"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="1" />
+            <circle cx="12" cy="5" r="1" />
+            <circle cx="12" cy="19" r="1" />
+          </svg>
+        </span>
+      </span>
+    </Link>
+  );
+};
+
 /** Read-only channel list. Same sort as the launches panel. Each row opens
  *  that channel's queue (/launches?integration=<id> — the calendar context
  *  filters both views by the id); management stays in the launches panel.
@@ -178,11 +338,15 @@ const channelRowClassName = (disabled?: boolean) =>
  *  (presence dots kept, same channelHref navigation, name as title). */
 const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
   const t = useT();
+  const { billingEnabled } = useVariables();
   const { data: integrations } = useIntegrationList();
+  const { perIntegration } = useScheduledCounts();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const activeIntegration = searchParams.get('integration');
-  const router = useRouter();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [channelFilter, setChannelFilter] = useState('');
+  const [showLocked, setShowLocked] = useState(false);
   // Context-aware rows (Buffer parity): on Analytics a channel click selects
   // that channel's stats; everywhere else it opens the channel's queue.
   const channelHref = (id: string) =>
@@ -201,6 +365,39 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
       ),
     [integrations]
   );
+
+  // Buffer's "Locked channels" drawer: billing-gated plans tuck disabled /
+  // over-limit channels behind a muted expander. Self-hosted (no billing) or
+  // zero locked keeps the flat list — the row is omitted entirely.
+  const locked = useMemo(
+    () => (billingEnabled ? sorted.filter((i: any) => i.disabled) : []),
+    [billingEnabled, sorted]
+  );
+  const unlocked = useMemo(
+    () => (locked.length > 0 ? sorted.filter((i: any) => !i.disabled) : sorted),
+    [locked.length, sorted]
+  );
+  const visible = useMemo(() => {
+    const q = channelFilter.trim().toLowerCase();
+    if (!q) {
+      return unlocked;
+    }
+    return unlocked.filter((i: any) =>
+      String(i.name || '').toLowerCase().includes(q)
+    );
+  }, [channelFilter, unlocked]);
+
+  // Quick-connect tiles show only platforms NOT already connected, matched on
+  // the provider family (a linkedin-page connection hides the linkedin tile),
+  // capped at three like Buffer.
+  const quickConnect = useMemo(() => {
+    const connectedBases = new Set(
+      sorted.map((i: any) => String(i.identifier || '').split('-')[0])
+    );
+    return QUICK_CONNECT_POOL.filter(
+      (identifier) => !connectedBases.has(identifier.split('-')[0])
+    ).slice(0, 3);
+  }, [sorted]);
 
   if (collapsed) {
     return (
@@ -242,13 +439,34 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
 
   return (
     <div className="flex flex-col gap-[2px] pt-[16px]">
-      <div className="px-[8px] pb-[4px] flex items-center text-[13px] text-textItemBlur">
+      {/* Buffer parity: at rest the header is just the muted label; the
+          search and gear controls reveal on header hover (and on keyboard
+          focus). Search filters the rows client-side — display only. */}
+      <div className="group/chead px-[8px] pb-[4px] flex items-center gap-[2px] text-[13px] text-textItemBlur">
         <span className="flex-1">{t('channels', 'Channels')}</span>
+        <button
+          type="button"
+          title={t('search_channels', 'Search channels')}
+          onClick={() => {
+            setSearchOpen(!searchOpen);
+            setChannelFilter('');
+          }}
+          className={clsx(
+            'w-[24px] h-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover hover:text-newTextColor transition-opacity duration-150',
+            !searchOpen &&
+              'opacity-0 group-hover/chead:opacity-100 focus-visible:opacity-100'
+          )}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <path d="m21 21-4.34-4.34" />
+            <circle cx="11" cy="11" r="8" />
+          </svg>
+        </button>
         <Link
           prefetch={true}
           href="/launches?manageChannels=1"
           title={t('manage_channels', 'Manage channels')}
-          className="w-[24px] h-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover hover:text-newTextColor transition-colors duration-150"
+          className="opacity-0 group-hover/chead:opacity-100 focus-visible:opacity-100 w-[24px] h-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover hover:text-newTextColor transition-opacity duration-150"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
             <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/>
@@ -256,89 +474,52 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
           </svg>
         </Link>
       </div>
-      {sorted.map((integration: any) => (
-        <Link
+      {searchOpen && (
+        <input
+          autoFocus
+          type="text"
+          value={channelFilter}
+          onChange={(e) => setChannelFilter(e.target.value)}
+          placeholder={t('search_channels', 'Search channels')}
+          className="mx-[8px] mb-[4px] h-[28px] px-[8px] rounded-[6px] border border-newTableBorder bg-transparent text-[13px] text-newTextColor placeholder:text-textItemBlur outline-none"
+        />
+      )}
+      {visible.map((integration: any) => (
+        <ChannelRow
           key={integration.id}
-          prefetch={true}
+          integration={integration}
           href={channelHref(integration.id)}
-          title={integration.name}
-          className={clsx(
-            'group/chrow',
-            channelRowClassName(integration.disabled),
-            activeIntegration === integration.id &&
-              'bg-newBorder text-newTextColor'
-          )}
-        >
-          {/* spec §Sidebar 5: presence dot top-left — green for healthy
-              channels, red-family when a refresh is needed, omitted for
-              disabled ones. Driven by fields already on this SWR row. */}
-          <span className="relative flex shrink-0">
-            <ChannelAvatar
-              picture={integration.picture}
-              identifier={integration.identifier}
-              name={integration.name}
-              size={32}
-              badgeSize={14}
-              badgeOffset="-bottom-[2px] -end-[2px]"
-              fallback="placeholder"
-              className="min-w-[32px] min-h-[32px]"
-            />
-            {!integration.disabled && (
-              <span
-                className={clsx(
-                  'absolute -top-[2px] -start-[2px] z-10 w-[9px] h-[9px] rounded-full border-2 border-newBgColor',
-                  integration.refreshNeeded ? 'bg-red-500' : 'bg-green-500'
-                )}
-              />
-            )}
-          </span>
-          <div className="flex-1 truncate">{integration.name}</div>
-          <span
-            role="button"
-            tabIndex={0}
-            title={t('manage_channels', 'Manage channels')}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              router.push('/launches?manageChannels=1');
-            }}
-            className="opacity-0 group-hover/chrow:opacity-100 focus-visible:opacity-100 w-[24px] h-[24px] min-w-[24px] flex items-center justify-center rounded-[6px] hover:bg-boxHover transition-colors duration-150"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="1" />
-              <circle cx="12" cy="5" r="1" />
-              <circle cx="12" cy="19" r="1" />
-            </svg>
-          </span>
-        </Link>
+          active={activeIntegration === integration.id}
+          count={
+            perIntegration ? perIntegration[integration.id] || 0 : undefined
+          }
+        />
       ))}
-      {/* spec §Sidebar 6: muted label + row of 24px platform icon buttons
-          ending in a "+" — every button deep-links to the same
-          manage-channels panel (same mechanism, different composition). */}
+      {/* spec §Sidebar 6: muted label + quick-connect tiles (unconnected
+          platforms only, full-bleed 24px brand art) ending in a "+" — every
+          button deep-links to the same manage-channels panel. */}
       <div className="pt-[8px]">
         <div className="px-[8px] pb-[4px] text-[13px] text-textItemBlur">
           {t('connect_more_channels', 'Connect more channels')}
         </div>
-        <div className="px-[8px] flex items-center gap-[6px]">
-          {['facebook', 'instagram', 'linkedin', 'x', 'tiktok', 'youtube'].map(
-            (identifier) => (
-              <Link
-                key={identifier}
-                prefetch={true}
-                href="/launches?manageChannels=1"
-                title={t('manage_channels', 'Manage channels')}
-                className="w-[24px] h-[24px] rounded-[6px] flex items-center justify-center hover:bg-boxHover transition-colors duration-150"
-              >
-                <img
-                  src={`/icons/platforms/${identifier}.png`}
-                  alt={identifier}
-                  width={16}
-                  height={16}
-                  className="rounded-[4px]"
-                />
-              </Link>
-            )
-          )}
+        <div className="px-[8px] flex items-center gap-[8px]">
+          {quickConnect.map((identifier) => (
+            <Link
+              key={identifier}
+              prefetch={true}
+              href="/launches?manageChannels=1"
+              title={t('manage_channels', 'Manage channels')}
+              className="w-[24px] h-[24px] rounded-[6px] overflow-hidden hover:opacity-80 transition-opacity duration-150"
+            >
+              <img
+                src={`/icons/platforms/${identifier}.png`}
+                alt={identifier}
+                width={24}
+                height={24}
+                className="w-[24px] h-[24px] rounded-[6px] object-cover"
+              />
+            </Link>
+          ))}
           <Link
             prefetch={true}
             href="/launches?manageChannels=1"
@@ -362,6 +543,125 @@ const SidebarChannels: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
           </Link>
         </div>
       </div>
+      {/* Buffer's "Locked channels · N ›" expander — only when billing is on
+          and some channels are locked, so self-hosted stays clean. */}
+      {locked.length > 0 && (
+        <div className="pt-[8px]">
+          <button
+            type="button"
+            onClick={() => setShowLocked(!showLocked)}
+            className="w-full px-[8px] py-[4px] flex items-center gap-[4px] text-[14px] text-textItemBlur hover:text-newTextColor transition-colors duration-150"
+          >
+            <span>
+              {t('locked_channels', 'Locked channels')} · {locked.length}
+            </span>
+            <svg
+              className={clsx(
+                'transition-transform duration-150',
+                showLocked && 'rotate-90'
+              )}
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+          {showLocked &&
+            locked.map((integration: any) => (
+              <ChannelRow
+                key={integration.id}
+                integration={integration}
+                href={channelHref(integration.id)}
+                active={activeIntegration === integration.id}
+              />
+            ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/** Buffer's channels-limit upsell card, pinned above the org footer: bordered
+ *  r12 card with "<connected>/<limit> channels connected", segmented progress
+ *  bars (brand lime for Buffer's green) and a bordered "Upgrade for More"
+ *  button into /billing. Display-only: gated on billing being enabled AND the
+ *  FREE tier, cookie-dismissable, and hidden when the plan reports no positive
+ *  channel limit (self-hosted reports billing off anyway). */
+const ChannelsLimitCard: FC = () => {
+  const t = useT();
+  const user = useUser();
+  const { billingEnabled } = useVariables();
+  const { data: integrations } = useIntegrationList();
+  const [dismissed, setDismissed] = useCookie('channelsLimitCardDismissed', '0');
+
+  const limit = user?.totalChannels || 0;
+  if (
+    !billingEnabled ||
+    user?.tier?.current !== 'FREE' ||
+    dismissed === '1' ||
+    limit <= 0
+  ) {
+    return null;
+  }
+
+  const connected = (integrations || []).filter(
+    (i: any) => !i.disabled
+  ).length;
+  // Segment count mirrors the limit (Buffer: equal thirds on 3/3), capped so
+  // an unusual plan shape can never render sliver bars.
+  const segments = Math.min(limit, 10);
+  const filled =
+    segments === limit
+      ? Math.min(connected, segments)
+      : Math.min(segments, Math.round((connected / limit) * segments));
+
+  return (
+    <div className="mb-[8px] p-[12px] rounded-[12px] border border-newTableBorder">
+      <div className="flex items-start gap-[8px]">
+        <div className="flex-1 text-[13px] font-[600] text-newTextColor">
+          {`${Math.min(connected, limit)}/${limit} `}
+          {t('channels_connected', 'channels connected')}
+        </div>
+        <button
+          type="button"
+          title={t('dismiss', 'Dismiss')}
+          onClick={() => setDismissed('1')}
+          className="w-[16px] h-[16px] shrink-0 flex items-center justify-center text-textItemBlur hover:text-newTextColor transition-colors duration-150"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex gap-[4px] mt-[8px]">
+        {Array.from({ length: segments }).map((_, index) => (
+          <div
+            key={index}
+            className={clsx(
+              'h-[6px] flex-1 rounded-full',
+              index < filled ? 'bg-btnPrimary' : 'bg-newTableBorder'
+            )}
+          />
+        ))}
+      </div>
+      <Link
+        prefetch={true}
+        href="/billing"
+        className="mt-[12px] h-[32px] w-full flex items-center justify-center gap-[6px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+        </svg>
+        {t('upgrade_for_more', 'Upgrade for More')}
+      </Link>
     </div>
   );
 };
@@ -434,7 +734,7 @@ const SidebarOrganization: FC<{ onCollapse?: () => void }> = ({
           title={t('collapse_sidebar', 'Collapse sidebar')}
           className="w-[24px] h-[24px] shrink-0 flex items-center justify-center rounded-[6px] text-textItemBlur hover:bg-boxHover hover:text-newTextColor transition-colors"
         >
-          <PanelLeftIcon />
+          <PanelLeftCloseIcon />
         </button>
       )}
     </div>
@@ -466,7 +766,7 @@ const NewMenu: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
         className={
           collapsed
             ? 'w-[32px] h-[32px] mx-auto flex items-center justify-center rounded-[8px] bg-btnPrimary text-textItemFocused transition-colors duration-150'
-            : 'h-[44px] w-full flex items-center justify-center gap-[8px] rounded-full bg-btnPrimary text-textItemFocused text-[14px] font-[600] transition-colors duration-150'
+            : 'h-[40px] w-full flex items-center justify-center gap-[8px] rounded-full bg-btnPrimary text-textItemFocused text-[14px] font-[600] transition-colors duration-150'
         }
       >
         {collapsed ? (
@@ -557,9 +857,29 @@ const NewMenu: FC<{ collapsed?: boolean }> = ({ collapsed }) => {
   );
 };
 
+/** Utility routes Buffer has no counterpart for — they render demoted below a
+ *  hairline at the bottom of the scroll block instead of leading the nav. */
+const UTILITY_PATHS = ['/plugs', '/third-party'];
+
 export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
   const t = useT();
   const { first, second } = useVisibleMenu();
+  const { total: scheduledTotal } = useScheduledCounts();
+
+  // Buffer parity: Publish leads and carries a plain muted scheduled count;
+  // the non-Buffer utility rows drop below a hairline at the bottom of the
+  // scroll block. The visibility filter above stays the single gate.
+  const primary = useMemo(
+    () => first.filter((item) => !UTILITY_PATHS.includes(item.path)),
+    [first]
+  );
+  const utility = useMemo(
+    () => [
+      ...first.filter((item) => UTILITY_PATHS.includes(item.path)),
+      ...second,
+    ],
+    [first, second]
+  );
 
   // Buffer's collapse: cookie-persisted pure-UI state (same react-use-cookie
   // pattern as the side panels' 'collapseMenu'). The phone drawer never
@@ -587,8 +907,15 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
     >
       {/* sticky (not fixed): banners in normal flow (Impersonate,
           AnnouncementBanner) push it down instead of overlapping it, so the
-          old rail's #left-menu padding hacks are not needed here */}
-      <div className="sticky top-[12px] h-[calc(100dvh-24px)] flex flex-col px-[8px]">
+          old rail's #left-menu padding hacks are not needed here.
+          16px side padding = Buffer's 208px-wide rows inside 240px; the
+          52px rail keeps a slimmer inset so its 32px squares still fit. */}
+      <div
+        className={clsx(
+          'sticky top-[12px] h-[calc(100dvh-24px)] flex flex-col',
+          collapsed ? 'px-[10px]' : 'px-[16px]'
+        )}
+      >
         {/* logo row — the ONLY logo on desktop; the content column's top bar
             keeps Title + the icon cluster and never duplicates it. Spec
             §Sidebar row 1: logo left, streak icon right. Rail: mark 24
@@ -615,21 +942,32 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
               height={collapsed ? 24 : 28}
               className="block dark:hidden object-contain"
             />
+            {/* Buffer anchors the sidebar with mark + bold wordmark */}
+            {!collapsed && (
+              <span
+                data-cs
+                className="ms-[8px] font-display text-[20px] font-[700] leading-none text-newTextColor"
+              >
+                Cuesoft
+              </span>
+            )}
           </Link>
           {!collapsed && <StreakComponent />}
         </div>
-        {/* "+ New" pill — h-44 r-999 lime, dark ink (data-cs: the ladder
-            rescales h-[44px] to 36). Navigation, not a new modal mechanism.
-            Collapsed: the measured 32x32 green square. */}
+        {/* "+ New" pill — Buffer's measured 40px-tall rounded-full row in
+            lime with dark ink (data-cs keeps the ladder from rescaling it to
+            32). Navigation, not a new modal mechanism. Collapsed: the
+            measured 32x32 green square. */}
         <NewMenu collapsed={collapsed} />
-        {/* nav + channels scroll on short viewports; footer stays put */}
+        {/* nav + channels scroll on short viewports; footer stays put.
+            4px row gap = Buffer's 36px nav pitch on 32px rows. */}
         <div
           className={clsx(
-            'flex-1 min-h-0 overflow-y-auto flex flex-col gap-[2px] pt-[16px] pb-[8px]',
+            'flex-1 min-h-0 overflow-y-auto flex flex-col gap-[4px] pt-[16px] pb-[8px]',
             collapsed && 'items-center'
           )}
         >
-          {first.map((item) => (
+          {primary.map((item) => (
             <NavRow
               key={item.name}
               path={item.path}
@@ -637,16 +975,14 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
               icon={item.icon}
               onClick={item.onClick}
               collapsed={collapsed}
-            />
-          ))}
-          {second.map((item) => (
-            <NavRow
-              key={item.name}
-              path={item.path}
-              label={item.name}
-              icon={item.icon}
-              onClick={item.onClick}
-              collapsed={collapsed}
+              trailing={
+                item.path === '/launches' &&
+                typeof scheduledTotal === 'number' ? (
+                  <span className="text-[14px] text-textItemBlur">
+                    {scheduledTotal}
+                  </span>
+                ) : undefined
+              }
             />
           ))}
           {/* rail spec: hairline separator between nav icons and channels */}
@@ -654,6 +990,33 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
             <div className="h-[1px] w-[24px] shrink-0 bg-newTableBorder mt-[8px]" />
           )}
           <SidebarChannels collapsed={collapsed} />
+          {/* non-Buffer utility rows sit demoted below a hairline at the
+              bottom of the scroll block */}
+          {utility.length > 0 && (
+            <div
+              className={clsx(
+                'mt-auto pt-[16px] flex flex-col gap-[4px]',
+                collapsed ? 'items-center w-full' : 'w-full'
+              )}
+            >
+              <div
+                className={clsx(
+                  'h-[1px] shrink-0 bg-newTableBorder mb-[4px]',
+                  collapsed ? 'w-[24px]' : 'w-full'
+                )}
+              />
+              {utility.map((item) => (
+                <NavRow
+                  key={item.name}
+                  path={item.path}
+                  label={item.name}
+                  icon={item.icon}
+                  onClick={item.onClick}
+                  collapsed={collapsed}
+                />
+              ))}
+            </div>
+          )}
         </div>
         {collapsed ? (
           /* rail footer: expand control (panel-left) over the org mark */
@@ -664,7 +1027,7 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
               title={t('expand_sidebar', 'Expand sidebar')}
               className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] text-textItemBlur hover:bg-boxHover hover:text-newTextColor transition-colors"
             >
-              <PanelLeftIcon />
+              <PanelLeftOpenIcon />
             </button>
             <img
               src="/cuesoft-mark-white.png"
@@ -683,6 +1046,7 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
           </div>
         ) : (
           <div className="shrink-0 pb-[4px]">
+            <ChannelsLimitCard />
             <SidebarOrganization
               onCollapse={inDrawer ? undefined : toggleCollapsed}
             />

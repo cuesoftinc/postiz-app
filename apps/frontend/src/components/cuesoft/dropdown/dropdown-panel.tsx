@@ -11,8 +11,10 @@ import clsx from 'clsx';
  *
  * The `surface` prop encodes the app's three coexisting popover generations
  * verbatim (deliberately NOT normalized into one look — plan section 3):
- * - 'panel'  — the new-theme card: notification bell (rounded corners at 16,
- *              tableBorder, bg-third, z-600)
+ * - 'panel'  — the new-theme card: white, radius 12, layered Buffer-measured
+ *              shadow stack (which includes a 1px alpha ring, so no hard
+ *              border in light mode; dark mode keeps a hairline because the
+ *              black-alpha ring vanishes on dark surfaces)
  * - 'menu'   — the compact action menu: third-party kebab (bg-fifth, padded,
  *              nowrap, z-100)
  * - 'legacy' — the old-theme list: impersonate autocompletes (bg-sixth,
@@ -23,7 +25,7 @@ import clsx from 'clsx';
 
 const SURFACES = {
   panel:
-    'absolute top-[100%] bg-newBgColorInner text-textColor rounded-[16px] border border-tableBorder z-[600]',
+    'absolute top-[100%] bg-newBgColorInner text-textColor rounded-[12px] shadow-[0_0_0_1px_rgba(0,0,0,.08),0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] dark:border dark:border-tableBorder z-[600]',
   menu: 'absolute top-[100%] p-[8px] px-[20px] bg-fifth flex flex-col gap-[16px] rounded-[8px] border border-tableBorder text-nowrap z-[100]',
   legacy:
     'absolute top-[100%] bg-sixth border border-customColor6 text-textColor z-[999]',

@@ -44,8 +44,9 @@ function readStateParam(value: string | null): ListStateFilter {
 }
 
 export const CalendarContext = createContext({
-  startDate: newDayjs().startOf('isoWeek').format('YYYY-MM-DD'),
-  endDate: newDayjs().endOf('isoWeek').format('YYYY-MM-DD'),
+  // Buffer is Sunday-first — locale 'week', not 'isoWeek'
+  startDate: newDayjs().startOf('week').format('YYYY-MM-DD'),
+  endDate: newDayjs().endOf('week').format('YYYY-MM-DD'),
   customer: null as string | null,
   loading: true,
   sets: [] as { name: string; id: string; content: string[] }[],
@@ -146,19 +147,27 @@ function getDateRange(display: string, referenceDate?: string) {
         endDate: date.format('YYYY-MM-DD'),
       };
     case 'week':
+      // Buffer is Sunday-first — locale 'week', not 'isoWeek'
       return {
-        startDate: date.startOf('isoWeek').format('YYYY-MM-DD'),
-        endDate: date.endOf('isoWeek').format('YYYY-MM-DD'),
+        startDate: date.startOf('week').format('YYYY-MM-DD'),
+        endDate: date.endOf('week').format('YYYY-MM-DD'),
       };
-    case 'month':
+    case 'month': {
+      // Buffer renders pills on the leading/trailing other-month cells too, so
+      // the month query covers the whole visible 6-week grid (Sunday of the
+      // first week through Saturday of the sixth). Consumers derive the
+      // display month from the middle of the range, which resolves to the
+      // same month for both the exact-month and the grid-extended shapes.
+      const gridStart = date.startOf('month').startOf('week');
       return {
-        startDate: date.startOf('month').format('YYYY-MM-DD'),
-        endDate: date.endOf('month').format('YYYY-MM-DD'),
+        startDate: gridStart.format('YYYY-MM-DD'),
+        endDate: gridStart.add(41, 'day').format('YYYY-MM-DD'),
       };
+    }
     default:
       return {
-        startDate: date.startOf('isoWeek').format('YYYY-MM-DD'),
-        endDate: date.endOf('isoWeek').format('YYYY-MM-DD'),
+        startDate: date.startOf('week').format('YYYY-MM-DD'),
+        endDate: date.endOf('week').format('YYYY-MM-DD'),
       };
   }
 }

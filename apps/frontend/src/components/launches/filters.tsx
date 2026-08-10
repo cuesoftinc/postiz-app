@@ -7,7 +7,7 @@ import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-a
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useClickAway } from '@uidotdev/usehooks';
 import dayjs from 'dayjs';
-import { useCallback , useState, FC, useMemo, ReactNode, useEffect } from 'react';
+import { useCallback , useState, FC, useMemo, ReactNode, useEffect, Fragment } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
@@ -35,11 +35,16 @@ function getDateRange(
         startDate: date.startOf('week').format('YYYY-MM-DD'),
         endDate: date.endOf('week').format('YYYY-MM-DD'),
       };
-    case 'month':
+    case 'month': {
+      // Mirrors calendar.context getDateRange exactly: the whole visible
+      // 6-week grid (Sunday of week one through Saturday of week six), so
+      // Today/prev/next produce the same range shape as initial load.
+      const gridStart = date.startOf('month').startOf('week');
       return {
-        startDate: date.startOf('month').format('YYYY-MM-DD'),
-        endDate: date.endOf('month').format('YYYY-MM-DD'),
+        startDate: gridStart.format('YYYY-MM-DD'),
+        endDate: gridStart.add(41, 'day').format('YYYY-MM-DD'),
       };
+    }
     case 'list':
       return {
         startDate: date.format('YYYY-MM-DD'),
@@ -972,6 +977,17 @@ export const PageHeader: FC = () => {
       <h1 className="font-display text-[20px] font-[400] text-newTextColor truncate" data-cs>
         {single ? single.name : t('all_channels', 'All Channels')}
       </h1>
+      {/* Buffer's bookmark sits right of the title (saved-views live there);
+          anatomy only until saved views exist here */}
+      <button
+        type="button"
+        title={t('save_current_view', 'Save current view')}
+        className="w-[24px] h-[24px] rounded-[6px] flex items-center justify-center text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover transition-colors duration-150"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" />
+        </svg>
+      </button>
       <div className="flex-1" />
       {/* phone puts the segmented in the toolbar row (Buffer) — hidden here */}
       <div className="phone:hidden flex h-[32px] p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]" data-cs>
@@ -1049,11 +1065,17 @@ export const Filters = () => {
   const currentLanguage = i18next.resolvedLanguage || 'en';
   dayjs.locale();
 
-  // Buffer titles every calendar view "August 2026" — for a week the label is
-  // the month that owns most of it (mid-week day decides straddling weeks).
+  // Buffer titles every calendar view "August 2026". The month range is the
+  // grid-extended 6-week window (starts in the previous month), so the owning
+  // month is derived from the range middle; weeks use the mid-week day.
   const monthTitle = useMemo(() => {
     const start = newDayjs(calendar.startDate);
-    const mid = calendar.display === 'week' ? start.add(3, 'day') : start;
+    const mid =
+      calendar.display === 'week'
+        ? start.add(3, 'day')
+        : calendar.display === 'month'
+        ? start.add(15, 'day')
+        : start;
     return mid.format('MMMM YYYY');
   }, [calendar.startDate, calendar.display]);
 
@@ -1106,7 +1128,9 @@ export const Filters = () => {
         nextStart = currentStart.add(1, 'week');
         break;
       case 'month':
-        nextStart = currentStart.add(1, 'month');
+        // the range starts in the PREVIOUS month (grid-extended) — anchor on
+        // the owning month before stepping
+        nextStart = currentStart.add(15, 'day').startOf('month').add(1, 'month');
         break;
       default:
         nextStart = currentStart.add(1, 'week');
@@ -1136,7 +1160,10 @@ export const Filters = () => {
         prevStart = currentStart.subtract(1, 'week');
         break;
       case 'month':
-        prevStart = currentStart.subtract(1, 'month');
+        prevStart = currentStart
+          .add(15, 'day')
+          .startOf('month')
+          .subtract(1, 'month');
         break;
       default:
         prevStart = currentStart.subtract(1, 'week');
@@ -1185,11 +1212,15 @@ export const Filters = () => {
   );
 
   // Buffer's list tabs: Queue · Drafts · Approvals · Sent — no 'All', Queue is
-  // the default landing state.
-  const listStateOptions: { value: ListStateFilter; label: string }[] = [
+  // the default landing state. Approvals renders between Drafts and Sent.
+  const listStateOptions: {
+    value: ListStateFilter;
+    label: string;
+    approvalsBefore?: boolean;
+  }[] = [
     { value: 'scheduled', label: t('queue', 'Queue') },
     { value: 'draft', label: t('drafts', 'Drafts') },
-    { value: 'published', label: t('sent', 'Sent') },
+    { value: 'published', label: t('sent', 'Sent'), approvalsBefore: true },
   ];
 
   useEffect(() => {
@@ -1337,40 +1368,44 @@ export const Filters = () => {
           </div>
           <div className="order-1 flex flex-row h-[36px] gap-[28px] text-[14px] font-[500] phone:hidden">
             {listStateOptions.map((option) => (
-              <div
-                key={option.value}
-                onClick={setListStateFilter(option.value)}
-                className={clsx(
-                  'relative cursor-pointer flex items-center gap-[6px] transition-colors duration-150',
-                  calendar.listState === option.value
-                    ? 'text-newTextColor'
-                    : 'text-newTextColor/60 hover:text-newTextColor'
+              <Fragment key={option.value}>
+                {/* Buffer's Approvals tab sits between Drafts and Sent
+                    (lavender ⚡ pill) — visual anatomy until the approval
+                    workflow is wired in this fork */}
+                {option.approvalsBefore && (
+                  <div
+                    className="relative flex items-center gap-[6px] text-newTextColor/60 cursor-default"
+                    title={t('approvals_soon', 'Approvals — coming soon')}
+                  >
+                    {t('approvals', 'Approvals')}
+                    <span className="rounded-full bg-[#EDE9FE] px-[6px] h-[18px] flex items-center" data-cs>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="#7C3AED" stroke="none">
+                        <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
+                      </svg>
+                    </span>
+                  </div>
                 )}
-              >
-                {option.label}
-                {tabCounts?.[option.value] !== undefined && (
-                  <span className="rounded-full bg-newTextColor/10 px-[7px] h-[18px] flex items-center text-[12px] text-newTextColor" data-cs>
-                    {tabCounts[option.value]}
-                  </span>
-                )}
-                {calendar.listState === option.value && (
-                  <div className="absolute -bottom-[1px] inset-x-0 h-[2px] bg-newTextColor" />
-                )}
-              </div>
+                <div
+                  onClick={setListStateFilter(option.value)}
+                  className={clsx(
+                    'relative cursor-pointer flex items-center gap-[6px] transition-colors duration-150',
+                    calendar.listState === option.value
+                      ? 'text-newTextColor'
+                      : 'text-newTextColor/60 hover:text-newTextColor'
+                  )}
+                >
+                  {option.label}
+                  {tabCounts?.[option.value] !== undefined && (
+                    <span className="rounded-full bg-newTextColor/10 px-[7px] h-[18px] flex items-center text-[12px] text-newTextColor" data-cs>
+                      {tabCounts[option.value]}
+                    </span>
+                  )}
+                  {calendar.listState === option.value && (
+                    <div className="absolute -bottom-[1px] inset-x-0 h-[2px] bg-newTextColor" />
+                  )}
+                </div>
+              </Fragment>
             ))}
-            {/* Buffer shows an Approvals tab (lavender ⚡ pill). The approval
-                workflow isn't wired in this fork yet — visual anatomy only. */}
-            <div
-              className="relative flex items-center gap-[6px] text-newTextColor/60 cursor-default"
-              title={t('approvals_soon', 'Approvals — coming soon')}
-            >
-              {t('approvals', 'Approvals')}
-              <span className="rounded-full bg-[#EDE9FE] px-[6px] h-[18px] flex items-center" data-cs>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="#7C3AED" stroke="none">
-                  <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
-                </svg>
-              </span>
-            </div>
           </div>
           {/* Buffer mobile compresses the state tabs into a "Queue 12 ▾"
               dropdown — same setter, same options */}

@@ -39,6 +39,7 @@ import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-c
 import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
+import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
 
 export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   const fetch = useFetch();
@@ -85,101 +86,120 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <ContinueProvider />
             <div
               className={clsx(
-                'flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] font-sans'
+                // Buffer card geometry: 8px top/right/bottom page margins, the
+                // card starts flush against the 240px sidebar region (ps-0 —
+                // the sidebar carries its own inner padding). Phone: the card
+                // is full-bleed on the canvas, so no page padding at all.
+                'flex flex-col min-h-screen min-w-screen text-newTextColor pt-[8px] pe-[8px] pb-[8px] ps-0 font-sans phone:p-0'
               )}
             >
-              {/* Admin-only impersonation strip — Buffer's phone chrome has no
-                  equivalent and it swallowed a third of the viewport there */}
-              <div className="phone:hidden">{user?.admin ? <Impersonate /> : <div />}</div>
+              {/* Admin tool renders as a fixed bottom-center pill (Buffer has
+                  no top strip) — it reserves no flow height on any breakpoint */}
+              {user?.admin && <Impersonate />}
               {user.tier === 'FREE' && isGeneral && billingEnabled ? (
                 <FirstBillingComponent />
               ) : (
                 <>
+                  {/* Phone app bar — sits ON the page canvas (Buffer: cream
+                      bg, 56px tall, hairline at y=56, white card below):
+                      ☰ 40×40 with a presence dot + logo lockup + streak as
+                      the only right-side element (no bell, no separators) */}
+                  <div className="hidden phone:flex h-[56px] items-center gap-[10px] px-[8px] border-b border-newBgLineColor">
+                    <button
+                      type="button"
+                      aria-label={drawerOpen ? 'Close menu' : 'Menu'}
+                      aria-expanded={drawerOpen}
+                      onClick={() => setDrawerOpen((v) => !v)}
+                      data-cs
+                      className="relative flex w-[40px] h-[40px] items-center justify-center rounded-[8px] hover:bg-boxHover transition-colors duration-150"
+                    >
+                      {drawerOpen ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M18 6 6 18" />
+                          <path d="m6 6 12 12" />
+                        </svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M4 5h16" />
+                          <path d="M4 12h16" />
+                          <path d="M4 19h16" />
+                        </svg>
+                      )}
+                      {/* presence dot (Buffer: green dot pinned to the
+                          hamburger's top-left corner, canvas-colored ring) */}
+                      <span className="absolute top-[4px] start-[4px] w-[8px] h-[8px] rounded-full bg-btnPrimary border-[1.5px] border-primary" />
+                    </button>
+                    <img
+                      src="/cuesoft-mark-white.png"
+                      alt="Cuesoft"
+                      width={24}
+                      height={24}
+                      className="hidden dark:block object-contain"
+                    />
+                    <img
+                      src="/cuesoft-mark-primary.png"
+                      alt="Cuesoft"
+                      width={24}
+                      height={24}
+                      className="block dark:hidden object-contain"
+                    />
+                    <span
+                      data-cs
+                      className="font-display text-[20px] font-[700] text-newTextColor"
+                    >
+                      Cuesoft
+                    </span>
+                    <div className="flex-1" />
+                    <StreakComponent />
+                  </div>
+                  {/* Buffer mobile (user-verified): the menu expands IN-FLOW
+                      under the app bar and pushes the page down — no overlay,
+                      the content below stays interactive. */}
+                  {drawerOpen && (
+                    <div
+                      className="hidden phone:block bg-newBgColorInner px-[12px] pb-[12px] border-b border-newBgLineColor"
+                      onClickCapture={(e) => {
+                        if ((e.target as HTMLElement).closest('a')) {
+                          setDrawerOpen(false);
+                        }
+                      }}
+                    >
+                      <Sidebar inDrawer />
+                    </div>
+                  )}
                   <AnnouncementBanner />
-                  <div className="flex-1 flex gap-[8px]">
+                  <div className="flex-1 flex">
                     <Support />
                     {/* Desktop nav is the Buffer-replica 240px sidebar (flat on
                         the page bg, no border); it hides itself on phone. */}
                     <Sidebar />
-                    <div className="flex-1 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
-                      {/* 64px Buffer-height top bar; items-center keeps the
-                          icon cluster (fixed-height icons + 20px separators)
-                          vertically centered without per-item tweaks */}
-                      <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center phone:px-[12px] phone:gap-[10px]">
-                        <button
-                          type="button"
-                          aria-label={drawerOpen ? 'Close menu' : 'Menu'}
-                          aria-expanded={drawerOpen}
-                          onClick={() => setDrawerOpen((v) => !v)}
-                          className="hidden phone:flex w-[36px] h-[36px] items-center justify-center rounded-[8px] hover:bg-boxHover"
-                        >
-                          {drawerOpen ? (
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M18 6 6 18" />
-                              <path d="m6 6 12 12" />
-                            </svg>
-                          ) : (
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M4 5h16" />
-                              <path d="M4 12h16" />
-                              <path d="M4 19h16" />
-                            </svg>
-                          )}
-                        </button>
+                    {/* Buffer card: white, r12, 1px hairline border, flush
+                        against the sidebar (no gap). Phone: full-bleed — edge
+                        hairlines only, small top radius, runs to the bottom. */}
+                    <div className="flex-1 bg-newBgLineColor rounded-[12px] border border-newTableBorder overflow-hidden flex flex-col gap-[1px] blurMe phone:rounded-none phone:rounded-t-[8px] phone:border-t-0">
+                      {/* 64px desktop-only top bar: the page title plus the
+                          utility cluster (theme + language must stay reachable
+                          — their relocation into the sidebar footer area is
+                          the next wave; Buffer itself has no top bar) */}
+                      <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center phone:hidden">
                         {/* page title: display face 20px/400 (spec §Page
                             header) — the ladder rescales text-[24px] to 20px */}
-                        {/* Buffer mobile app bar shows the LOGO; the page
-                            title lives in the content header row below */}
-                        <div className="hidden phone:block">
-                          <img
-                            src="/cuesoft-mark-white.png"
-                            alt="Cuesoft"
-                            width={24}
-                            height={24}
-                            className="hidden dark:block object-contain"
-                          />
-                          <img
-                            src="/cuesoft-mark-primary.png"
-                            alt="Cuesoft"
-                            width={24}
-                            height={24}
-                            className="block dark:hidden object-contain"
-                          />
-                        </div>
-                        <div className="text-[24px] font-display font-[400] flex flex-1 phone:hidden">
+                        <div className="text-[24px] font-display font-[400] flex flex-1">
                           <Title />
                         </div>
-                        <div className="flex-1 hidden phone:block" />
-                        {/* StreakComponent moved to the sidebar logo row
-                            (spec §Sidebar row 1: logo left, streak right) */}
                         <div className="flex gap-[20px] text-textItemBlur">
                           <OrganizationSelector />
-                          <div className="hover:text-newTextColor phone:hidden">
+                          <div className="hover:text-newTextColor">
                             <ModeComponent />
                           </div>
                           <div className="w-[1px] h-[20px] bg-blockSeparator" />
-                          <span className="phone:hidden"><LanguageComponent /></span>
+                          <LanguageComponent />
                           <ChromeExtensionComponent />
                           <div className="w-[1px] h-[20px] bg-blockSeparator" />
                           <AttachToFeedbackIcon />
                           <NotificationComponent />
                         </div>
                       </div>
-                      {/* Buffer mobile (user-verified): the menu expands
-                          IN-FLOW under the app bar and pushes the page down —
-                          no overlay, the content below stays interactive. */}
-                      {drawerOpen && (
-                        <div
-                          className="hidden phone:block bg-newBgColorInner px-[12px] pb-[12px]"
-                          onClickCapture={(e) => {
-                            if ((e.target as HTMLElement).closest('a')) {
-                              setDrawerOpen(false);
-                            }
-                          }}
-                        >
-                          <Sidebar inDrawer />
-                        </div>
-                      )}
                       {/* stacks on a phone — a side panel plus content does not
                           fit side by side at 390px */}
                       <div className="flex flex-1 gap-[1px] phone:flex-col">
