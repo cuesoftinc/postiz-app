@@ -1040,7 +1040,11 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
           data-cs
           className={clsx(
             'h-[48px] shrink-0 flex items-center',
-            collapsed ? 'justify-center' : 'justify-between px-[8px]'
+            collapsed ? 'justify-center' : 'justify-between px-[8px]',
+            // In the phone drawer the app bar directly above already shows
+            // mark + wordmark + streak — repeating them here read as a
+            // double header. Buffer's drawer starts straight at the nav.
+            inDrawer && 'hidden'
           )}
         >
           <Link prefetch={true} href="/launches" className="flex items-center">
