@@ -99,47 +99,6 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                     {/* Desktop nav is the Buffer-replica 240px sidebar (flat on
                         the page bg, no border); it hides itself on phone. */}
                     <Sidebar />
-                    {/* Buffer mobile (measured): the menu is a FULL-SCREEN
-                        takeover — no backdrop, no side panel. The close button
-                        sits exactly where the hamburger was, so the icon reads
-                        as morphing in place. Any link click closes it. */}
-                    {drawerOpen && (
-                      <div
-                        className="hidden phone:flex flex-col fixed inset-0 z-[600] bg-newBgColor overflow-y-auto"
-                        onClickCapture={(e) => {
-                          if ((e.target as HTMLElement).closest('a')) {
-                            setDrawerOpen(false);
-                          }
-                        }}
-                      >
-                        <div className="flex items-center h-[64px] px-[12px] gap-[10px] shrink-0">
-                          <button
-                            type="button"
-                            aria-label="Close menu"
-                            onClick={() => setDrawerOpen(false)}
-                            className="w-[36px] h-[36px] flex items-center justify-center rounded-[8px] hover:bg-boxHover"
-                          >
-                            <svg
-                              width="18"
-                              height="18"
-                              viewBox="0 0 18 18"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M4 4l10 10M14 4L4 14"
-                                stroke="currentColor"
-                                strokeWidth="1.6"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                        <div className="flex-1 px-[12px] pb-[12px]">
-                          <Sidebar inDrawer />
-                        </div>
-                      </div>
-                    )}
                     <div className="flex-1 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
                       {/* 64px Buffer-height top bar; items-center keeps the
                           icon cluster (fixed-height icons + 20px separators)
@@ -147,24 +106,20 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center phone:px-[12px] phone:gap-[10px]">
                         <button
                           type="button"
-                          aria-label="Menu"
-                          onClick={() => setDrawerOpen(true)}
+                          aria-label={drawerOpen ? 'Close menu' : 'Menu'}
+                          aria-expanded={drawerOpen}
+                          onClick={() => setDrawerOpen((v) => !v)}
                           className="hidden phone:flex w-[36px] h-[36px] items-center justify-center rounded-[8px] hover:bg-boxHover"
                         >
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 20 20"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M3 5h14M3 10h14M3 15h14"
-                              stroke="currentColor"
-                              strokeWidth="1.6"
-                              strokeLinecap="round"
-                            />
-                          </svg>
+                          {drawerOpen ? (
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                            </svg>
+                          ) : (
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                            </svg>
+                          )}
                         </button>
                         {/* page title: display face 20px/400 (spec §Page
                             header) — the ladder rescales text-[24px] to 20px */}
@@ -205,6 +160,21 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <NotificationComponent />
                         </div>
                       </div>
+                      {/* Buffer mobile (user-verified): the menu expands
+                          IN-FLOW under the app bar and pushes the page down —
+                          no overlay, the content below stays interactive. */}
+                      {drawerOpen && (
+                        <div
+                          className="hidden phone:block bg-newBgColorInner px-[12px] pb-[12px]"
+                          onClickCapture={(e) => {
+                            if ((e.target as HTMLElement).closest('a')) {
+                              setDrawerOpen(false);
+                            }
+                          }}
+                        >
+                          <Sidebar inDrawer />
+                        </div>
+                      )}
                       {/* stacks on a phone — a side panel plus content does not
                           fit side by side at 390px */}
                       <div className="flex flex-1 gap-[1px] phone:flex-col">
