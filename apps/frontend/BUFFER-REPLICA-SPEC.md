@@ -104,3 +104,32 @@ Top → bottom:
   cheaply available; do not invent Approvals/Sent).
 - Phone: the existing bottom tab bar pattern stays (Buffer mobile ≠ desktop
   sidebar; our mobile solution is already correct).
+
+## Addendum — measured 2026-08-10 (second pass, light theme)
+
+### Calendar month view (publish.buffer.com/calendar/month)
+- Month cells: date number top-LEFT, muted; TODAY = filled green circle badge
+  around the date number. Out-of-month days get a slightly shaded field.
+- Cell entries are compact PILLS, not content cards: [platform icon chip]
+  [time "7:18 AM"] [tiny media thumbnail right]. NO post text in month view.
+  Pill = white/hairline border, radius ~8, h ~32.
+- Per-cell overflow: "⌄ N More" expander row, muted.
+- Weekday header row: full day names, centered, hairline dividers; toolbar
+  identical to list view (month nav, Today chip, Month dropdown, filters right).
+
+### Settings → Channels page (channel management home)
+- Page title left + GREEN "Connect Channel" button top-right.
+- Plan info card (muted field, icon + bold lead + body).
+- "N/N Channels connected" heading with green progress dashes right.
+- Channel card rows: avatar+badge 40, NAME bold 15, sub-line muted
+  ("X Premium Profile" / "LinkedIn Page" / "TikTok Account" — platform +
+  account-type descriptor), right side: gear icon + kebab (desktop);
+  mobile collapses gear into the kebab.
+- "Locked Channels" section: dimmed avatars, bordered "🔓 Unlock" buttons.
+- Our manage-channels modal is the current equivalent; if it ever becomes a
+  page, THIS is the pattern.
+
+### Mobile (settings + everywhere)
+- Same hamburger app bar (☰ + logo + streak) on every page; no bottom bar.
+- Settings: cards stack full width; primary CTA keeps its size; sub-nav is
+  reached via the drawer/back affordance ("← Settings" title row).
