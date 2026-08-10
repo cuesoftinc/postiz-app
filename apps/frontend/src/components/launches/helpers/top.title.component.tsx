@@ -31,13 +31,15 @@ export const TopTitle: FC<{
   return (
     <div
       className={clsx(
-        'border-b flex items-center border-newBgLineColor -mx-[24px]',
+        // Buffer replica: modal/panel headers separate with a hairline
+        // (white/black-alpha mirrored), titles set in the display face
+        'border-b flex items-center border-newTableBorder -mx-[24px]',
         props.extraClass ? props.extraClass : 'h-[57px]'
       )}
     >
       <div className="px-[24px] flex flex-1 items-center">
         {!removeTitle && (
-          <div className={clsx('flex-1', props.titleSize)}>
+          <div className={clsx('flex-1 font-display', props.titleSize)}>
             {translatedTitle}
           </div>
         )}
@@ -45,9 +47,9 @@ export const TopTitle: FC<{
         {shouldExpend !== undefined && (
           <div className="cursor-pointer">
             {!shouldExpend ? (
-              <ExpandIcon onClick={expend} className="text-white" />
+              <ExpandIcon onClick={expend} className="text-newTextColor" />
             ) : (
-              <CollapseIcon onClick={collapse} className="text-white" />
+              <CollapseIcon onClick={collapse} className="text-newTextColor" />
             )}
           </div>
         )}

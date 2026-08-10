@@ -48,36 +48,36 @@ export const DatePicker: FC<{
       {open && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="animate-fadeIn absolute bottom-[100%] mb-[16px] start-[50%] -translate-x-[50%] bg-sixth border border-tableBorder text-textColor rounded-[16px] z-[300] p-[16px] flex flex-col"
+          className="animate-fadeIn absolute bottom-[100%] mb-[16px] start-[50%] -translate-x-[50%] bg-newBgColorInner border border-newTableBorder text-textColor rounded-[12px] shadow-menu z-[300] p-[16px] flex flex-col"
         >
           <Calendar
             onChange={changeDate('date')}
             value={date.toDate()}
             dayClassName={(date, modifiers) => {
-              if (modifiers.weekend) {
-                return '!text-customColor28';
-              }
               if (modifiers.outside) {
                 return '!text-gray';
               }
               if (modifiers.selected) {
-                return '!text-white !bg-seventh !outline-none';
+                return '!bg-boxFocused !text-textItemFocused !outline-none';
+              }
+              if (modifiers.weekend) {
+                return '!text-textItemBlur';
               }
               return '!text-textColor';
             }}
             classNames={{
-              day: 'hover:bg-seventh',
-              calendarHeaderControl: 'text-textColor hover:bg-third',
-              calendarHeaderLevel: 'text-textColor hover:bg-third', // cell: 'child:!text-textColor'
+              day: 'hover:bg-boxHover rounded-[6px]',
+              calendarHeaderControl: 'text-textColor hover:bg-boxHover',
+              calendarHeaderLevel: 'text-textColor hover:bg-boxHover', // cell: 'child:!text-textColor'
             }}
           />
           <TimeInput
             onChange={changeDate('time')}
             label="Pick time"
             classNames={{
-              label: 'text-textColor py-[12px]',
+              label: 'text-[13px] text-newTextColor/60 py-[12px]',
               input:
-                'bg-sixth h-[40px] border border-tableBorder text-textColor rounded-[4px] outline-none',
+                'bg-transparent h-[36px] border border-newTableBorder text-textColor rounded-[6px] outline-none focus:border-forth',
             }}
             defaultValue={date.toDate()}
           />

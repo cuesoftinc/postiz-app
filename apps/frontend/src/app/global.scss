@@ -1089,7 +1089,34 @@ button { white-space: nowrap; }
      particular HAD to move: as an ::after on the link it had no positioned
      ancestor of its own, so `left:14px; right:14px` resolved against the fixed
      bar and drew one violet line across all seven tabs. */
-  body { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+  /* the bottom tab bar is retired (Buffer mobile = hamburger drawer) */
+  body { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* Buffer mobile queue: the time sits ABOVE the card content as its own row */
+  [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] {
+    flex-wrap: wrap !important;
+  }
+  [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] > div:last-child:not(:only-child) {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  /* touch has no hover: the card action strip renders at rest, right-aligned
+     under the content, instead of the desktop hover pill */
+  .group > [class*="rounded-tl-[10px]"][class*="h-[24px]"] {
+    position: static !important;
+    width: auto !important; height: 28px !important;
+    min-height: 28px !important; max-height: 28px !important;
+    padding: 0 8px !important; gap: 10px !important;
+    border-radius: 6px !important;
+    background-color: transparent !important;
+    align-self: flex-end;
+    order: 2;
+  }
+  .group > [class*="rounded-tl-[10px]"][class*="h-[24px]"] > * {
+    opacity: 1 !important; pointer-events: auto !important;
+  }
+
 
   /* the copilot launcher is `bottom: 14px`, which on a phone puts it inside the
      56px tab bar — it covered the Settings tab, and the right-hand end of the

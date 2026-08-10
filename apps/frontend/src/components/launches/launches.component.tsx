@@ -367,6 +367,19 @@ export const LaunchesComponent = () => {
   const t = useT();
   const [reload, setReload] = useState(false);
   const { collapsed, toggle, collapseMenu } = useSidePanelCollapse();
+  const [manageOpen, setManageOpen] = useState(false);
+  const searchParamsManage = useSearchParams();
+
+  // Deep link: /launches?manageChannels=1 (sidebar gear + "Connect more
+  // channels" land here). Same consume-once pattern as ?newPost=1.
+  useEffect(() => {
+    if (!searchParamsManage.get('manageChannels')) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('manageChannels');
+    window.history.replaceState(null, '', url.pathname + url.search);
+    setManageOpen(true);
+  }, [searchParamsManage]);
+
   const [mode] = useCookie('mode', 'dark');
   const { isLoading, data: integrations, mutate } = useIntegrationList();
 
@@ -499,21 +512,13 @@ export const LaunchesComponent = () => {
     );
   }
 
-  // @ts-ignore
-  return (
-    <DNDProvider>
-      <Onboarding />
-      <CalendarWeekProvider integrations={sortedIntegrations}>
-        <div
-          data-side-panel="absolute"
-          className={clsx('flex relative flex-col', sidePanelRoot(collapsed))}
-        >
-          <div
-            className={clsx(
-              'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all absolute start-0 top-0 w-full h-full overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
-              sidePanelPane
-            )}
-          >
+  // One management surface, two containers (Buffer parity): on desktop the
+  // channels panel is gone — the sidebar lists channels and this content opens
+  // as the Manage-channels modal (inline, NOT useModals: modal children must
+  // re-render when the integrations SWR mutates). On phones, which have no
+  // sidebar, the panel remains as the chip strip.
+  const channelManagement = (
+    <>
             <SidePanelHeader title={t('channels')} onToggle={toggle} />
             <div className="flex flex-col gap-[8px] group-[.sidebar]:mx-auto group-[.sidebar]:w-[44px]">
               <AddProviderButton update={() => update(true)} />
@@ -559,6 +564,64 @@ export const LaunchesComponent = () => {
               ))}
             </div>
             <SidePanelVersion />
+    </>
+  );
+
+  // @ts-ignore
+  return (
+    <DNDProvider>
+      <Onboarding />
+      <CalendarWeekProvider integrations={sortedIntegrations}>
+        {manageOpen && (
+          <div
+            className="flex phone:hidden fixed inset-0 z-[500] bg-black/60 items-start justify-center overflow-y-auto py-[48px]"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setManageOpen(false);
+            }}
+          >
+            <div
+              data-cs
+              className="bg-newBgColorInner border border-newTableBorder rounded-[16px] w-[520px] max-w-[calc(100vw-64px)] p-[20px] flex flex-col gap-[15px] relative"
+            >
+              <button
+                type="button"
+                onClick={() => setManageOpen(false)}
+                className="absolute end-[16px] top-[16px] w-[28px] h-[28px] flex items-center justify-center rounded-[6px] hover:bg-boxHover cursor-pointer"
+                aria-label="Close"
+              >
+                <svg
+                  viewBox="0 0 15 15"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                >
+                  <path
+                    d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z"
+                    fill="currentColor"
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              {channelManagement}
+            </div>
+          </div>
+        )}
+        <div
+          data-side-panel="absolute"
+          className={clsx(
+            'hidden phone:flex relative flex-col',
+            sidePanelRoot(collapsed)
+          )}
+        >
+          <div
+            className={clsx(
+              'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all absolute start-0 top-0 w-full h-full overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
+              sidePanelPane
+            )}
+          >
+            {channelManagement}
           </div>
         </div>
         <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">

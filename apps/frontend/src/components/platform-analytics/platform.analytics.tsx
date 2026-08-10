@@ -7,7 +7,7 @@ import clsx from 'clsx';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { RenderAnalytics } from '@gitroom/frontend/components/platform-analytics/render.analytics';
 import { Button } from '@gitroom/react/form/button';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -34,11 +34,10 @@ export const PlatformAnalytics = () => {
   const fetch = useFetch();
   const t = useT();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { disableXAnalytics } = useVariables();
 
-  const [current, setCurrent] = useState(0);
   const [key, setKey] = useState(7);
-  const [refresh, setRefresh] = useState(false);
   const { collapsed, toggle } = useSidePanelCollapse();
   const toaster = useToaster();
   const load = useCallback(async () => {
@@ -68,9 +67,16 @@ export const PlatformAnalytics = () => {
       ['desc', 'asc', 'asc']
     );
   }, [data]);
+  // URL-driven selection (Buffer parity): the global sidebar's channel rows
+  // link to /analytics?integration=<id>; unknown/absent ids fall back to the
+  // first channel, exactly like the old index-0 default.
+  const integrationParam = searchParams.get('integration');
   const currentIntegration = useMemo(() => {
-    return sortedIntegrations[current];
-  }, [current, sortedIntegrations]);
+    return (
+      sortedIntegrations.find((p: any) => p.id === integrationParam) ??
+      sortedIntegrations[0]
+    );
+  }, [integrationParam, sortedIntegrations]);
   const options = useMemo(() => {
     if (!currentIntegration) {
       return [];
@@ -173,16 +179,20 @@ export const PlatformAnalytics = () => {
   }
   return (
     <>
+      {/* Buffer has no second channel panel on desktop — the global sidebar's
+          channel rows drive selection via /analytics?integration=<id>. Phones
+          have no sidebar, so this strip stays as the phone-only selector (the
+          global.scss ladder renders it as a horizontal chip row). */}
       <div
         data-side-panel="flow"
         className={clsx(
-          'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all phone:p-[12px]',
+          'bg-newBgColorInner p-[20px] hidden phone:flex flex-col gap-[15px] transition-all phone:p-[12px]',
           sidePanelRoot(collapsed)
         )}
       >
         <div className="flex gap-[12px] flex-col">
           <SidePanelHeader title={t('channels')} onToggle={toggle} />
-          {sortedIntegrations.map((integration, index) => (
+          {sortedIntegrations.map((integration) => (
             <ChannelRow
               key={integration.id}
               integration={integration}
@@ -194,11 +204,14 @@ export const PlatformAnalytics = () => {
                   );
                   return;
                 }
-                setRefresh(true);
-                setTimeout(() => {
-                  setRefresh(false);
-                }, 10);
-                setCurrent(index);
+                // Presentation of the same URL-driven selection — Next syncs
+                // useSearchParams from native replaceState (same pattern as
+                // launches.component / calendar.context).
+                window.history.replaceState(
+                  null,
+                  '',
+                  `/analytics?integration=${integration.id}`
+                );
               }}
               dimmed={currentIntegration.id !== integration.id}
             />
@@ -243,8 +256,14 @@ export const PlatformAnalytics = () => {
               </div>
             </div>
             <div className="flex-1">
-              {!!keys && !!currentIntegration && !refresh && (
-                <RenderAnalytics integration={currentIntegration} date={keys} />
+              {/* key remounts the analytics on channel change — replaces the
+                  old setRefresh(true)/setTimeout unmount trick. */}
+              {!!keys && !!currentIntegration && (
+                <RenderAnalytics
+                  key={currentIntegration.id}
+                  integration={currentIntegration}
+                  date={keys}
+                />
               )}
             </div>
           </div>

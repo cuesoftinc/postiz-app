@@ -60,6 +60,10 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     refreshWhenHidden: false,
   });
 
+  // Buffer's mobile pattern: no bottom tab bar — a hamburger opens the same
+  // sidebar as a drawer.
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+
   if (!user) return null;
 
   return (
@@ -106,32 +110,54 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         viewport — and once that happens every position:fixed
                         element anchors to the wider viewport and the bar itself
                         lands off-screen. */}
-                    <div className="hidden phone:flex flex-col bg-newBgColorInner w-[80px] rounded-[12px] phone:fixed phone:inset-x-0 phone:bottom-0 phone:top-auto phone:z-50 phone:w-full phone:h-auto phone:flex-row phone:rounded-none phone:border-t phone:border-newBorder phone:pb-[env(safe-area-inset-bottom)]">
+                    {/* Buffer mobile: the sidebar becomes a drawer. Clicking
+                        any link inside closes it (capture phase — no Sidebar
+                        API changes needed). */}
+                    {drawerOpen && (
                       <div
-                        id="left-menu"
-                        className={clsx(
-                          'fixed h-full w-[64px] start-[17px] flex flex-1 top-0',
-                          // short viewports (landscape phone) can't fit the rail;
-                          // let it scroll rather than clipping the last tab
-                          'short:overflow-y-auto short:overscroll-contain',
-                          'phone:static phone:w-full phone:h-[56px] phone:start-auto phone:overflow-visible',
-                          user?.admin &&
-                            'pt-[60px] max-h-[1000px]:w-[500px] phone:pt-0'
-                        )}
+                        className="hidden phone:block fixed inset-0 z-[600]"
+                        onClick={() => setDrawerOpen(false)}
                       >
-                        <div className="flex flex-col h-full gap-[32px] short:gap-[8px] flex-1 py-[12px] phone:flex-row phone:items-center phone:gap-0 phone:py-0">
-                          {/* the rail's Logo was phone:hidden, and the rail is
-                              now phone-only — the desktop logo lives in the
-                              Sidebar, so nothing renders here anymore */}
-                          <TopMenu />
+                        <div className="absolute inset-0 bg-black/60" />
+                        <div
+                          className="absolute inset-y-0 start-0 w-[280px] max-w-[85vw] bg-newBgColor overflow-y-auto p-[12px] animate-normalFadeIn"
+                          onClick={(e) => e.stopPropagation()}
+                          onClickCapture={(e) => {
+                            if ((e.target as HTMLElement).closest('a')) {
+                              setDrawerOpen(false);
+                            }
+                          }}
+                        >
+                          <Sidebar inDrawer />
                         </div>
                       </div>
-                    </div>
+                    )}
                     <div className="flex-1 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
                       {/* 64px Buffer-height top bar; items-center keeps the
                           icon cluster (fixed-height icons + 20px separators)
                           vertically centered without per-item tweaks */}
-                      <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center">
+                      <div className="flex bg-newBgColorInner h-[64px] px-[20px] items-center phone:px-[12px] phone:gap-[10px]">
+                        <button
+                          type="button"
+                          aria-label="Menu"
+                          onClick={() => setDrawerOpen(true)}
+                          className="hidden phone:flex w-[36px] h-[36px] items-center justify-center rounded-[8px] hover:bg-boxHover"
+                        >
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M3 5h14M3 10h14M3 15h14"
+                              stroke="currentColor"
+                              strokeWidth="1.6"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
                         <div className="text-[24px] font-[600] flex flex-1">
                           <Title />
                         </div>

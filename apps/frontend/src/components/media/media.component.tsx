@@ -126,7 +126,7 @@ export const Pagination: FC<{
         <PagerButton
           direction="prev"
           disabled={current === 0}
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 gap-1 ps-2.5 text-gray-400 hover:text-white border-newBorder hover:bg-forth"
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-[6px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-[36px] px-4 gap-1 ps-2.5 text-textItemBlur hover:text-newTextColor border-newBorder hover:bg-boxHover"
           aria-label="Go to previous page"
           onClick={() => setPage(current - 1)}
         >
@@ -145,10 +145,10 @@ export const Pagination: FC<{
               active={current === item - 1}
               onClick={() => setPage(item - 1)}
               className={clsx(
-                'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border hover:bg-forth h-10 w-10 hover:text-white border-newBorder',
+                'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[6px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border hover:bg-boxHover h-[36px] w-[36px] border-newBorder',
                 current === item - 1
-                  ? 'bg-forth !text-white'
-                  : 'text-textColor hover:text-white'
+                  ? 'bg-newBorder text-newTextColor font-[600]'
+                  : 'text-textItemBlur hover:text-newTextColor'
               )}
             >
               {item}
@@ -160,7 +160,7 @@ export const Pagination: FC<{
         <PagerButton
           direction="next"
           disabled={current + 1 === totalPages}
-          className="text-textColor hover:text-white group inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 gap-1 pe-2.5 text-gray-400 border-newBorder hover:bg-forth"
+          className="group inline-flex items-center justify-center whitespace-nowrap rounded-[6px] text-sm font-medium transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-[36px] px-4 gap-1 pe-2.5 text-textItemBlur hover:text-newTextColor border-newBorder hover:bg-boxHover"
           aria-label="Go to next page"
           onClick={() => setPage(current + 1)}
         >
@@ -773,7 +773,7 @@ export const MultiMediaComponent: FC<{
               handle=".dragging"
             >
               {currentMedia.map((media, index) => (
-                  <div key={media.id} className="cursor-pointer rounded-[5px] w-[40px] h-[40px] border-2 border-tableBorder relative flex transition-all">
+                  <div key={media.id} className="cursor-pointer rounded-[5px] w-[40px] h-[40px] border border-newTableBorder relative flex transition-all">
                     <DragHandleIcon className="z-[20] dragging absolute pe-[1px] pb-[3px] -start-[4px] -top-[4px] cursor-move" />
 
                     <div className="w-full h-full relative group">
@@ -990,7 +990,7 @@ export const MediaComponent: FC<{
       )}
       <div className="flex gap-[5px]">
         <Button onClick={showModal}>{t('select', 'Select')}</Button>
-        <Button onClick={showDesignModal} className="!bg-customColor45">
+        <Button secondary={true} onClick={showDesignModal}>
           {t('editor', 'Editor')}
         </Button>
         <Button secondary={true} onClick={clearMedia}>

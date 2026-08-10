@@ -70,36 +70,41 @@ export const Autopost: FC = () => {
   );
   return (
     <div className="flex flex-col">
-      <h3 className="text-[20px]">{t('autopost', 'Autopost')}</h3>
-      <div className="text-customColor18 mt-[4px]">
+      {/* settings pattern (same as Signatures): display-face title, muted 14
+          helper, hairline-separated field group. data-cs keeps the desktop
+          ladder off the title size. */}
+      <h3 data-cs className="text-[24px] font-[500] font-display">
+        {t('autopost', 'Autopost')}
+      </h3>
+      <div className="text-[14px] text-textItemBlur mt-[4px]">
         {t(
           'autopost_can_automatically_posts_your_rss_new_items_to_social_media',
           'Autopost can automatically posts your RSS new items to social media'
         )}
       </div>
-      <div className="my-[16px] mt-[16px] bg-sixth border-fifth items-center border rounded-[4px] p-[24px] flex gap-[24px]">
+      <div className="my-[16px] pt-[16px] border-t border-newTableBorder items-center flex gap-[16px]">
         <div className="flex flex-col w-full">
           {!!data?.length && (
             <div className="grid grid-cols-[1fr,1fr,1fr,1fr,1fr] w-full gap-y-[10px]">
-              <div>{t('title', 'Title')}</div>
-              <div>{t('url', 'URL')}</div>
-              <div>{t('edit', 'Edit')}</div>
-              <div>{t('delete', 'Delete')}</div>
-              <div>{t('active', 'Active')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('title', 'Title')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('url', 'URL')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('edit', 'Edit')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('delete', 'Delete')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('active', 'Active')}</div>
               {data?.map((p: any) => (
                 <Fragment key={p.id}>
                   <div className="flex flex-col justify-center">{p.title}</div>
                   <div className="flex flex-col justify-center">{p.url}</div>
                   <div className="flex flex-col justify-center">
                     <div>
-                      <Button onClick={addWebhook(p)}>
+                      <Button secondary={true} onClick={addWebhook(p)}>
                         {t('edit', 'Edit')}
                       </Button>
                     </div>
                   </div>
                   <div className="flex flex-col justify-center">
                     <div>
-                      <Button onClick={deleteHook(p)}>
+                      <Button secondary={true} onClick={deleteHook(p)}>
                         {t('delete', 'Delete')}
                       </Button>
                     </div>
@@ -117,6 +122,7 @@ export const Autopost: FC = () => {
           )}
           <div>
             <Button
+              secondary={true}
               onClick={addWebhook()}
               className={clsx((data?.length || 0) > 0 && 'my-[16px]')}
             >
@@ -296,7 +302,7 @@ export const AddOrEditWebhook: FC<{
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(callBack)}>
-        <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] border border-customColor6 pt-0">
+        <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] pt-0">
           <div>
             <Input
               label="Title"
@@ -351,13 +357,13 @@ export const AddOrEditWebhook: FC<{
             </Select>
             {!generateContent && (
               <>
-                <div className={`text-[14px] mb-[6px]`}>
+                <div className={`text-[13px] text-newTextColor/60 mb-[6px]`}>
                   {t('post_content', 'Post content')}
                 </div>
                 <CopilotTextarea
                   disableBranding={true}
                   className={clsx(
-                    '!min-h-40 !max-h-80 p-2 overflow-x-hidden scrollbar scrollbar-thumb-fifth bg-customColor2 outline-none mb-[16px] border-fifth border rounded-[4px]'
+                    '!min-h-40 !max-h-80 p-2 overflow-x-hidden scrollbar scrollbar-thumb-newColColor bg-newBgColor outline-none mb-[16px] border-newTableBorder border rounded-[6px] text-[14px]'
                   )}
                   value={content}
                   onChange={(e) => {
@@ -425,6 +431,7 @@ export const AddOrEditWebhook: FC<{
               )}
               <Button
                 type="button"
+                secondary={true}
                 className="mt-[24px]"
                 onClick={sendTest}
                 disabled={

@@ -62,10 +62,12 @@ export const ApprovedAppsComponent: FC = () => {
   return (
     <div className="flex flex-col gap-[20px]">
       <div className="flex flex-col">
-        <h3 className="text-[20px]">
+        {/* settings pattern: display-face title + muted 14 helper
+            (data-cs keeps the desktop ladder off the title size) */}
+        <h3 data-cs className="text-[24px] font-[500] font-display">
           {t('approved_apps', 'Approved Apps')}
         </h3>
-        <div className="text-customColor18 mt-[4px]">
+        <div className="text-[14px] text-textItemBlur mt-[4px]">
           {t(
             'apps_you_have_authorized',
             'Applications you have authorized to access your Postiz account.'
@@ -73,7 +75,7 @@ export const ApprovedAppsComponent: FC = () => {
         </div>
       </div>
 
-      <div className="bg-sixth border-fifth border rounded-[4px] p-[24px]">
+      <div className="border-newTableBorder border rounded-[12px] p-[24px]">
         {!apps?.length ? (
           <EmptyState
             variant="inline"
@@ -84,7 +86,7 @@ export const ApprovedAppsComponent: FC = () => {
             {apps.map((app: any) => (
               <div
                 key={app.id}
-                className="flex items-center justify-between p-[12px] border border-fifth rounded-[4px]"
+                className="flex items-center justify-between p-[12px] border border-newTableBorder rounded-[8px]"
               >
                 <div className="flex items-center gap-[12px]">
                   {app.oauthApp?.picture?.path ? (
@@ -94,26 +96,26 @@ export const ApprovedAppsComponent: FC = () => {
                       className="w-[40px] h-[40px] rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-[40px] h-[40px] rounded-full bg-fifth flex items-center justify-center text-customColor18">
+                    <div className="w-[40px] h-[40px] rounded-full bg-btnSimple flex items-center justify-center text-textItemBlur">
                       {app.oauthApp?.name?.[0]?.toUpperCase() || '?'}
                     </div>
                   )}
                   <div>
-                    <div className="text-[14px] font-bold">
+                    <div className="text-[14px] font-[600]">
                       {app.oauthApp?.name}
                     </div>
                     {app.oauthApp?.description && (
-                      <div className="text-customColor18 text-[12px]">
+                      <div className="text-textItemBlur text-[12px]">
                         {app.oauthApp.description}
                       </div>
                     )}
-                    <div className="text-customColor18 text-[12px]">
+                    <div className="text-textItemBlur text-[12px]">
                       {t('authorized_on', 'Authorized on')}{' '}
                       {new Date(app.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
-                <Button onClick={revokeApp(app)}>
+                <Button secondary={true} onClick={revokeApp(app)}>
                   {t('revoke', 'Revoke')}
                 </Button>
               </div>

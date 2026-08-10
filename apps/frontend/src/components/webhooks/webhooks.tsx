@@ -60,37 +60,40 @@ export const Webhooks: FC = () => {
 
   return (
     <div className="flex flex-col">
-      <h3 className="text-[20px]">
+      {/* settings pattern (same as Signatures): display-face title, muted 14
+          helper, hairline-separated field group. data-cs keeps the desktop
+          ladder off the title size. */}
+      <h3 data-cs className="text-[24px] font-[500] font-display">
         {t('webhooks', 'Webhooks')} ({data?.length || 0}/{user?.tier?.webhooks})
       </h3>
-      <div className="text-customColor18 mt-[4px]">
+      <div className="text-[14px] text-textItemBlur mt-[4px]">
         {t(
           'webhooks_are_a_way_to_get_notified_when_something_happens_in_postiz_via_an_http_request',
           'Webhooks are a way to get notified when something happens in Postiz via\n        an HTTP request.'
         )}
       </div>
-      <div className="my-[16px] mt-[16px] bg-sixth border-fifth items-center border rounded-[4px] p-[24px] flex gap-[24px]">
+      <div className="my-[16px] pt-[16px] border-t border-newTableBorder items-center flex gap-[16px]">
         <div className="flex flex-col w-full">
           {!!data?.length && (
             <div className="grid grid-cols-[1fr,1fr,1fr,1fr] w-full gap-y-[10px]">
-              <div>{t('name', 'Name')}</div>
-              <div>{t('url', 'URL')}</div>
-              <div>{t('edit', 'Edit')}</div>
-              <div>{t('delete', 'Delete')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('name', 'Name')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('url', 'URL')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('edit', 'Edit')}</div>
+              <div className="text-[13px] font-[500] text-textItemBlur">{t('delete', 'Delete')}</div>
               {data?.map((p: any) => (
                 <Fragment key={p.id}>
                   <div className="flex flex-col justify-center">{p.name}</div>
                   <div className="flex flex-col justify-center">{p.url}</div>
                   <div className="flex flex-col justify-center">
                     <div>
-                      <Button onClick={addWebhook(p)}>
+                      <Button secondary={true} onClick={addWebhook(p)}>
                         {t('edit', 'Edit')}
                       </Button>
                     </div>
                   </div>
                   <div className="flex flex-col justify-center">
                     <div>
-                      <Button onClick={deleteHook(p)}>
+                      <Button secondary={true} onClick={deleteHook(p)}>
                         {t('delete', 'Delete')}
                       </Button>
                     </div>
@@ -101,6 +104,7 @@ export const Webhooks: FC = () => {
           )}
           <div>
             <Button
+              secondary={true}
               onClick={addWebhook()}
               className={clsx((data?.length || 0) > 0 && 'my-[16px]')}
             >

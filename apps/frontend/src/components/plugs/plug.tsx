@@ -47,7 +47,10 @@ export const TextArea: FC<{
         placeholder={props.placeHolder}
         value={value}
         className={clsx(
-          '!min-h-40 !max-h-80 p-[24px] overflow-hidden bg-customColor2 outline-none rounded-[4px] border-fifth border'
+          // Kit control chrome (class-only control): radius 6, newTableBorder
+          // hairline, blue focus, kit bg token — replaces the legacy
+          // customColor2/fifth pair, which had no focus state at all.
+          '!min-h-40 !max-h-80 p-[24px] overflow-hidden bg-newBgColorInner text-textColor outline-none rounded-[6px] border border-newTableBorder focus:border-[#325ea6]'
         )}
         onChange={(e) => {
           onChange({
@@ -142,10 +145,14 @@ export const PlugPop: FC<{
                 {field.type === 'richtext' ? (
                   <TextArea name={field.name} placeHolder={field.placeholder} />
                 ) : (
+                  // The shared Input already carries the kit control chrome
+                  // (36px, radius 6, newTableBorder hairline, blue focus) —
+                  // the old local overrides fought it (border-tableBorder,
+                  // rounded-md, and a text-black that broke dark mode).
                   <Input
                     name={field.name}
                     label={field.description}
-                    className="w-full mt-[8px] p-[8px] border border-tableBorder rounded-md text-black"
+                    className="w-full mt-[8px]"
                     placeholder={field.placeholder}
                     type={field.type}
                   />
@@ -195,14 +202,19 @@ export const PlugItem: FC<{
     [activated]
   );
   return (
+    // Buffer card chrome: radius 12 + hairline border (the converted-card
+    // recipe: bg-newTableHeader border-newTableBorder — mirrored alpha tokens
+    // on both themes), 15/600 title, muted 14px description.
     <div
       onClick={() => addPlug(data)}
       key={plug.title}
-      className="w-full h-[300px] rounded-[8px] bg-newTableHeader hover:bg-newTableBorder"
+      className="w-full h-[300px] rounded-[12px] border border-newTableBorder bg-newTableHeader hover:bg-newTableBorder cursor-pointer"
     >
       <div key={plug.title} className="p-[16px] h-full flex flex-col flex-1">
         <div className="flex">
-          <div className="text-[20px] mb-[8px] flex-1">{plug.title}</div>
+          <div className="text-[15px] font-[600] mb-[8px] flex-1">
+            {plug.title}
+          </div>
           {!!data && (
             <div onClick={(e) => e.stopPropagation()}>
               <Slider
@@ -213,7 +225,9 @@ export const PlugItem: FC<{
             </div>
           )}
         </div>
-        <div className="flex-1">{plug.description}</div>
+        <div className="flex-1 text-[14px] text-newTextColor/60">
+          {plug.description}
+        </div>
         <Button>{!data ? 'Set Plug' : 'Edit Plug'}</Button>
       </div>
     </div>

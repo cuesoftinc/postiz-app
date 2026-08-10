@@ -254,7 +254,7 @@ export const CreateThumbnail: FC<{
             <button
               onClick={captureFrame}
               disabled={isCapturing}
-              className="bg-forth text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-btnPrimary h-[40px] px-[24px] text-[14px] font-[600] rounded-[6px] hover:bg-[#a9e662] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCapturing ? 'Capturing...' : 'Select This Frame'}
             </button>
@@ -364,8 +364,8 @@ export const MediaComponentInner: FC<{
 
   return (
     <div className="mt-[10px] flex flex-col gap-[20px]">
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm text-textColor font-medium">
+      <div className="flex flex-col gap-[6px]">
+        <label className="text-[13px] text-newTextColor/60">
           Alt Text (for accessibility)
         </label>
         <input
@@ -373,7 +373,7 @@ export const MediaComponentInner: FC<{
           value={altText}
           onChange={(e) => setAltText(e.target.value)}
           placeholder="Describe the image/video content..."
-          className="w-full px-3 py-2 bg-fifth border border-tableBorder rounded-lg text-textColor placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forth focus:border-transparent"
+          className="w-full px-[16px] h-[36px] bg-newBgColorInner border border-newTableBorder rounded-[6px] text-[14px] text-textColor placeholder-textItemBlur outline-none focus:border-forth"
         />
       </div>
       {hasExtension(media?.path, 'mp4') && (
@@ -385,13 +385,13 @@ export const MediaComponentInner: FC<{
                 {/* Show existing thumbnail if it exists */}
                 {(newThumbnail || thumbnail) && (
                   <div className="flex flex-col space-y-2">
-                    <span className="text-sm text-textColor">
+                    <span className="text-[13px] text-newTextColor/60">
                       Current Thumbnail:
                     </span>
                     <img
                       src={newThumbnail || thumbnail}
                       alt="Current thumbnail"
-                      className="max-w-full max-h-[500px] object-contain rounded-lg border border-tableBorder"
+                      className="max-w-full max-h-[500px] object-contain rounded-[8px] border border-newTableBorder"
                     />
                   </div>
                 )}
@@ -401,7 +401,7 @@ export const MediaComponentInner: FC<{
                   <button
                     disabled={loading}
                     onClick={() => setIsEditingThumbnail(true)}
-                    className="bg-third text-textColor px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all flex-1 border border-tableBorder"
+                    className="bg-transparent text-newTextColor h-[40px] px-[24px] text-[14px] rounded-[6px] hover:bg-boxHover transition-all flex-1 border border-newTableBorder"
                   >
                     {media.thumbnail || newThumbnail
                       ? 'Edit Thumbnail'
@@ -414,7 +414,7 @@ export const MediaComponentInner: FC<{
                         setNewThumbnail(null);
                         setThumbnail(null);
                       }}
-                      className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all flex-1 border border-red-700"
+                      className="bg-red-600 text-white h-[40px] px-[24px] text-[14px] rounded-[6px] hover:bg-red-700 transition-all flex-1"
                     >
                       Clear Thumbnail
                     </button>
@@ -427,7 +427,7 @@ export const MediaComponentInner: FC<{
                 <div className="flex justify-start">
                   <button
                     onClick={() => setIsEditingThumbnail(false)}
-                    className="text-textColor hover:text-white transition-colors flex items-center space-x-2"
+                    className="text-textItemBlur hover:text-newTextColor transition-colors flex items-center space-x-2"
                   >
                     <svg
                       width="16"
@@ -477,13 +477,13 @@ export const MediaComponentInner: FC<{
           <button
             disabled={loading}
             onClick={onClose}
-            className="flex-1 bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all"
+            className="flex-1 bg-transparent border border-newTableBorder text-newTextColor h-[40px] px-[24px] text-[14px] rounded-[6px] hover:bg-boxHover transition-all"
           >
             Cancel
           </button>
           <button
             onClick={save}
-            className="flex-1 bg-forth text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all"
+            className="flex-1 bg-btnPrimary h-[40px] px-[24px] text-[14px] font-[600] rounded-[6px] hover:bg-[#a9e662] transition-all"
           >
             Save Changes
           </button>

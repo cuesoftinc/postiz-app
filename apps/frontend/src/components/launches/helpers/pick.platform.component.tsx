@@ -273,12 +273,15 @@ export const PickPlatforms: FC<{
                       <div
                         onClick={addPlatform(integration)}
                         className={clsx(
-                          'cursor-pointer rounded-[50px] w-[200px] relative h-[40px] flex justify-center items-center bg-fifth filter transition-all duration-500',
+                          // Buffer replica chip: selected = green fill w/ dark
+                          // ink (boxFocused/textItemFocused mirror on both
+                          // themes), unselected = hairline outline, muted text
+                          'cursor-pointer rounded-[50px] w-[200px] relative h-[40px] flex justify-center items-center filter transition-all duration-500',
                           selectedAccounts.findIndex(
                             (p) => p.id === integration.id
                           ) === -1
-                            ? 'bg-third border border-third'
-                            : 'bg-customColor29 border border-customColor30'
+                            ? 'bg-transparent border border-newTableBorder text-textItemBlur hover:bg-boxHover'
+                            : 'bg-boxFocused border border-transparent text-textItemFocused'
                         )}
                       >
                         <div className="flex items-center justify-center gap-[10px]">

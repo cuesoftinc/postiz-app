@@ -123,7 +123,7 @@ export const UrlModal: FC<{
     gotoUrl(data.url);
   }, []);
   return (
-    <div className="rounded-[4px] border border-customColor6 bg-sixth px-[16px] pb-[16px] relative">
+    <div className="rounded-[12px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px] relative">
       <TopTitle title={`Instance URL`} />
       {isMobile && <ModalCloseButton onClick={() => modals.closeAll()} />}
       <FormProvider {...methods}>
@@ -261,7 +261,7 @@ const ExtensionNotFound: FC = () => {
   const t = useT();
   return (
     <div className="flex flex-col gap-[16px] pt-[8px]">
-      <p className="text-[14px] text-textColor/80">
+      <p className="text-[14px] text-textItemBlur">
         {t(
           'extension_not_available',
           'The Postiz browser extension is not installed. You need to install it before connecting this channel.'
@@ -283,7 +283,8 @@ const ExtensionNotFound: FC = () => {
         </Button>
         <Button
           type="button"
-          className="flex-1 !bg-transparent border border-tableBorder text-textColor"
+          secondary={true}
+          className="flex-1"
           onClick={() => modals.closeCurrent()}
         >
           {t('cancel', 'Cancel')}
@@ -301,13 +302,13 @@ const ChromeExtensionWarning: FC<{
   const t = useT();
   return (
     <div className="flex flex-col gap-[16px] pt-[8px]">
-      <p className="text-[14px] text-textColor/80">
+      <p className="text-[14px] text-textItemBlur">
         {t(
           'chrome_extension_warning_intro',
           'This channel connects via the browser extension. Please be aware of the following:'
         )}
       </p>
-      <ul className="flex flex-col gap-[8px] list-disc ps-[20px] text-[14px] text-textColor/80">
+      <ul className="flex flex-col gap-[8px] list-disc ps-[20px] text-[14px] text-textItemBlur">
         <li>
           {t(
             'chrome_extension_warning_tos',
@@ -347,7 +348,8 @@ const ChromeExtensionWarning: FC<{
         </Button>
         <Button
           type="button"
-          className="flex-1 !bg-transparent border border-tableBorder text-textColor"
+          secondary={true}
+          className="flex-1"
           onClick={() => {
             modals.closeCurrent();
             onCancel();
@@ -702,7 +704,9 @@ export const AddProviderComponent: FC<{
                   isMobile
                     ? 'flex-row h-[72px] p-[16px]'
                     : 'flex-col p-[10px] h-[100px] justify-center',
-                  'w-full text-[14px] rounded-[8px] bg-newTableHeader text-textColor relative items-center flex gap-[10px] cursor-pointer'
+                  // Buffer replica: platform tiles are elevated cards — radius
+                  // 12 + hairline border, white-alpha hover fill (both themes)
+                  'w-full text-[14px] rounded-[12px] bg-newBgColorInner border border-newTableBorder hover:bg-boxHover transition-colors text-textColor relative items-center flex gap-[10px] cursor-pointer'
                 )}
               >
                 <div>

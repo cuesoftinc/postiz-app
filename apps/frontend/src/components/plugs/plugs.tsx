@@ -1,29 +1,39 @@
 'use client';
 
 import useSWR from 'swr';
-import { useCallback, useMemo, useState } from 'react';
-import { capitalize, orderBy } from 'lodash';
-import clsx from 'clsx';
+import { useCallback, useMemo } from 'react';
+import { orderBy } from 'lodash';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import { Select } from '@gitroom/react/form/select';
 import { Button } from '@gitroom/react/form/button';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { PlugsContext } from '@gitroom/frontend/components/plugs/plugs.context';
 import { Plug } from '@gitroom/frontend/components/plugs/plug';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
-import { sidePanelRoot } from '@gitroom/frontend/components/new-layout/side-panel';
-import {
-  SidePanelHeader,
-  useSidePanelCollapse,
-} from '@gitroom/frontend/components/new-layout/side-panel-header';
 import { ChannelRow } from '@gitroom/frontend/components/new-layout/channel-row';
+import { ToolbarSelect } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
+
+/**
+ * Buffer-replica treatment (same as analytics): Buffer has NO second channel
+ * panel next to the sidebar — the desktop channels panel dies and content goes
+ * full-width. Selection becomes URL-driven (`?integration=<id>`, fallback =
+ * first plug-capable channel) so it survives the panel's removal.
+ *
+ * The panel itself stays PHONE-ONLY (`hidden phone:flex`): phones have no
+ * sidebar, so the global.scss chip-strip (keyed off [data-side-panel]) remains
+ * the phone's channel selector — tapping a chip now pushes the URL param
+ * instead of setting a local index.
+ *
+ * Desktop caveat: the global sidebar's channel rows link to /launches from
+ * /plugs (acceptable navigation, but NOT a selection affordance), so desktop
+ * keeps a MINIMAL selector — a compact ToolbarSelect above the content, driving
+ * the same URL setter. It is `phone:hidden`; the chip strip owns phones.
+ */
 export const Plugs = () => {
   const fetch = useFetch();
   const router = useRouter();
-  const [current, setCurrent] = useState(0);
-  const [refresh, setRefresh] = useState(false);
+  const searchParams = useSearchParams();
   const toaster = useToaster();
   const load = useCallback(async () => {
     return (await (await fetch('/integrations/list')).json()).integrations;
@@ -54,8 +64,6 @@ export const Plugs = () => {
     fallbackData: [],
   });
 
-  const { collapsed, toggle } = useSidePanelCollapse();
-
   const t = useT();
 
   const sortedIntegrations = useMemo(() => {
@@ -70,9 +78,15 @@ export const Plugs = () => {
       ['desc', 'asc', 'asc']
     );
   }, [data, plugList]);
+  // URL-driven selection: ?integration=<id> wins, first channel otherwise.
+  // (A stale id — e.g. a removed channel — falls back the same way.)
+  const activeIntegration = searchParams.get('integration');
   const currentIntegration = useMemo(() => {
-    return sortedIntegrations[current];
-  }, [current, sortedIntegrations]);
+    return (
+      sortedIntegrations.find((f: any) => f.id === activeIntegration) ||
+      sortedIntegrations[0]
+    );
+  }, [activeIntegration, sortedIntegrations]);
   const currentIntegrationPlug = useMemo(() => {
     const plug = plugList?.plugs?.find(
       (f: any) => f?.identifier === currentIntegration?.identifier
@@ -85,6 +99,22 @@ export const Plugs = () => {
       ...plug,
     };
   }, [currentIntegration, plugList]);
+
+  // The one setter both selectors (phone chip strip, desktop ToolbarSelect)
+  // drive. Same refreshNeeded guard the old panel rows had.
+  const selectIntegration = useCallback(
+    (integration: any) => {
+      if (integration.refreshNeeded) {
+        toaster.show(
+          'Please refresh the integration from the calendar',
+          'warning'
+        );
+        return;
+      }
+      router.push(`/plugs?integration=${integration.id}`);
+    },
+    [router, toaster]
+  );
 
   if (isLoading || plugLoading) {
     return (
@@ -124,39 +154,55 @@ export const Plugs = () => {
   }
   return (
     <>
+      {/* PHONE-ONLY channels panel. Desktop has no second panel (Buffer);
+          on a phone the global.scss [data-side-panel] rules turn this into
+          the horizontal chip strip, which stays the phone's selector. The
+          header/chevron were dropped: global.scss already hid them on phones
+          and no desktop ever sees this element now. */}
       <div
         data-side-panel="flow"
-        className={clsx(
-          'bg-newBgColorInner p-[20px] flex flex-col gap-[15px] transition-all phone:p-[12px]',
-          sidePanelRoot(collapsed)
-        )}
+        className="hidden phone:flex bg-newBgColorInner flex-col gap-[15px] transition-all phone:p-[12px] phone:w-full phone:min-w-0 phone:h-auto"
       >
         <div className="flex gap-[12px] flex-col">
-          <SidePanelHeader title={t('channels')} onToggle={toggle} />
-          {sortedIntegrations.map((integration, index) => (
+          {sortedIntegrations.map((integration: any) => (
             <ChannelRow
               key={integration.id}
               integration={integration}
-              onClick={() => {
-                if (integration.refreshNeeded) {
-                  toaster.show(
-                    'Please refresh the integration from the calendar',
-                    'warning'
-                  );
-                  return;
-                }
-                setRefresh(true);
-                setTimeout(() => {
-                  setRefresh(false);
-                }, 10);
-                setCurrent(index);
-              }}
+              onClick={() => selectIntegration(integration)}
               dimmed={currentIntegration.id !== integration.id}
             />
           ))}
         </div>
       </div>
       <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
+        {/* Minimal desktop selector (see header comment): the sidebar offers
+            no ?integration= affordance on /plugs, so without this a desktop
+            user could never leave the first channel. Kit control chrome comes
+            from ToolbarSelect itself (36px, radius 6, blue focus). */}
+        <div className="phone:hidden flex">
+          <ToolbarSelect
+            value={currentIntegration.id}
+            onChange={(e) => {
+              const integration = sortedIntegrations.find(
+                (f: any) => f.id === e.target.value
+              );
+              if (integration) {
+                selectIntegration(integration);
+              }
+            }}
+            className="min-w-[220px]"
+          >
+            {sortedIntegrations.map((integration: any) => (
+              <option
+                key={integration.id}
+                value={integration.id}
+                disabled={!!integration.refreshNeeded}
+              >
+                {integration.name}
+              </option>
+            ))}
+          </ToolbarSelect>
+        </div>
         <PlugsContext.Provider value={currentIntegrationPlug}>
           <Plug />
         </PlugsContext.Provider>

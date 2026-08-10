@@ -45,7 +45,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
                 <span
                   className={clsx(
                     'text-[14px]',
-                    step === 1 ? 'font-medium' : 'text-textColor'
+                    step === 1 ? 'font-medium' : 'text-textItemBlur'
                   )}
                 >
                   {t('connect_channels', 'Connect Channels')}
@@ -66,7 +66,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
                 <span
                   className={clsx(
                     'text-[14px]',
-                    step === 2 ? 'font-medium' : 'text-textColor'
+                    step === 2 ? 'font-medium' : 'text-textItemBlur'
                   )}
                 >
                   {t('watch_tutorial', 'Watch Tutorial')}
@@ -130,10 +130,12 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
   return (
     <div className="flex flex-col gap-[24px]">
       <div className="flex gap-[4px] flex-col text-center">
-        <div className="text-[24px] font-semibold">
+        {/* Buffer replica: step titles in the display face, muted 14 helper.
+            data-cs keeps the desktop ladder off the 24px title. */}
+        <div data-cs className="text-[24px] font-[500] font-display">
           {t('connect_your_channels', 'Connect Your Channels')}
         </div>
-        <div className="text-[14px] text-customColor18">
+        <div className="text-[14px] text-textItemBlur">
           {t(
             'connect_social_media_to_start',
             'Connect your social media accounts to start scheduling posts'
@@ -143,8 +145,8 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
 
       {/* Connected channels */}
       {sortedIntegrations.length > 0 && (
-        <div className="bg-newTableHeader rounded-[8px] p-[16px]">
-          <div className="text-[14px] font-medium mb-[12px]">
+        <div className="bg-newBgColorInner border border-newTableBorder rounded-[12px] p-[16px]">
+          <div className="text-[12px] uppercase tracking-[0.08em] font-[500] text-newTextColor/60 mb-[12px]">
             {t('connected_channels', 'Connected Channels')} (
             {sortedIntegrations.length})
           </div>
@@ -152,7 +154,7 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
             {sortedIntegrations.map((integration: any) => (
               <div
                 key={integration.id}
-                className="flex items-center gap-[8px] bg-customColor47/30 rounded-[8px] px-[12px] py-[8px]"
+                className="flex items-center gap-[8px] border border-newTableBorder rounded-[8px] px-[12px] py-[8px]"
               >
                 <div className="relative w-[28px] h-[28px]">
                   <SafeImage
@@ -196,7 +198,7 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
       <div className="flex justify-end pt-[24px] mt-[8px]">
         <button
           onClick={onNext}
-          className="group flex items-center gap-[12px] bg-gradient-to-r from-[#bfff72] to-[#a9e662] hover:from-[#a9e662] hover:to-[#8fd23f] text-black font-semibold px-[32px] py-[14px] rounded-[12px] text-[16px] transition-all shadow-lg shadow-[#bfff72]/25 hover:shadow-[#bfff72]/40"
+          className="group flex items-center gap-[12px] h-[44px] bg-btnPrimary hover:bg-[#a9e662] font-[600] px-[24px] rounded-[8px] text-[15px] transition-colors"
         >
           {sortedIntegrations.length > 0
             ? t('continue', 'Continue')
@@ -231,10 +233,10 @@ const OnboardingStep2: FC<{ onBack: () => void; onFinish: () => void }> = ({
   return (
     <div className="flex flex-col gap-[24px] flex-1">
       <div className="flex gap-[4px] flex-col text-center">
-        <div className="text-[24px] font-semibold">
+        <div data-cs className="text-[24px] font-[500] font-display">
           {t('watch_tutorial_title', 'Learn How to Use Postiz')}
         </div>
-        <div className="text-[14px] text-customColor18">
+        <div className="text-[14px] text-textItemBlur">
           {t(
             'watch_tutorial_description',
             'Watch this short video to learn how to get the most out of Postiz'
@@ -259,7 +261,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onFinish: () => void }> = ({
       <div className="flex justify-between pt-[24px] mt-[8px]">
         <button
           onClick={onBack}
-          className="group flex items-center gap-[8px] bg-transparent border-2 border-boxFocused font-medium px-[24px] py-[12px] rounded-[12px] text-[15px] transition-all"
+          className="group flex items-center gap-[8px] h-[44px] bg-transparent border border-newTableBorder text-newTextColor hover:bg-boxHover font-[500] px-[20px] rounded-[8px] text-[14px] transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -280,7 +282,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onFinish: () => void }> = ({
         </button>
         <button
           onClick={onFinish}
-          className="group flex items-center gap-[12px] bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#34d399] hover:to-[#10b981] text-white font-semibold px-[32px] py-[14px] rounded-[12px] text-[16px] transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
+          className="group flex items-center gap-[12px] h-[44px] bg-btnPrimary hover:bg-[#a9e662] font-[600] px-[24px] rounded-[8px] text-[15px] transition-colors"
         >
           {t('get_started', 'Get Started')}
           <svg
