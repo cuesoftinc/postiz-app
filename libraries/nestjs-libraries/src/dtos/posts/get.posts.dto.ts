@@ -14,4 +14,10 @@ export class GetPostsDto {
   @IsOptional()
   @IsString()
   customer: string;
+
+  /** Filter to a single channel (integration id) — powers the sidebar's
+   *  per-channel queue view. */
+  @IsOptional()
+  @IsString()
+  integration: string;
 }

@@ -160,6 +160,7 @@ export const CalendarWeekProvider: FC<{
   const initStartDate = searchParams.get('startDate');
   const initEndDate = searchParams.get('endDate');
   const initCustomer = searchParams.get('customer');
+  const initIntegration = searchParams.get('integration');
 
   const initialRange =
     initStartDate && initEndDate
@@ -170,8 +171,21 @@ export const CalendarWeekProvider: FC<{
     startDate: initialRange.startDate,
     endDate: initialRange.endDate,
     customer: initCustomer || null,
+    integration: initIntegration || null,
     display,
   });
+
+  // The sidebar's channel rows navigate to /launches?integration=<id>. When we
+  // are ALREADY on /launches only searchParams changes — filters state was
+  // initialized once — so keep the channel filter in sync with the URL.
+  useEffect(() => {
+    const urlIntegration = searchParams.get('integration') || null;
+    setFilters((prev) =>
+      prev.integration === urlIntegration
+        ? prev
+        : { ...prev, integration: urlIntegration }
+    );
+  }, [searchParams]);
 
   const params = useMemo(() => {
     return new URLSearchParams({
@@ -179,6 +193,7 @@ export const CalendarWeekProvider: FC<{
       startDate: filters.startDate,
       endDate: filters.endDate,
       customer: filters?.customer?.toString() || '',
+      integration: filters?.integration?.toString() || '',
     }).toString();
   }, [filters]);
 
@@ -187,6 +202,7 @@ export const CalendarWeekProvider: FC<{
     const modifiedParams = new URLSearchParams({
       display: filters.display,
       customer: filters?.customer?.toString() || '',
+      integration: filters?.integration?.toString() || '',
       startDate: newDayjs(filters.startDate).startOf('day').utc().format(),
       endDate: newDayjs(filters.endDate).endOf('day').utc().format(),
     }).toString();
@@ -201,9 +217,10 @@ export const CalendarWeekProvider: FC<{
       page: listPage.toString(),
       limit: '100',
       customer: filters?.customer?.toString() || '',
+      integration: filters?.integration?.toString() || '',
       state: listState,
     }).toString();
-  }, [listPage, filters.customer, listState]);
+  }, [listPage, filters.customer, filters.integration, listState]);
 
   const loadListData = useCallback(async () => {
     const response = await fetch(`/posts/list?${listParams}`);
@@ -273,9 +290,17 @@ export const CalendarWeekProvider: FC<{
       endDate: string;
       display: 'week' | 'month' | 'day' | 'list';
       customer: string | null;
+      /** omitted = keep the current channel filter */
+      integration?: string | null;
     }) => {
       setDisplaySaved(newFilters.display);
-      setFilters(newFilters);
+      setFilters((prev) => ({
+        ...newFilters,
+        integration:
+          newFilters.integration !== undefined
+            ? newFilters.integration
+            : prev.integration,
+      }));
       setInternalData([]);
 
       // Reset page when switching to list view
@@ -288,6 +313,7 @@ export const CalendarWeekProvider: FC<{
         `endDate=${newFilters.endDate}`,
         `display=${newFilters.display}`,
         newFilters.customer ? `customer=${newFilters.customer}` : ``,
+        newFilters.integration ? `integration=${newFilters.integration}` : ``,
       ].filter((f) => f);
       window.history.replaceState(null, '', `/launches?${path.join('&')}`);
     },

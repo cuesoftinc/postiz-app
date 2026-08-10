@@ -170,6 +170,7 @@ export class PostsRepository {
               },
             }
           : {}),
+        ...(query.integration ? { integrationId: query.integration } : {}),
       },
       select: {
         id: true,
@@ -273,6 +274,7 @@ export class PostsRepository {
             }
           : {}),
       },
+      ...(query.integration ? { integrationId: query.integration } : {}),
     };
 
     const [posts, total] = await Promise.all([

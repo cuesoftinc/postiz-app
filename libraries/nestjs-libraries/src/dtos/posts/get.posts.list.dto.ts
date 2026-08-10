@@ -28,6 +28,11 @@ export class GetPostsListDto {
   @IsString()
   customer?: string;
 
+  /** Filter to a single channel (integration id). */
+  @IsOptional()
+  @IsString()
+  integration?: string;
+
   @IsOptional()
   @IsIn(['all', 'scheduled', 'draft', 'published'])
   state?: PostListStateFilter = 'all';

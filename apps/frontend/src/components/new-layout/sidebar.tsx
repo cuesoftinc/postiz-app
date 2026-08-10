@@ -3,7 +3,7 @@
 import React, { FC, ReactNode, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { orderBy } from 'lodash';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -133,11 +133,14 @@ const channelRowClassName = (disabled?: boolean) =>
     disabled && 'opacity-50'
   );
 
-/** Read-only channel list. Same sort as the launches panel; every row is just
- *  a navigation to /launches, where the real channel management lives. */
+/** Read-only channel list. Same sort as the launches panel. Each row opens
+ *  that channel's queue (/launches?integration=<id> — the calendar context
+ *  filters both views by the id); management stays in the launches panel. */
 const SidebarChannels: FC = () => {
   const t = useT();
   const { data: integrations } = useIntegrationList();
+  const searchParams = useSearchParams();
+  const activeIntegration = searchParams.get('integration');
 
   const sorted = useMemo(
     () =>
@@ -158,9 +161,13 @@ const SidebarChannels: FC = () => {
         <Link
           key={integration.id}
           prefetch={true}
-          href="/launches"
+          href={`/launches?integration=${integration.id}`}
           title={integration.name}
-          className={channelRowClassName(integration.disabled)}
+          className={clsx(
+            channelRowClassName(integration.disabled),
+            activeIntegration === integration.id &&
+              'bg-newBorder text-newTextColor'
+          )}
         >
           <ChannelAvatar
             picture={integration.picture}
