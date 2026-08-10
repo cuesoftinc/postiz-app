@@ -2,8 +2,10 @@
 
 import { useCalendar, ListStateFilter } from '@gitroom/frontend/components/launches/calendar.context';
 import clsx from 'clsx';
+import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
+import { useClickAway } from '@uidotdev/usehooks';
 import dayjs from 'dayjs';
-import { useCallback } from 'react';
+import { useCallback , useState } from 'react';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
@@ -267,6 +269,9 @@ export const Filters = () => {
     'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_15%,transparent)] text-newTableTextFocused';
   const segInactive = 'text-newTextColor/60 hover:text-newTextColor';
 
+  const [stateDdOpen, setStateDdOpen] = useState(false);
+  const stateDdRef = useClickAway<HTMLDivElement>(() => setStateDdOpen(false));
+
   const setListStateFilter = useCallback(
     (next: ListStateFilter) => () => {
       if (calendar.listState === next) return;
@@ -416,7 +421,7 @@ export const Filters = () => {
               </svg>
             </div>
           </div>
-          <div className="flex flex-row h-[36px] gap-[4px] text-[15px] font-[500]">
+          <div className="flex flex-row h-[36px] gap-[4px] text-[15px] font-[500] phone:hidden">
             {listStateOptions.map((option) => (
               <div
                 key={option.value}
@@ -431,6 +436,49 @@ export const Filters = () => {
                 {option.label}
               </div>
             ))}
+          </div>
+          {/* Buffer mobile compresses the state tabs into a "Queue 12 ▾"
+              dropdown — same setter, same options */}
+          <div className="hidden phone:block relative" ref={stateDdRef}>
+            <button
+              type="button"
+              onClick={() => setStateDdOpen((v) => !v)}
+              className="flex items-center gap-[6px] h-[36px] px-[10px] text-[16px] font-[600] text-newTextColor"
+            >
+              {listStateOptions.find((o) => o.value === calendar.listState)
+                ?.label || ''}
+              <span className="text-[13px] font-[400] text-newTextColor/60">
+                {calendar.listTotal}
+              </span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {stateDdOpen && (
+              <DropdownPanel
+                surface="panel"
+                anchor="start"
+                className="mt-[4px] min-w-[160px] p-[6px] flex flex-col gap-[2px]"
+              >
+                {listStateOptions.map((option) => (
+                  <div
+                    key={option.value}
+                    onClick={() => {
+                      setStateDdOpen(false);
+                      setListStateFilter(option.value)();
+                    }}
+                    className={clsx(
+                      'px-[10px] py-[8px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover',
+                      calendar.listState === option.value
+                        ? 'text-newTextColor font-[600]'
+                        : 'text-newTextColor/70'
+                    )}
+                  >
+                    {option.label}
+                  </div>
+                ))}
+              </DropdownPanel>
+            )}
           </div>
           <div className="flex-1" />
         </div>

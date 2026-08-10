@@ -1116,6 +1116,10 @@ button { white-space: nowrap; }
   .group > [class*="rounded-tl-[10px]"][class*="h-[24px]"] > * {
     opacity: 1 !important; pointer-events: auto !important;
   }
+  /* touch has no hover: the kebab trigger inside the strip is rest-visible */
+  .group > [class*="rounded-tl-[10px]"][class*="h-[24px]"] [class*="group-hover:flex"] {
+    display: flex !important;
+  }
 
 
   /* the copilot launcher is `bottom: 14px`, which on a phone puts it inside the

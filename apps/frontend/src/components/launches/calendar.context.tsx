@@ -76,6 +76,7 @@ export const CalendarContext = createContext({
     }
   >,
   listPage: 0,
+  listTotal: 0,
   listTotalPages: 0,
   setListPage: (page: number) => {
     /** empty **/
@@ -377,6 +378,7 @@ export const CalendarWeekProvider: FC<{
         // List view specific
         listPosts,
         listPage,
+        listTotal,
         listTotalPages,
         setListPage,
         listState,

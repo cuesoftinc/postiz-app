@@ -574,14 +574,14 @@ export const LaunchesComponent = () => {
       <CalendarWeekProvider integrations={sortedIntegrations}>
         {manageOpen && (
           <div
-            className="flex phone:hidden fixed inset-0 z-[500] bg-black/60 items-start justify-center overflow-y-auto py-[48px]"
+            className="flex fixed inset-0 z-[500] bg-black/60 items-start justify-center overflow-y-auto py-[48px] phone:py-0"
             onClick={(e) => {
               if (e.target === e.currentTarget) setManageOpen(false);
             }}
           >
             <div
               data-cs
-              className="bg-newBgColorInner border border-newTableBorder rounded-[16px] w-[520px] max-w-[calc(100vw-64px)] p-[20px] flex flex-col gap-[15px] relative"
+              className="bg-newBgColorInner border border-newTableBorder rounded-[16px] w-[520px] max-w-[calc(100vw-64px)] p-[20px] flex flex-col gap-[15px] relative phone:w-full phone:max-w-none phone:min-h-full phone:rounded-none phone:border-0"
             >
               <button
                 type="button"
@@ -611,7 +611,9 @@ export const LaunchesComponent = () => {
         <div
           data-side-panel="absolute"
           className={clsx(
-            'hidden phone:flex relative flex-col',
+            // Buffer mobile keeps NO channel block on the queue page —
+            // channels live in the menu takeover; management in the modal.
+            'hidden relative flex-col',
             sidePanelRoot(collapsed)
           )}
         >

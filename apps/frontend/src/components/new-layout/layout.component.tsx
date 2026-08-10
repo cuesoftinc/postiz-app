@@ -168,18 +168,37 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         </button>
                         {/* page title: display face 20px/400 (spec §Page
                             header) — the ladder rescales text-[24px] to 20px */}
-                        <div className="text-[24px] font-display font-[400] flex flex-1">
+                        {/* Buffer mobile app bar shows the LOGO; the page
+                            title lives in the content header row below */}
+                        <div className="hidden phone:block">
+                          <img
+                            src="/cuesoft-mark-white.png"
+                            alt="Cuesoft"
+                            width={24}
+                            height={24}
+                            className="hidden dark:block object-contain"
+                          />
+                          <img
+                            src="/cuesoft-mark-primary.png"
+                            alt="Cuesoft"
+                            width={24}
+                            height={24}
+                            className="block dark:hidden object-contain"
+                          />
+                        </div>
+                        <div className="text-[24px] font-display font-[400] flex flex-1 phone:hidden">
                           <Title />
                         </div>
+                        <div className="flex-1 hidden phone:block" />
                         {/* StreakComponent moved to the sidebar logo row
                             (spec §Sidebar row 1: logo left, streak right) */}
                         <div className="flex gap-[20px] text-textItemBlur">
                           <OrganizationSelector />
-                          <div className="hover:text-newTextColor">
+                          <div className="hover:text-newTextColor phone:hidden">
                             <ModeComponent />
                           </div>
                           <div className="w-[1px] h-[20px] bg-blockSeparator" />
-                          <LanguageComponent />
+                          <span className="phone:hidden"><LanguageComponent /></span>
                           <ChromeExtensionComponent />
                           <div className="w-[1px] h-[20px] bg-blockSeparator" />
                           <AttachToFeedbackIcon />
