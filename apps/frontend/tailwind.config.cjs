@@ -122,7 +122,10 @@ module.exports = {
         loginBg: 'url(/auth/bg-login.png)',
       },
       fontFamily: {
-        sans: ['Fustat', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        // Buffer replica: Inter body (their literal body font), Outfit for
+        // display (closest free face to their Stolzl titles)
+        sans: ['var(--font-inter)', 'Inter', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['var(--font-outfit)', 'Outfit', 'var(--font-inter)', 'sans-serif'],
       },
       animation: {
         fade: 'fadeOut 0.5s ease-in-out',

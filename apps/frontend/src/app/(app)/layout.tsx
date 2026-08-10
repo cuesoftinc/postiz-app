@@ -1,4 +1,5 @@
 import { SentryComponent } from '@gitroom/frontend/components/layout/sentry.component';
+import { Inter, Outfit } from 'next/font/google';
 
 export const dynamic = 'force-dynamic';
 import '../global.scss';
@@ -24,6 +25,10 @@ import { HtmlComponent } from '@gitroom/frontend/components/layout/html.componen
 import Script from 'next/script';
 import { ChangeDirClient } from '@gitroom/frontend/components/new-layout/change.dir.client';
 
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const language = cookieStore.get(cookieName)?.value || fallbackLng;
@@ -45,7 +50,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </head>
       <ChangeDirClient />
       <body
-        className={clsx('font-sans', 'dark text-primary !bg-primary')}
+        className={clsx(inter.variable, outfit.variable, 'font-sans', 'dark text-primary !bg-primary')}
       >
         <VariableContextComponent
           storageProvider={

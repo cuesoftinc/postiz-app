@@ -362,12 +362,12 @@ export const WeekView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 relative">
-        <div className="grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
-          <div className="z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"></div>
+        <div className="grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] gap-[1px] bg-newTableBorder rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+          <div className="z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] sticky top-0"></div>
           {localizedDays.map((day, index) => (
             <div
               key={day.name}
-              className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]"
+              className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] sticky top-0 z-[20]"
             >
               <div className="text-[14px] font-[500] text-newTableText">
                 {day.name}
@@ -388,14 +388,14 @@ export const WeekView = () => {
           ))}
           {hours.map((hour) => (
             <Fragment key={hour}>
-              <div className="p-2 pe-4 text-center items-center justify-center flex text-[14px] text-newTableText">
+              <div className="p-2 pe-4 text-center items-center justify-center flex text-[14px] text-newTableText bg-newBgColorInner">
                 {convertTimeFormatBasedOnLocality(hour)}
               </div>
               {localizedDays.map((day, indexDay) => (
                 <Fragment
                   key={`${startDate}-${day.date.format('YYYY-MM-DD')}-${hour}`}
                 >
-                  <div className="relative">
+                  <div className="relative bg-newBgColorInner">
                     <CalendarColumn
                       getDate={day.date.hour(hour).startOf('hour')}
                     />
@@ -461,19 +461,19 @@ export const MonthView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
-        <div className="grid grid-cols-7 grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
+        <div className="grid grid-cols-7 grid-rows-[62px_auto] gap-[1px] bg-newTableBorder rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
           {localizedDays.map((day) => (
             <div
               key={day}
-              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"
+              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-full sticky top-0"
             >
-              <div>{day}</div>
+              <div className="text-[14px] font-[500] text-newTableText">{day}</div>
             </div>
           ))}
           {calendarDays.map((date, index) => (
             <div
               key={index}
-              className="text-center items-center justify-center flex"
+              className="text-center items-center justify-center flex bg-newBgColorInner"
             >
               <CalendarColumn
                 getDate={newDayjs(date.day).endOf('day')}
@@ -536,10 +536,10 @@ export const ListView = () => {
       <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
         {groupedPosts.map(([dateKey, datePosts]) => (
           <Fragment key={dateKey}>
-            <div className="text-start text-[12px] uppercase tracking-[0.08em] text-newTextColor/60 font-[500] mt-[16px] mb-[8px] pb-[6px] px-[10px] border-b border-newTableBorder">
+            <div className="text-start text-[17px] text-newTextColor font-[500] mt-[32px] first:mt-[8px] mb-[12px] px-[10px]">
               {newDayjs(dateKey).format(isUSCitizen() ? 'dddd, MMMM D, YYYY' : 'dddd, D MMMM YYYY')}
             </div>
-            <div className="flex flex-col gap-[8px] mb-[16px] px-[10px]">
+            <div className="cs-queue flex flex-col gap-[12px] mb-[16px] px-[10px]">
               {datePosts.map((post) => (
                 <CalendarItem
                   key={post.id}
@@ -827,14 +827,28 @@ export const CalendarColumn: FC<{
         'flex flex-col w-full min-h-full relative',
         isBeforeNow && 'repeated-strip',
         loading && 'animate-pulse',
+        // week/month cells sit in a collapsed hairline grid (the 1px gaps carry
+        // the border token) with a near-invisible wash; day view keeps its own
+        // bordered rows
+        display !== 'day' && 'bg-newTextColor/[0.02]',
         isBeforeNow
           ? 'cursor-not-allowed'
-          : 'border border-newTableBorder rounded-[8px]'
+          : display === 'day'
+          ? 'border border-newTableBorder rounded-[8px]'
+          : ''
       )}
       ref={drop as any}
     >
       {display === 'month' && (
-        <div className={clsx('pt-[6px] text-[14px]')}>{getDate.date()}</div>
+        <div
+          className={clsx(
+            'pt-[6px] px-[8px] text-[14px] text-start text-newTableText flex items-center gap-[6px]',
+            getDate.isSame(newDayjs(), 'day') &&
+              'cs-today text-newTableTextFocused'
+          )}
+        >
+          {getDate.date()}
+        </div>
       )}
       <div
         className={clsx(
@@ -1170,7 +1184,7 @@ const CalendarItem: FC<{
             </div>
         </div>
         {showTime && (
-          <div className="text-newTextColor/60 text-[13px] whitespace-nowrap flex items-center justify-end text-end">
+          <div className="text-newTextColor text-[15px] whitespace-nowrap flex items-center justify-end text-end">
             {newDayjs(post.publishDate).local().format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
           </div>
         )}

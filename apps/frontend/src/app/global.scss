@@ -7,8 +7,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Cuesoft brand typeface — Fustat (variable, 200-800). Replaces Plus Jakarta
-   Sans; the fallback stack keeps metrics sane while the font loads. */
+/* Fustat stays registered for brand moments, but the UI default is Inter
+   (Buffer's body face) with Outfit for display — see tailwind fontFamily. */
 @font-face {
   font-family: 'Fustat';
   src: url('/fonts/Fustat-VariableFont_wght.ttf') format('truetype-variations');
@@ -951,6 +951,19 @@ html {
    `phone:w-full` can actually beat it */
 /* calendar day-of-week header row 62->48 */
 [class*="grid-rows-[62px_auto]"] { grid-template-rows: 48px auto !important; }
+
+/* Buffer §Calendar grid: today's date number carries a lime dot beside it.
+   `.cs-today` is a class-only hook on the month cell's date div in
+   calendar.tsx; the ink token mirrors (lime in dark, dark lime in light).
+   The date div is flex with a 6px gap, so the pseudo needs no positioning. */
+.cs-today::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--new-table-text-focused);
+}
 button { white-space: nowrap; }
 
 /* ---------------------------------------------------------------------------
@@ -969,39 +982,75 @@ button { white-space: nowrap; }
   transition: height .12s ease, background-color .12s ease;
 }
 .group > [class*="rounded-tl-[10px]"][class*="h-[24px]"] > * { opacity: 0; pointer-events: none; }
+/* Buffer parity: the resting card carries no accent band at all — the strip
+   exists purely as the hover-actions anchor */
+.group:not(:hover) > [class*="rounded-tl-[10px]"][class*="h-[24px]"] {
+  background-color: transparent !important;
+}
 .group:hover > [class*="rounded-tl-[10px]"][class*="h-[24px]"] {
   top: 50%; transform: translateY(-50%);
   inset-inline-start: auto; inset-inline-end: 10px;
   width: auto !important;
-  height: 22px !important; min-height: 22px !important; max-height: 22px !important;
-  padding: 0 8px !important; gap: 10px !important;
-  border-radius: 6px !important; overflow: visible;
-  /* opaque enough to sit over the timestamp; dark reads in both themes since
-     the action icons are white */
-  background-color: rgba(20, 20, 22, .92) !important;
-  backdrop-filter: blur(2px);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .12), 0 2px 8px rgba(0, 0, 0, .45);
+  height: 26px !important; min-height: 26px !important; max-height: 26px !important;
+  padding: 0 10px !important; gap: 12px !important;
+  border-radius: 8px !important; overflow: visible;
+  /* Buffer §Queue quiet button: opaque theme surface + hairline ring via the
+     border token (white-alpha in dark, black-alpha in light) */
+  background-color: var(--new-bgColorInner) !important;
+  box-shadow: 0 0 0 1px var(--new-table-border), 0 4px 12px rgba(0, 0, 0, .18);
 }
 .group:hover > [class*="rounded-tl-[10px]"][class*="h-[24px]"] > * { opacity: 1; pointer-events: auto; }
+/* quiet-button icon ink: out-specifies the global
+   `[class*="bg-btnPrimary"] svg { #000 }` rule; --new-btn-text mirrors
+   (white on the dark surface, near-black on the light one) */
+.group:hover > [class*="rounded-tl-[10px]"][class*="h-[24px]"] svg {
+  color: var(--new-btn-text) !important;
+}
+
+/* Queue rows (list view, Buffer §Queue): the day column is scoped `.cs-queue`
+   in calendar.tsx (ListView). Cards read as elevation, not outline — elevated
+   token surface, radius 12, borderless, padding 20 — and the hover pill grows
+   to the spec 36px quiet button. Grid chips above keep the compact treatment. */
+.cs-queue .group > [class*="rounded-tl-[10px]"][class*="h-[24px]"] {
+  border-radius: 12px 12px 0 0 !important;
+}
+.cs-queue .group:hover > [class*="rounded-tl-[10px]"][class*="h-[24px]"] {
+  height: 36px !important; min-height: 36px !important; max-height: 36px !important;
+  padding: 0 12px !important;
+  inset-inline-end: 16px;
+  border-radius: 8px !important;
+}
+.cs-queue .group > [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] {
+  background-color: var(--new-bgLineColor) !important; /* elevated: #1e1e1e dark / #e7e9eb light */
+  border: 0 !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+}
 
 /* card body: real padding + gap so the copy never touches the avatar, the
    timestamp or the card edge */
 [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] {
-  border-radius: 8px !important;
-  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
   gap: 12px !important;
   align-items: center !important;
+  background-color: var(--new-bgColorInner) !important; /* elevated, like Buffer */
+  border-color: transparent !important;
+}
+/* Buffer parity: time as a left gutter column, muted */
+[class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] > div:last-child:not(:only-child) {
+  order: -1;
+  min-width: 76px;
+  justify-content: flex-start !important;
+  color: var(--new-textItemBlur);
+  font-size: 14px !important;
 }
 [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"] img { margin-inline-end: 4px; }
 
-/* list view day header: left-aligned + muted with a divider, like Buffer's day
-   groups (stock centres it with no separation from the first card) */
-[class*="text-center"][class*="min-h-[21px]"][class*="mt-[10px]"] {
-  text-align: start !important; font-size: 13px !important; opacity: .62;
-  margin-top: 20px !important; margin-bottom: 10px !important;
-  padding: 0 2px 8px !important;
-  border-bottom: 1px solid rgba(128, 128, 128, .28); /* grey-alpha: reads in both themes */
-}
+/* list view day headers (Buffer §Queue): sentence case 17px/500 in the primary
+   ink with a generous top margin — styled inline on the element in calendar.tsx
+   (ListView). The old muted-uppercase-with-divider rule that lived here
+   anchored on `mt-[10px]`, which no longer exists in the markup. */
 
 /* ===== Mobile (<768px) =====
    The shell is desktop-only: the nav column is `position: fixed` at a hardcoded

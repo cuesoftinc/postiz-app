@@ -4,6 +4,14 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import Link from 'next/link';
 
+/**
+ * A tab of the PHONE bottom bar. Desktop no longer renders this: the rail that
+ * hosted it is `hidden phone:flex` in layout.component.tsx and desktop nav is
+ * new-layout/sidebar.tsx (which consumes the same useMenuItem array). The
+ * non-phone classes below are kept verbatim so the phone cascade — which
+ * relies on `phone:` beating `custom:`/`minCustom:` by emission order — stays
+ * byte-identical.
+ */
 export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClick?: () => void }> = ({
   label,
   icon,

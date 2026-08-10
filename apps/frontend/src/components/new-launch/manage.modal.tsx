@@ -435,10 +435,17 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
 
   return (
     <div className="w-full h-full flex-1 p-[40px] flex relative">
-      <div className="flex flex-1 bg-newBgColorInner rounded-[16px] flex-col">
+      {/* Buffer spec: composer surface = elevated token, cards radius 12 */}
+      <div className="flex flex-1 bg-newBgColorInner rounded-[12px] flex-col">
         <div className="flex-1 flex">
           <div className="flex flex-col flex-1 border-e border-newBorder">
-            <div className="bg-newBgColor h-[65px] rounded-s-[16px] !rounded-b-[0] flex items-center gap-[12px] px-[16px] text-[20px] font-[600]">
+            {/* Header sits on the surface itself (no page-bg band) with a
+                hairline below; title 18px Outfit per spec — data-cs keeps the
+                ladder from forcing text-[18px] down to 16. */}
+            <div
+              data-cs
+              className="h-[65px] border-b border-newBorder flex items-center gap-[12px] px-[16px] text-[18px] font-display font-[600]"
+            >
               {t('create_post_title', 'Create Post')}
               <CreationMethodBadge
                 creationMethod={existingData?.posts?.[0]?.creationMethod}
@@ -454,7 +461,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   className="gap-[16px] flex flex-col pe-[8px] pt-[16px] ps-[16px] absolute top-0 left-0 w-full h-full overflow-x-hidden overflow-y-scroll scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner"
                 >
                   <div className="flex w-full">
-                    <div className="flex flex-1">
+                    {/* Spec: 40px channel avatars. Their classes live in
+                        picks.socials.component (stock 42px, outside this
+                        rebuild's file list); the scoped variant below targets
+                        only the avatar imgs (img.rounded-full — the platform
+                        badges are rounded-[4px] so they don't match). */}
+                    <div className="flex flex-1 [&_img.rounded-full]:w-[40px] [&_img.rounded-full]:h-[40px] [&_img.rounded-full]:min-w-[40px] [&_img.rounded-full]:min-h-[40px]">
                       <PicksSocialsComponent toolTip={true} />
                     </div>
                     <div>
@@ -528,9 +540,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           </div>
           <div className="w-[580px] flex flex-col">
-            <div className="bg-newBgColor h-[65px] rounded-e-[16px] !rounded-b-[0] flex items-center px-[16px] text-[20px] font-[600]">
+            {/* Panel heading 16px/600 per spec; the X becomes a quiet 36px
+                icon button (newTextColor/10 hover = white-alpha in dark,
+                black-alpha in light). */}
+            <div className="h-[65px] border-b border-newBorder flex items-center px-[16px] text-[16px] font-[600]">
               <div className="flex-1">{t('post_preview', 'Post Preview')}</div>
-              <div className="cursor-pointer">
+              <div className="cursor-pointer flex items-center justify-center w-[36px] h-[36px] rounded-[8px] hover:bg-newTextColor/10 transition-colors">
                 <CloseIcon onClick={askClose} className="text-newTextColor/60" />
               </div>
             </div>
@@ -600,9 +615,13 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 </div>
               </button>
             )}
+            {/* Primary submits: spec h-44 radius-8 — data-cs opts them out of
+                the global h-[44px]->36 ladder. Ink comes from the global
+                bg-btnPrimary black-ink rule; no local color class here. */}
             {addEditSets && (
               <button
-                className="text-[15px] font-[600] min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[6px] bg-btnPrimary ps-[20px] pe-[16px] focus-visible:ring-2 focus-visible:ring-forth"
+                data-cs
+                className="text-[15px] font-[600] min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-btnPrimary ps-[20px] pe-[16px] focus-visible:ring-2 focus-visible:ring-forth"
                 disabled={
                   selectedIntegrations.length === 0 || loading || locked
                 }
@@ -614,11 +633,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             {!addEditSets && (
               <div className="group cursor-pointer relative">
                 <button
+                  data-cs
                   disabled={
                     selectedIntegrations.length === 0 || loading || locked
                   }
                   onClick={schedule('schedule')}
-                  className="relative min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[6px] bg-btnPrimary ps-[20px] pe-[16px] focus-visible:ring-2 focus-visible:ring-forth"
+                  className="relative min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-btnPrimary ps-[20px] pe-[16px] focus-visible:ring-2 focus-visible:ring-forth"
                 >
                   {loading && (
                     <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
@@ -656,7 +676,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                     }
                     className="rounded-[16px] z-[300] disabled:cursor-not-allowed disabled:opacity-80 hidden group-hover:flex absolute bottom-[100%] -left-[12px] p-[12px] w-[206px] bg-newBgColorInner"
                   >
-                    <div className="rounded-[6px] bg-btnPrimary h-[44px] w-full flex justify-center items-center post-now">
+                    <div
+                      data-cs
+                      className="rounded-[8px] bg-btnPrimary h-[44px] w-full flex justify-center items-center post-now"
+                    >
                       {t('post_now', 'Post Now')}
                     </div>
                   </button>

@@ -1,4 +1,5 @@
 import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
+import { Inter, Outfit } from 'next/font/google';
 
 export const dynamic = 'force-dynamic';
 import '../global.scss';
@@ -10,6 +11,10 @@ import clsx from 'clsx';
 import { VariableContextComponent } from '@gitroom/react/helpers/variable.context';
 import UtmSaver from '@gitroom/helpers/utils/utm.saver';
 
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <html>
@@ -17,7 +22,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body
-        className={clsx('font-sans', 'dark text-primary !bg-primary')}
+        className={clsx(inter.variable, outfit.variable, 'font-sans', 'dark text-primary !bg-primary')}
       >
         <VariableContextComponent
           language="en"
