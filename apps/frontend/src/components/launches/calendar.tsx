@@ -2652,7 +2652,10 @@ const CalendarItem: FC<{
           // and week cards, so the hover covers both; guarded to
           // hover-capable pointers so phone taps never latch a sticky
           // white/shadow state on the touch grid
-          '[@media(hover:hover)]:hover:bg-white [@media(hover:hover)]:hover:shadow-[0_2px_8px_rgba(43,32,17,0.14)] transition-shadow duration-150',
+          // the white hover pop is Buffer LIGHT-mode parity; in dark mode a
+          // white card under light text is unreadable (user report), so dark
+          // hovers lift to the elevated dark surface instead
+          '[@media(hover:hover)]:hover:bg-white dark:[@media(hover:hover)]:hover:bg-newTableHeader [@media(hover:hover)]:hover:shadow-[0_2px_8px_rgba(43,32,17,0.14)] transition-shadow duration-150',
           // Buffer month pill: 33px tall, r8, hairline border, 4px pad.
           // Phone month (Buffer, screenshots at 390): the pill compacts to a
           // 30×30 r6 hairline mini-tile with the 20px platform icon centered
