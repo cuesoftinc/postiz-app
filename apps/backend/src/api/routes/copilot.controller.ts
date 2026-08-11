@@ -2,7 +2,6 @@ import {
   Logger,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   Post,
   Req,
@@ -50,9 +49,6 @@ export class CopilotController {
     @Res() res: Response,
     @GetUserFromRequest() user: User
   ) {
-    if (!user?.isSuperAdmin) {
-      throw new ForbiddenException('Content chat is admin-only');
-    }
     const bridgeUrl =
       process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
     res.setHeader('content-type', 'text/event-stream');
@@ -103,7 +99,8 @@ export class CopilotController {
     return res.end();
   }
 
-  // Bridge session index (ADMIN-ONLY, same gate as /content-chat): the
+  // Bridge session index (open to every org user by the owner's decision:
+  // this is an internal tool; the auth middleware already scopes it): the
   // sessions rail lists and prunes the per-profile session entries the
   // bridge keeps in postiz/bridge/sessions.json. Plain JSON passthrough;
   // any failure collapses to the same offline error shape the chat uses.
@@ -112,9 +109,6 @@ export class CopilotController {
     @GetUserFromRequest() user: User,
     @Query('profile') profile?: string
   ) {
-    if (!user?.isSuperAdmin) {
-      throw new ForbiddenException('Content chat is admin-only');
-    }
     const bridgeUrl =
       process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
     const query =
@@ -143,9 +137,6 @@ export class CopilotController {
     @GetUserFromRequest() user: User,
     @Param('id') id: string
   ) {
-    if (!user?.isSuperAdmin) {
-      throw new ForbiddenException('Content chat is admin-only');
-    }
     const bridgeUrl =
       process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
     try {

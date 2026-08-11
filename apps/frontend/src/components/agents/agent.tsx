@@ -168,9 +168,11 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
   const [properties, setProperties] = useState([]);
   const t = useT();
   const user = useUser();
-  // Content segment is admin-only — the same gate ContentChatComponent (and
-  // its backend route) enforces; non-admins see no segmented at all
-  const isAdmin = !!(user as any)?.admin;
+  // Owner's decision (2026-08-11): this is an internal tool, so EVERY org
+  // user gets the bridge experience (Assistant + Content tabs); the old
+  // CopilotKit chat (children) is no longer reachable but kept as the
+  // fallback while user context loads. Backend gates were opened to match.
+  const isAdmin = !!user;
   const searchParams = useSearchParams();
   // /content redirects here with ?mode=content so old links preselect the
   // Content segment (the (app) tree is force-dynamic — no Suspense needed)
