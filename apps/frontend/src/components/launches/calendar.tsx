@@ -906,7 +906,7 @@ export const ListView = () => {
       : listState === 'approvals'
       ? t(
           'approvals_appear_here',
-          'Tag a draft with "needs-approval" to route it here for review.'
+          'When Ace drafts posts for you, they land here for your sign-off.'
         )
       : listState === 'published'
       ? t('sent_posts_appear_here', 'Posts you have sent will appear here.')
@@ -998,10 +998,14 @@ export const ListView = () => {
             <path d="M16 17H8" />
           </svg>
         </div>
-        <div className="text-[16px] font-[550] text-newTextColor">
+        {/* text-center: the subline wraps on phone and block-centering alone
+            left-aligns the wrapped lines (user report, iPhone 16) */}
+        <div className="text-[16px] font-[550] text-newTextColor text-center px-[24px]">
           {emptyMessage}
         </div>
-        <div className="text-[14px] text-newTextColor/60">{emptySubline}</div>
+        <div className="text-[14px] text-newTextColor/60 text-center px-[24px] max-w-[420px]">
+          {emptySubline}
+        </div>
       </div>
     );
   }
@@ -1022,7 +1026,7 @@ export const ListView = () => {
             type="button"
             onClick={approveAll}
             data-cs
-            className="h-[32px] px-[12px] rounded-[8px] bg-btnPrimary text-black flex items-center gap-[6px] text-[14px] font-[500] hover:opacity-90 transition-opacity duration-150"
+            className="h-[32px] phone:h-[44px] px-[12px] rounded-[8px] bg-btnPrimary text-black flex items-center gap-[6px] text-[14px] font-[500] hover:opacity-90 transition-opacity duration-150"
           >
             <svg
               width="16"
@@ -2311,9 +2315,12 @@ const CalendarItem: FC<{
           data-cs
           className="w-full flex-1 flex flex-col text-[14px] bg-newBgColorInner border border-newTableBorder rounded-[12px] relative"
         >
-          {/* phone:pe-[56px]: the list view's 40px comment bubble overlays
-              the header's top-right corner on phone (see ListView) */}
-          <div className="flex items-center gap-[10px] px-[16px] pt-[12px] phone:pe-[56px]">
+          {/* phone:pe-[64px]: the list view's 40px comment bubble overlays the
+              header's top-right corner on phone (absolute, end-[10px] → 50px
+              deep; see ListView). 56px left the tag chip clipping flush
+              against the bubble's border (user report, iPhone 16) — 64px
+              keeps 14px of air between the chip's ellipsis and the bubble */}
+          <div className="flex items-center gap-[10px] px-[16px] pt-[12px] phone:pe-[64px]">
             <ChannelAvatar
               picture={post.integration.picture || ''}
               identifier={post.integration?.providerIdentifier || ''}
@@ -2332,9 +2339,12 @@ const CalendarItem: FC<{
               // carries them as quiet pills so the info survives the redesign
               <div className="ms-auto flex items-center gap-[4px] overflow-hidden">
                 {post.tags.map((p) => (
+                  // min-w-0 + truncate: on phone the header runs out of room
+                  // and the chip must ellipsize ('needs-app…'), not clip
+                  // mid-letter at the viewport edge (user report, iPhone 16)
                   <div
                     key={p.tag.name}
-                    className="text-[12px] px-[8px] py-[2px] rounded-full border border-newTableBorder whitespace-nowrap"
+                    className="text-[12px] px-[8px] py-[2px] rounded-full border border-newTableBorder min-w-0 truncate"
                     style={{ backgroundColor: p.tag.color }}
                   >
                     <span className={clsx(p.tag.color && 'mix-blend-difference')}>
@@ -2494,7 +2504,11 @@ const CalendarItem: FC<{
               {dayjs.utc(post.createdAt || post.publishDate).fromNow()}
             </span>
           </div>
-          <div className="flex items-center gap-[8px] px-[16px] py-[8px] phone:justify-end">
+          {/* phone: the approvals state carries four buttons (Request changes,
+              Approve, Edit, overflow) — they cannot fit one 390px row, and
+              without wrap the card blows out the layout viewport (the same
+              over-wide failure that broke position:fixed elsewhere) */}
+          <div className="flex items-center gap-[8px] px-[16px] py-[8px] phone:justify-end phone:flex-wrap">
             <div className="flex-1 min-w-0 text-[14px] text-start truncate phone:hidden">
               <span className="font-[550] text-newTextColor">
                 {t('you_created_this', 'You created this')}

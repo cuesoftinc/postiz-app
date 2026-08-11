@@ -1676,10 +1676,11 @@ export const Filters = () => {
                   )}
                 >
                   {option.label}
-                  {/* Buffer: 'Queue N posts / Drafts N / Approvals / Sent N'
-                      — Queue reads count + word, Approvals carries no count */}
-                  {option.value !== 'approvals' &&
-                    tabCounts?.[option.value] !== undefined && (
+                  {/* Buffer reads 'Queue N posts / Drafts N / Sent N' with a
+                      bare Approvals tab; the owner overrode that (2026-08-12)
+                      — Approvals counts like the rest, since it is Ace's
+                      outbox and the pending number is the signal to visit */}
+                  {tabCounts?.[option.value] !== undefined && (
                       <span className="rounded-full bg-newTextColor/10 px-[7px] h-[18px] flex items-center text-[12px] text-newTextColor whitespace-nowrap" data-cs>
                         {option.value === 'scheduled'
                           ? `${tabCounts[option.value]} ${t('posts', 'posts')}`
@@ -1724,13 +1725,23 @@ export const Filters = () => {
                       setListStateFilter(option.value)();
                     }}
                     className={clsx(
-                      'px-[10px] py-[8px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150',
+                      'px-[10px] py-[8px] rounded-[6px] text-[14px] cursor-pointer hover:bg-boxHover transition-colors duration-150 flex items-center gap-[8px]',
                       calendar.listState === option.value
                         ? 'text-newTextColor font-[550]'
                         : 'text-newTextColor/70'
                     )}
                   >
-                    {option.label}
+                    <span className="flex-1">{option.label}</span>
+                    {/* phone parity with the desktop tabs' count pills
+                        (owner's call: Approvals counts like the rest) */}
+                    {tabCounts?.[option.value] !== undefined && (
+                      <span
+                        className="rounded-full bg-newTextColor/10 px-[7px] h-[18px] flex items-center text-[12px] text-newTextColor whitespace-nowrap"
+                        data-cs
+                      >
+                        {tabCounts[option.value]}
+                      </span>
+                    )}
                   </div>
                 ))}
               </DropdownPanel>
