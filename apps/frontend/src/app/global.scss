@@ -591,9 +591,9 @@ html[dir='rtl'] [dir='ltr'] {
 //}
 //
 
-.ProseMirror {
-  font-family: Arial;
-}
+/* Editor face: no font-family override (the upstream Arial leftover is
+   dropped) — the editor inherits Inter from the app body; size/leading come
+   out to Buffer's measured 14px/21px 400 via html 14px x preflight 1.5. */
 
 .ProseMirror:focus {
   outline: none;
@@ -661,15 +661,28 @@ html[dir='rtl'] [dir='ltr'] {
   background: rgba(0, 0, 0, 0.8) !important;
 }
 
+/* Kit popover chrome (Buffer dropdown family): white, r12, padding 12px 8px,
+   layered hairline ring + soft ambient shadow (the DropdownPanel 'panel'
+   stack), 32px rows 14/500. !important where the mention autocomplete (the
+   only consumer, frozen this pass) stacks legacy utilities on top
+   (bg-white border-gray-200 rounded-lg shadow-lg p-2). */
 .dropdown-menu {
-  @apply shadow-menu;
-  background: var(--new-bgColorInner);
-  border: 1px solid var(--new-bgLineColor);
-  border-radius: 18px;
+  background: var(--new-bgColorInner) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  padding: 12px 8px !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 1px rgba(0, 0, 0, 0.02),
+    0 4px 8px rgba(0, 0, 0, 0.04) !important;
   display: flex;
   flex-direction: column;
   overflow: auto;
   position: relative;
+
+  /* the black-alpha ring vanishes on dark surfaces — keep a hairline there
+     (same rule the DropdownPanel 'panel' surface carries) */
+  .dark & {
+    border: 1px solid var(--new-table-border) !important;
+  }
 
   button {
     align-items: center;
@@ -677,11 +690,16 @@ html[dir='rtl'] [dir='ltr'] {
     display: flex;
     text-align: left;
     width: 100%;
-    padding: 10px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgb(var(--new-textColor));
 
     &:hover,
     &:hover.is-selected {
-      background-color: var(--new-bgLineColor);
+      background-color: var(--new-box-hover);
     }
   }
 }

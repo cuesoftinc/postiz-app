@@ -24,6 +24,25 @@ changelog line). Statuses:
 **The loop ends when no `NEEDS-WORK` or `NEEDS-BUFFER-MEASUREMENT` rows remain.**
 
 **Changelog**
+- 2026-08-11 - composer parity pass (iter3 Buffer spec, 16 diffs;
+  new-launch/** plus scoped CSS). dialog: fixed 1100px wide / 813px cap,
+  centered (shell justify+items-center; the <=1100px sheet media query
+  releases the caps), layered hairline shadow ring (0 0 0 1px
+  rgba(0,0,0,.08) + 0 1px 1px .02). header: padding ps-32/pe-24, title
+  18px/22.5px, Preview toggle 32px 14/500 and close 32x32, tags chip
+  32px/14 (scoped CSS). body: preview column
+  420->379px; preview header 60px band (16/32/12/32, 16px/20px 500, was
+  550). footer: min-h 64->72; Save Draft ghost r12->r8, 15->14, label 'Save
+  Draft' (new save_draft key; save_as_draft stays for other surfaces); date
+  label + chevron + lime primary now ONE attached split control, r12 outer
+  corners only (chevron segment rounded-none, primary rounded-s-none
+  rounded-e-[12px]); #cs-datetime/#cs-repeat fonts 15->14. editor: media
+  dropzone 120x120 r8 square button on desktop (phone:w-full keeps the
+  banner), plain 12/500 label copy replaces the green link span. channels:
+  add-channel square r12->r8; selected tiles gain the Buffer 24x24 r6 white
+  deselect badge (fixed #292928 ink; tile click still toggles). tags
+  popover: 195px wide, padding 12px 8px, rows 32px at 14/500 (scoped CSS in
+  manage.modal). tsc clean on owned files.
 - 2026-08-11 - iPhone 16 Pro critique round 2 (6 fixes). date-sheet: both
   phone bottom sheets' controls carry data-cs so the size ladder never
   squeezes the phone-only surfaces (filters.tsx - PhoneFilterSheet rows

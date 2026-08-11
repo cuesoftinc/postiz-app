@@ -8,7 +8,10 @@ import { useShallow } from 'zustand/react/shallow';
 import { useExistingData } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
 import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
 import { useAddProvider } from '@gitroom/frontend/components/launches/add.provider.component';
-import { PlusIcon } from '@gitroom/frontend/components/ui/icons';
+import {
+  CheckmarkIcon,
+  PlusIcon,
+} from '@gitroom/frontend/components/ui/icons';
 
 export const PicksSocialsComponent: FC<{ toolTip?: boolean }> = ({
   toolTip,
@@ -91,6 +94,18 @@ export const PicksSocialsComponent: FC<{ toolTip?: boolean }> = ({
                           height={40}
                         />
                       </div>
+                      {/* Buffer deselect badge: 24x24 r6 white on the
+                          selected tile (the tile itself is the toggle, so
+                          the badge deselects on click too). Fixed ink so it
+                          reads on the white square in both themes. */}
+                      {selected && (
+                        <div
+                          data-cs
+                          className="absolute z-20 -top-[6px] -end-[6px] w-[24px] h-[24px] rounded-[6px] bg-white border border-newTableBorder flex items-center justify-center text-[#292928]"
+                        >
+                          <CheckmarkIcon />
+                        </div>
+                      )}
                       {integration.identifier === 'youtube' ? (
                         <img
                           src="/icons/platforms/youtube.svg"
@@ -110,7 +125,7 @@ export const PicksSocialsComponent: FC<{ toolTip?: boolean }> = ({
                   </div>
                 );
               })}
-            {/* 40px hairline '+' square -> the existing connect-channel
+            {/* 40x40 r8 hairline '+' square -> the existing connect-channel
                 modal (useAddProvider). Hidden while editing an existing
                 post (the row is locked to one channel) and in dummy mode. */}
             {!exising.integration && !dummy && (
@@ -119,7 +134,7 @@ export const PicksSocialsComponent: FC<{ toolTip?: boolean }> = ({
                 onClick={addProvider}
                 data-tooltip-id="tooltip"
                 data-tooltip-content="Connect a new channel"
-                className="cursor-pointer w-[40px] h-[40px] rounded-[12px] border border-newTableBorder flex justify-center items-center text-newTextColor/60 hover:text-newTextColor hover:bg-newTableHeader transition-colors"
+                className="cursor-pointer w-[40px] h-[40px] rounded-[8px] border border-newTableBorder flex justify-center items-center text-newTextColor/60 hover:text-newTextColor hover:bg-newTableHeader transition-colors"
               >
                 <PlusIcon />
               </div>

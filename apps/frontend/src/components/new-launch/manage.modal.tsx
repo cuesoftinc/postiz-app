@@ -444,11 +444,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   return (
     <div
       id="cs-composer-shell"
-      className="w-full h-full flex-1 p-[40px] phone:p-0 flex relative phone:max-w-full phone:overflow-x-hidden"
+      className="w-full h-full flex-1 p-[40px] phone:p-0 flex justify-center items-center relative phone:max-w-full phone:overflow-x-hidden"
     >
       {/* Buffer Create Post scoped skin: the legacy chip row + the footer
           controls live in files outside this rebuild's ownership (media/**,
-          launches/*), so their convergence — 32px/r8 legacy chips, the 40px
+          launches/*), so their convergence — 32px/r8 legacy chips, the 32px
           r8 tags chip, and the 40px split date control — is applied here,
           keyed on wrapper ids. Attribute selectors dodge the
           bracket-escaping of arbitrary Tailwind classes. */}
@@ -467,10 +467,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             width: 32px !important;
           }
           #cs-tags-chip > div {
-            height: 40px !important;
+            height: 32px !important;
             border-radius: 8px !important;
             border-color: var(--new-table-border) !important;
-            font-size: 15px !important;
+            font-size: 14px !important;
             font-weight: 500 !important;
             color: rgb(var(--new-textColor)) !important;
           }
@@ -483,18 +483,30 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             align-self: center;
           }
           /* the tags popover ships bottom-anchored (it lived in the footer);
-             in the header it must drop DOWN instead */
+             in the header it must drop DOWN instead. Chrome follows the
+             Buffer popover family: ~195px, padding 12px 8px, r12 hairline. */
           #cs-tags-chip [class*="z-[300]"] {
             bottom: auto !important;
             top: calc(100% + 8px) !important;
             transform: none !important;
             border-radius: 12px;
             border: 1px solid var(--new-table-border);
+            width: 195px;
+            padding: 12px 8px;
+          }
+          /* popover rows: 32px tall at 14/500 (the row's own py-8/px-20 and
+             -mx-12 were cut for the old 12px-uniform container padding) */
+          #cs-tags-chip [class*="z-[300]"] > [class*="min-h-[40px]"] {
+            min-height: 32px !important;
+            padding: 4px 12px !important;
+            margin-inline: -8px !important;
+            font-size: 14px;
+            font-weight: 500;
           }
           #cs-datetime > div,
           #cs-repeat > div {
             height: 40px !important;
-            font-size: 15px !important;
+            font-size: 14px !important;
             font-weight: 500 !important;
             color: rgb(var(--new-textColor)) !important;
             flex: 0 1 auto !important;
@@ -503,11 +515,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             border-radius: 12px !important;
             border-color: var(--new-table-border) !important;
           }
-          /* Buffer split date button: this restyles the existing DatePicker
+          /* Buffer split button: this restyles the existing DatePicker
              trigger (launches/helpers, outside this rebuild's file list) into
-             the LEFT segment — start-only r12, px 12/8, 15/500 ink, hairline.
-             The attached chevron segment is JSX below; it carries the end
-             radius and no start border, so the two share one hairline. */
+             the LEFT segment — start-only r12, px 12/8, 14/500 ink, hairline.
+             The chevron segment and the lime primary are JSX below, attached
+             in one control; only the outer corners carry the r12. */
           #cs-datetime > div {
             border-color: var(--new-table-border) !important;
             border-start-start-radius: 12px !important;
@@ -551,22 +563,29 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               border-radius: 0 !important;
               width: 100%;
               height: 100%;
+              max-width: none;
+              max-height: none;
+              box-shadow: none;
             }
           }
         `}
       </style>
+      {/* Buffer dialog geometry: fixed 1100px wide, capped at 813px tall
+          (64 header + 675 body + 72 footer + 2 separators), centered in the
+          viewport-minus-80 shell. Edge = layered hairline shadow (ring +
+          1px ambient), not a heavy drop shadow. */}
       <div
         id="cs-composer"
-        className="flex flex-1 bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col"
+        className="flex w-full max-w-[1100px] h-full max-h-[813px] bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.02)]"
       >
         {/* HEADER — spans the full modal width above both panes. Title is
             18px/500 Inter, the BODY face — measured on Buffer's composer
             (data-cs keeps the ladder off text-[18px]); beside it the existing
             tags control restyled as the Buffer chip. */}
-        <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] px-[24px] phone:px-[16px] phone:max-w-full phone:overflow-x-hidden">
+        <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] ps-[32px] pe-[24px] phone:ps-[16px] phone:pe-[16px] phone:max-w-full phone:overflow-x-hidden">
           <div
             data-cs
-            className="text-[18px] font-[500] text-newTextColor whitespace-nowrap"
+            className="text-[18px] font-[500] leading-[22.5px] text-newTextColor whitespace-nowrap"
           >
             {t('create_post_title', 'Create Post')}
           </div>
@@ -587,9 +606,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           )}
           <div className="flex-1" />
-          {/* Buffer header quiet control: 40px, 15/500, muted ink + hover
-              wash (borderless); active keeps the lime boxFocused pair.
-              data-cs pins h-[40px] past the ladder's 40->32 rule. */}
+          {/* Buffer header quiet control: 32px, 14/500, muted ink + hover
+              wash (borderless); active keeps the lime boxFocused pair
+              (Buffer uses light sage; buttons-only lime stays per kit). */}
           <button
             type="button"
             data-cs
@@ -603,7 +622,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               setShowPreview(!showPreview);
             }}
             className={clsx(
-              'h-[40px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[15px] font-[500] transition-colors shrink-0',
+              'h-[32px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors shrink-0',
               showPreview
                 ? 'bg-boxFocused text-textItemFocused'
                 : 'text-textItemBlur hover:bg-newTableHeader',
@@ -634,7 +653,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           <div
             data-cs
             onClick={askClose}
-            className="cursor-pointer flex items-center justify-center w-[40px] h-[40px] rounded-[8px] hover:bg-newTableHeader transition-colors shrink-0"
+            className="cursor-pointer flex items-center justify-center w-[32px] h-[32px] rounded-[8px] hover:bg-newTableHeader transition-colors shrink-0"
           >
             <CloseIcon className="text-textItemBlur" />
           </div>
@@ -745,14 +764,17 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               cascade, so it wins inside the media query. */}
           <div
             className={clsx(
-              'w-[420px] flex flex-col bg-newTableHeader border-s border-newTableBorder',
+              'w-[379px] flex flex-col bg-newTableHeader border-s border-newTableBorder',
               !showPreview && 'hidden',
               showPreviewPhone
                 ? 'phone:flex phone:w-full phone:border-s-0'
                 : 'phone:hidden'
             )}
           >
-            <div className="pt-[16px] px-[16px] flex items-center gap-[8px] text-[16px] font-[550] text-newTextColor">
+            {/* Preview header: 60px band, padding 16/32/12/32, H2 16px/20px
+                500. Buffer titles it "{channel} Preview"; ours is
+                multi-channel so the static title stays. */}
+            <div className="min-h-[60px] pt-[16px] pb-[12px] ps-[32px] pe-[32px] phone:ps-[16px] phone:pe-[16px] flex items-center gap-[8px] text-[16px] leading-[20px] font-[500] text-newTextColor">
               <div>{t('post_preview', 'Post Previews')}</div>
               <div
                 data-tooltip-id="tooltip"
@@ -789,13 +811,13 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           </div>
         </div>
-        {/* FOOTER — full width, hairline top, ~64px. Left keeps the repeat
-            control (and delete when editing); right = the existing date/time
-            selector reshaped as Buffer's SPLIT button (label segment +
-            attached chevron segment, both open the picker) + the lime
-            submit. Footer family: h-40, r12.
+        {/* FOOTER — full width, hairline top, 72px. Left keeps the repeat
+            control (and delete when editing); right = "Save Draft" ghost +
+            ONE attached split control (date label segment + chevron segment,
+            both open the picker + the lime submit), r12 on the outer corners
+            only. Footer family: h-40.
             Wraps on phone so nothing runs past the viewport. */}
-        <div className="select-none min-h-[64px] py-[12px] px-[24px] phone:px-[12px] border-t border-newTableBorder flex flex-wrap items-center gap-[8px]">
+        <div className="select-none min-h-[72px] py-[12px] px-[24px] phone:px-[12px] border-t border-newTableBorder flex flex-wrap items-center gap-[8px]">
           <div className="flex-1 flex flex-wrap items-center gap-[8px]">
             {/* quiet 40px skin for the repeat control (its class strings live
                 in launches/*, outside this rebuild's file list — see the
@@ -818,28 +840,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-end phone:justify-start gap-[8px]">
-            {/* Buffer split date button. Left segment = the existing
-                DatePicker trigger (scoped-CSS-reshaped above; opens the
-                picker). Right = the attached chevron segment: same action,
-                forwarded as a click on the trigger so the picker state,
-                popover and click-outside logic stay untouched. */}
-            <div id="cs-datetime" className="flex items-stretch">
-              <DatePicker onChange={setDate} date={date} />
-              <button
-                type="button"
-                data-cs
-                aria-label={t('pick_date_and_time', 'Pick date and time')}
-                onClick={(e) => {
-                  (
-                    e.currentTarget.parentElement
-                      ?.firstElementChild as HTMLElement | null
-                  )?.click();
-                }}
-                className="h-[40px] w-[32px] shrink-0 cursor-pointer flex items-center justify-center border border-s-0 border-newTableBorder rounded-e-[12px] text-newTextColor hover:bg-newTableHeader transition-colors"
-              >
-                <ChevronDownIcon className="text-newTextColor" />
-              </button>
-            </div>
+            {/* Save Draft ghost: 40px, r8, 14/500 (Buffer 101x40) */}
             {!addEditSets && (
               <button
                 data-cs
@@ -847,7 +848,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   selectedIntegrations.length === 0 || loading || locked
                 }
                 onClick={schedule('draft')}
-                className="relative cursor-pointer disabled:cursor-not-allowed px-[16px] h-[40px] bg-transparent border border-newTableBorder justify-center items-center flex rounded-[12px] text-[15px] font-[500] hover:bg-newTableHeader focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
+                className="relative cursor-pointer disabled:cursor-not-allowed px-[16px] h-[40px] bg-transparent border border-newTableBorder justify-center items-center flex rounded-[8px] text-[14px] font-[500] hover:bg-newTableHeader focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
               >
                 {loading && (
                   <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
@@ -855,36 +856,61 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   </div>
                 )}
                 <div className={clsx(loading && 'invisible')}>
-                  {t('save_as_draft', 'Save as Draft')}
+                  {t('save_draft', 'Save Draft')}
                 </div>
               </button>
             )}
-            {/* Primary submits: lime h-40 r12 (Buffer footer-family radius),
-                500 weight — data-cs opts them out of the global
-                h-[40px]->32 ladder. Ink comes from the global bg-btnPrimary
-                black-ink rule; text-black restates it. */}
-            {addEditSets && (
-              <button
-                data-cs
-                className="text-[14px] font-[500] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-[12px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
-                disabled={
-                  selectedIntegrations.length === 0 || loading || locked
-                }
-                onClick={schedule('draft')}
-              >
-                Save Set
-              </button>
-            )}
-            {!addEditSets && (
-              <div className="group cursor-pointer relative">
+            {/* Buffer ATTACHED split control (one control, r12 outer corners
+                only): date label segment = the existing DatePicker trigger
+                (scoped-CSS-reshaped above; opens the picker) + the chevron
+                segment (same action, forwarded as a click on the trigger so
+                the picker state, popover and click-outside logic stay
+                untouched) + the lime primary segment. */}
+            <div className="flex items-stretch">
+              <div id="cs-datetime" className="flex items-stretch">
+                <DatePicker onChange={setDate} date={date} />
+                <button
+                  type="button"
+                  data-cs
+                  aria-label={t('pick_date_and_time', 'Pick date and time')}
+                  onClick={(e) => {
+                    (
+                      e.currentTarget.parentElement
+                        ?.firstElementChild as HTMLElement | null
+                    )?.click();
+                  }}
+                  className="h-[40px] w-[32px] shrink-0 cursor-pointer flex items-center justify-center border border-s-0 border-newTableBorder rounded-none text-newTextColor hover:bg-newTableHeader transition-colors"
+                >
+                  <ChevronDownIcon className="text-newTextColor" />
+                </button>
+              </div>
+              {/* Primary submits: lime h-40, attached as the split's end
+                  segment (r12 end corners only), 500 weight — data-cs opts
+                  them out of the global h-[40px]->32 ladder. Ink comes from
+                  the global bg-btnPrimary black-ink rule; text-black
+                  restates it. */}
+              {addEditSets && (
                 <button
                   data-cs
+                  className="text-[14px] font-[500] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-s-none rounded-e-[12px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
                   disabled={
                     selectedIntegrations.length === 0 || loading || locked
                   }
-                  onClick={schedule('schedule')}
-                  className="relative btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-[12px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
+                  onClick={schedule('draft')}
                 >
+                  Save Set
+                </button>
+              )}
+              {!addEditSets && (
+                <div className="group cursor-pointer relative">
+                  <button
+                    data-cs
+                    disabled={
+                      selectedIntegrations.length === 0 || loading || locked
+                    }
+                    onClick={schedule('schedule')}
+                    className="relative btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[40px] rounded-s-none rounded-e-[12px] bg-btnPrimary text-black px-[16px] focus-visible:ring-2 focus-visible:ring-forth"
+                  >
                   {loading && (
                     <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
                       <div className="animate-spin h-[20px] w-[20px] border-4 border-black border-t-transparent rounded-full" />
@@ -947,6 +973,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>

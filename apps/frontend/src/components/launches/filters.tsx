@@ -1604,11 +1604,16 @@ export const Filters = () => {
                   )}
                 >
                   {option.label}
-                  {tabCounts?.[option.value] !== undefined && (
-                    <span className="rounded-full bg-newTextColor/10 px-[7px] h-[18px] flex items-center text-[12px] text-newTextColor" data-cs>
-                      {tabCounts[option.value]}
-                    </span>
-                  )}
+                  {/* Buffer: 'Queue N posts / Drafts N / Approvals / Sent N'
+                      — Queue reads count + word, Approvals carries no count */}
+                  {option.value !== 'approvals' &&
+                    tabCounts?.[option.value] !== undefined && (
+                      <span className="rounded-full bg-newTextColor/10 px-[7px] h-[18px] flex items-center text-[12px] text-newTextColor whitespace-nowrap" data-cs>
+                        {option.value === 'scheduled'
+                          ? `${tabCounts[option.value]} ${t('posts', 'posts')}`
+                          : tabCounts[option.value]}
+                      </span>
+                    )}
                   {calendar.listState === option.value && (
                     <div className="absolute -bottom-[1px] inset-x-0 h-[2px] bg-newTextColor" />
                   )}

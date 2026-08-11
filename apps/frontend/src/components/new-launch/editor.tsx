@@ -763,9 +763,11 @@ export const Editor: FC<{
                 editorRef?.current?.editor?.commands?.focus('end');
               }}
             />
-            {/* Buffer media affordance: dashed drop zone near the editor
-                bottom, wired to the existing dropzone/uppy upload logic
-                (click -> open() -> onDrop -> uppy). */}
+            {/* Buffer media affordance: a 120x120 r8 dashed square button
+                near the editor bottom (NOT a full-width banner on desktop;
+                phone keeps the full-width treatment), wired to the existing
+                dropzone/uppy upload logic (click -> open() -> onDrop ->
+                uppy). */}
             {mediaAvailable && (
               <div className="bg-newBgColorInner px-[12px] pb-[10px] cursor-default">
                 <input {...getInputProps()} />
@@ -781,7 +783,7 @@ export const Editor: FC<{
                     }
                     open();
                   }}
-                  className="h-[120px] rounded-[8px] border border-dashed border-newTableBorder flex flex-col items-center justify-center gap-[8px] cursor-pointer select-none hover:bg-newTableHeader/50 transition-colors"
+                  className="w-[120px] h-[120px] phone:w-full rounded-[8px] border border-dashed border-newTableBorder flex flex-col items-center justify-center gap-[8px] cursor-pointer select-none hover:bg-newTableHeader/50 transition-colors"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -801,13 +803,13 @@ export const Editor: FC<{
                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                     <circle cx="9" cy="9" r="2" />
                   </svg>
-                  {/* Links follow Buffer (green #2f7d44, 15/400, hover
-                      underline) — only buttons stay Cuesoft lime. */}
-                  <div className="text-[15px] text-newTextColor/60">
-                    {t('drag_and_drop_or', 'Drag & drop or')}{' '}
-                    <span className="text-[#2f7d44] font-[400] hover:underline">
-                      {t('select_a_file', 'select a file')}
-                    </span>
+                  {/* plain button label text (Buffer's square button copy),
+                      no link styling */}
+                  <div className="text-[12px] leading-[16px] font-[500] text-newTextColor/60 text-center px-[8px]">
+                    <div>
+                      {t('select_to_upload_files', 'Select to upload files')}
+                    </div>
+                    <div>{t('drag_and_drop', 'Drag & drop')}</div>
                   </div>
                 </div>
               </div>

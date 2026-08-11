@@ -826,9 +826,10 @@ export const ListView = () => {
   const { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease } = usePostActions();
   const displayTimezone = useDisplayTimezone();
 
-  // Buffer §Queue: a floating comment bubble outside each card opens the
-  // comments thread for the post's time slot (read/annotate only — the
-  // existing comments component owns its own data)
+  // Buffer §Queue: the Notes button on the time rail opens the comments
+  // thread for the post's time slot (read/annotate only — the existing
+  // comments component owns its own data). Buffer Notes geometry: a 446px
+  // full-height RIGHT sheet, not a centered modal.
   const openComments = useCallback(
     (post: any) => () => {
       modal.openModal({
@@ -836,8 +837,13 @@ export const ListView = () => {
         closeOnClickOutside: true,
         closeOnEscape: true,
         withCloseButton: false,
+        // fullScreen pins the shell to the viewport height (and drops the
+        // overlay's bottom pad), size sets the 446px rail width, and the
+        // shell classes square the corners and hug the end edge
+        fullScreen: true,
+        size: '446px',
         classNames: {
-          modal: 'w-[100%] max-w-[600px]',
+          modal: '!rounded-none !me-0 overflow-y-auto',
         },
         children: (
           <CommentComponent postId={post.id} date={dayjs.utc(post.publishDate)} />
@@ -972,7 +978,9 @@ export const ListView = () => {
                 className="flex items-start gap-[12px] phone:relative"
               >
                 {/* Buffer time rail OUTSIDE the card: time full-ink 14/500,
-                    pin + 'Custom' muted below */}
+                    pin + 'Custom' muted below, and the Notes button riding
+                    the same rail (Buffer time-row anatomy: time + 'Custom' +
+                    Notes, left of the card) */}
                 <div className="w-[100px] min-w-[100px] pt-[20px] flex flex-col gap-[2px] phone:w-[64px] phone:min-w-[64px]">
                   <div className="text-[14px] font-[500] text-newTextColor whitespace-nowrap text-start">
                     {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
@@ -993,6 +1001,31 @@ export const ListView = () => {
                     </svg>
                     {t('custom', 'Custom')}
                   </div>
+                  {/* Notes trigger on the rail (kit 32px controls are r8);
+                      phone overlays it INSIDE the card header, right of the
+                      channel name — 40x40 there (tap floor; the glyph stays
+                      16px), anchored by the row's phone:relative and cleared
+                      by the header's phone:pe-[56px] */}
+                  <button
+                    type="button"
+                    onClick={openComments(post)}
+                    aria-label={t('comments', 'Comments')}
+                    aria-haspopup="dialog"
+                    className="mt-[6px] w-[32px] h-[32px] min-w-[32px] phone:w-[40px] phone:h-[40px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover phone:absolute phone:top-[10px] phone:end-[10px] phone:z-[10] phone:mt-0"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                    </svg>
+                  </button>
                 </div>
                 <div className="flex-1 min-w-0 max-w-[700px]">
                   <CalendarItem
@@ -1012,30 +1045,6 @@ export const ListView = () => {
                     deletePost={deletePost(post)}
                   />
                 </div>
-                {/* floating comment bubble outside the card, top-right
-                    (desktop); phone overlays it INSIDE the card header, right
-                    of the channel name — 40x40 there (tap floor; the glyph
-                    stays 16px) and the card's header row clears it with
-                    phone:pe-[56px] */}
-                <button
-                  type="button"
-                  onClick={openComments(post)}
-                  aria-label={t('comments', 'Comments')}
-                  className="w-[32px] h-[32px] min-w-[32px] phone:w-[40px] phone:h-[40px] rounded-[10px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover phone:absolute phone:top-[10px] phone:end-[10px] phone:z-[10]"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-                  </svg>
-                </button>
               </div>
             ))}
           </div>
@@ -1775,8 +1784,9 @@ const CalendarItem: FC<{
   // Buffer parity: the card actions live in a labeled dropdown behind one
   // kebab, not a row of bare icons. Same handlers, new surface.
   const [menuOpen, setMenuOpen] = useState(false);
+  // kit menu rows: fixed 32px tall, 14px/500
   const menuItemCls =
-    'flex items-center gap-[10px] px-[10px] py-[7px] rounded-[6px] hover:bg-boxHover cursor-pointer text-[13px] whitespace-nowrap text-newTextColor';
+    'flex items-center gap-[10px] px-[10px] h-[32px] rounded-[6px] hover:bg-boxHover cursor-pointer text-[14px] font-[500] whitespace-nowrap text-newTextColor';
   // Buffer §Queue 'Publish Now': reuses the EXISTING reschedule endpoint —
   // PUT /posts/:id/date with action 'schedule' and date=now sets the post to
   // QUEUE and re-arms the publish workflow immediately (the same semantics
@@ -1845,7 +1855,19 @@ const CalendarItem: FC<{
     },
     [fetch, post.id, reloadCalendarView, t]
   );
+  // Buffer 'Move to Drafts': the status route already carries the reverse
+  // direction (draft -> schedule); this is the same route with
+  // status 'draft'. No new backend surface.
+  const moveToDrafts = useCallback(async () => {
+    await fetch(`/posts/${post.id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: 'draft' }),
+    });
+    reloadCalendarView();
+  }, [fetch, post.id, reloadCalendarView]);
   // Approvals v1: 'request changes' = leave feedback on the post's comments
+  // (Buffer Notes geometry: 446px full-height right sheet, not a centered
+  // modal)
   const itemModals = useModals();
   const openCommentsForPost = useCallback(
     (e: React.MouseEvent) => {
@@ -1855,8 +1877,13 @@ const CalendarItem: FC<{
         closeOnClickOutside: true,
         closeOnEscape: true,
         withCloseButton: false,
+        // fullScreen pins the shell to the viewport height (and drops the
+        // overlay's bottom pad), size sets the 446px rail width, and the
+        // shell classes square the corners and hug the end edge
+        fullScreen: true,
+        size: '446px',
         classNames: {
-          modal: 'w-[100%] max-w-[600px]',
+          modal: '!rounded-none !me-0 overflow-y-auto',
         },
         children: (
           <CommentComponent
@@ -1910,18 +1937,23 @@ const CalendarItem: FC<{
   );
   // One menu, two anchors: the hover pill on week/month chips and the footer
   // kebab on the list card render the same labeled items.
+  // Buffer order: Move to Drafts, Duplicate, Post Details, Delete — the fork
+  // extras (Statistics, Copy Debug JSON) ride between Post Details and the
+  // divider so Delete stays terminal.
   const actionMenuItems = (
     <>
-      <div
-        className={menuItemCls}
-        onClick={() => {
-          setMenuOpen(false);
-          preview();
-        }}
-      >
-        <Preview />
-        {t('post_details', 'Post Details')}
-      </div>
+      {(state === 'QUEUE' || state === 'ERROR') && (
+        <div
+          className={menuItemCls}
+          onClick={() => {
+            setMenuOpen(false);
+            moveToDrafts();
+          }}
+        >
+          <MoveToDrafts />
+          {t('move_to_drafts', 'Move to Drafts')}
+        </div>
+      )}
       <div
         className={menuItemCls}
         onClick={() => {
@@ -1931,6 +1963,16 @@ const CalendarItem: FC<{
       >
         <Duplicate />
         {t('duplicate', 'Duplicate')}
+      </div>
+      <div
+        className={menuItemCls}
+        onClick={() => {
+          setMenuOpen(false);
+          preview();
+        }}
+      >
+        <Preview />
+        {t('post_details', 'Post Details')}
       </div>
       {!(
         (post.integration.providerIdentifier === 'x' && disableXAnalytics) ||
@@ -1973,7 +2015,7 @@ const CalendarItem: FC<{
       )}
       <div className="h-[1px] bg-newTableBorder my-[4px]" />
       <div
-        className={clsx(menuItemCls, '!text-red-400')}
+        className={clsx(menuItemCls, '!text-[#FF3F3F]')}
         onClick={() => {
           setMenuOpen(false);
           deletePost();
@@ -2034,9 +2076,12 @@ const CalendarItem: FC<{
             >
               {post.tags.map((p) => p.tag.name).join(', ')}
             </div>
+            {/* fork affordance (Buffer chips carry no kebab): the 24px strip
+                caps the trigger, so the hit area is the spec floor — a 24x24
+                square, not the bare 16px glyph */}
             <div
               className={clsx(
-                'hidden group-hover:flex items-center cursor-pointer px-[4px]',
+                'hidden group-hover:flex items-center justify-center cursor-pointer w-[24px] h-[24px] min-w-[24px]',
                 post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
               )}
               onClick={(e) => {
@@ -2062,7 +2107,7 @@ const CalendarItem: FC<{
               />
               <div
                 onClick={(e) => e.stopPropagation()}
-                className="absolute top-[26px] end-0 z-[300] min-w-[180px] p-[6px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_2px_8px_rgba(43,32,17,0.14)] flex flex-col"
+                className="absolute top-[26px] end-0 z-[300] min-w-[195px] py-[12px] px-[8px] bg-newBgColorInner rounded-[12px] shadow-[0_0_0_1px_rgba(0,0,0,.08),0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] dark:border dark:border-tableBorder flex flex-col"
               >
                 {actionMenuItems}
               </div>
@@ -2145,6 +2190,34 @@ const CalendarItem: FC<{
                   {t('see_more', 'see more')}
                 </div>
               )}
+              {/* Buffer card anatomy: an 'Add tags' affordance in the body
+                  (below content) when the card carries no tags; a quiet ghost
+                  that opens the editor, where tags live */}
+              {post.tags.length === 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    editPost();
+                  }}
+                  className="self-start mt-[8px] -ms-[10px] h-[32px] px-[10px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor/60 hover:bg-boxHover hover:text-newTextColor transition-all duration-150"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+                    <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+                  </svg>
+                  {t('add_tags', 'Add tags')}
+                </button>
+              )}
             </div>
             {/* media slot — renders only once the backend ships the image
                 field on this payload (getFirstImageUrl); invisible until
@@ -2161,6 +2234,21 @@ const CalendarItem: FC<{
                 className="w-[180px] h-[180px] min-w-[180px] rounded-[8px] object-contain bg-newTableHeader border border-newTableBorder phone:w-[96px] phone:h-[96px] phone:min-w-[96px]"
               />
             )}
+          </div>
+          {/* Buffer card anatomy: a ghost 'View' button on the card surface
+              between the media block and the byline row (desktop) — the same
+              public preview the kebab's Post Details opens */}
+          <div className="px-[16px] pb-[12px] flex phone:hidden">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                preview();
+              }}
+              className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
+            >
+              {t('view', 'View')}
+            </button>
           </div>
           <div className="h-[1px] bg-newTableBorder" />
           <div className="flex items-center gap-[8px] px-[16px] py-[8px]">
@@ -2244,28 +2332,17 @@ const CalendarItem: FC<{
                 {t('publish_now', 'Publish Now')}
               </button>
             )}
+            {/* Buffer action row: Edit is a LABELED text button (14/500 in a
+                32px ghost control), not a bare pencil icon */}
             <button
               type="button"
-              aria-label={t('edit_post', 'Edit Post')}
               onClick={(e) => {
                 e.stopPropagation();
                 editPost();
               }}
-              className="w-[32px] h-[32px] min-w-[32px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover"
+              className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-                <path d="m15 5 4 4" />
-              </svg>
+              {t('edit', 'Edit')}
             </button>
             <div className="relative">
               <button
@@ -2303,7 +2380,7 @@ const CalendarItem: FC<{
                   />
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-[36px] end-0 z-[300] min-w-[180px] p-[6px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_2px_8px_rgba(43,32,17,0.14)] flex flex-col"
+                    className="absolute top-[36px] end-0 z-[300] min-w-[195px] py-[12px] px-[8px] bg-newBgColorInner rounded-[12px] shadow-[0_0_0_1px_rgba(0,0,0,.08),0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] dark:border dark:border-tableBorder flex flex-col"
                   >
                     {actionMenuItems}
                   </div>
@@ -2502,6 +2579,27 @@ const CopyDebug = () => {
     >
       <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
       <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  );
+};
+const MoveToDrafts = () => {
+  const t = useT();
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      data-tooltip-id="tooltip"
+      data-tooltip-content={t('move_to_drafts', 'Move to Drafts')}
+    >
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
     </svg>
   );
 };
