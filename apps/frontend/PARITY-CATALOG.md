@@ -24,6 +24,197 @@ changelog line). Statuses:
 **The loop ends when no `NEEDS-WORK` or `NEEDS-BUFFER-MEASUREMENT` rows remain.**
 
 **Changelog**
+- 2026-08-11 - Post Preview media frames flex to the media. The fixed-height
+  frames (instagram slider h-[585px], facebook/linkedin rows h-[280px],
+  facebook comment row h-[100px]) height-capped or dead-banded contained
+  media; they are now height-auto with a max-h cap (585px post media, 100px
+  comment thumbs) and the media itself carries the same max-h, so a portrait
+  1080x1350 renders fully with no crop. SliderComponent needed no change
+  (it renders only the active slide, so the frame sizes from it; arrows/dots
+  overlay the auto-height frame). Pinterest's borrowed 16:9 youtube frame is
+  now conditional: media flexes to its own aspect (max-h 585), the 16:9
+  placeholder only renders with no media. TikTok (9:16 phone screen) and
+  YouTube (16:9 player) keep their aspect frames but contain instead of
+  crop (isContain sweep finished: tiktok, youtube, pinterest, facebook
+  comment call sites; youtube image letterboxes on bg-black). VideoOrImage's
+  video element now honors isContain with object-contain, matching the img
+  path (video.or.image.tsx). tsc clean.
+- 2026-08-11 - Composer phone defect round (4 fixes). char-counter hover
+  panel: the chip lives inside the bottom bar, now a phone scroll container
+  (phone:overflow-x-auto), which clipped the absolute end-0 panel to a red
+  sliver at the bar edge; on phone the panel re-roots to the VIEWPORT like
+  the date-picker popover (phone:fixed + end-auto + start-50%/
+  -translate-x-50%, bottom-16, viewport max-w/max-h + own overflow-y),
+  desktop anchoring untouched (information.component.tsx). header tags
+  chip: with a tag selected the trigger (pill + chevron) widened the
+  header row past the phone viewport (the row's overflow guard was
+  deliberately removed to unclip the dropdown), shifting the whole modal;
+  #cs-tags-chip now carries phone:max-w-[170px] and the chip's interior
+  gained a min-w-0 chain so the truncate span ellipsizes instead - the
+  dropdown is absolute and stays unclipped (manage.modal.tsx,
+  tags.component.tsx). bottom-bar trailing gutter: at max scroll the
+  counter chip sat flush against the card edge, rounded border cut - the
+  bar's own px-[12px] end padding is dropped past overflowing content by
+  WebKit scroll containers, so the trailing 12px moved INTO the scrolled
+  content as phone:pe-[12px] on the last flex child (the counter block)
+  (media.component.tsx). tags popover row: label cap bumped 140px to
+  200px so typical names like needs-approval read fully on one line, the
+  min-w-0 chain still shrinks it in narrow rows (tags.component.tsx).
+  tsc clean.
+- 2026-08-11 - Pixel-verified defect round 2 (2 fixes). day view slot filter
+  (root-caused, reproduced headlessly): the day branch of CalendarColumn's
+  postList filter compared formatted wall-clock strings
+  (pList.format('YYYY-MM-DD HH:mm') === getDate.format(...)), but
+  set.timezone.tsx patches .local() ONLY on the object dayjs.utc() returns
+  (to .tz(localStorage 'timezone')) while getDate arrives through a derived
+  chain (startOf/add/.local()) that falls back to the machine-zone prototype
+  method - with a scheduling timezone set that differs from the machine zone
+  the two strings named the same instant on different wall clocks, never
+  matched, and the 9:20 AM caption-less story (and every other day-view
+  post) rendered NOTHING between its time labels; the filter now compares
+  instants (pList.isSame(getDate, 'minute')), which no display zone can
+  shift (calendar.tsx). Same round, caption-less card body: the thumbnail's
+  onError hid its wrapper via an imperative DOM style that latched across
+  re-renders and React never learned about, while the avatar+label fallback
+  row was gated on !mediaUrl - so a caption-less post whose image failed to
+  load kept an empty body forever; failure is now state (mediaFailed, reset
+  when mediaUrl changes) and both the media tile and the 24px
+  ChannelAvatar + muted type-label row key off showMedia, so the card
+  always renders a visible body: thumbnail if resolvable, else the named
+  row ('Instagram story' once the settings select is deployed, 'Instagram
+  post' degradation meanwhile) (calendar.tsx). composer Tags dropdown chip:
+  the popover row wrapped 'needs-approval' mid-word ('needs-approva' +
+  lone 'l') via its break-all inside the 195px iteration-3 popover, and
+  .text-shadow-tags (a 4-way 1px black text-shadow faking an outline for
+  white text on arbitrary tag colors) read as a strike-through on light
+  colors like #EDE9FE - both chips (trigger + popover row) now render the
+  label on one line, ellipsized past 140px (min-w-0/whitespace-nowrap/
+  truncate, no break-all), with the pill background on an outer element and
+  the ink as text-white mix-blend-difference on an inner one (the calendar
+  pills' treatment), text-shadow-tags dropped from both
+  (tags.component.tsx). tsc clean.
+- 2026-08-11 - User-reported defect round (5 fixes). phone 3 Days empty
+  week (root-caused): setFiltersWrapper wiped internalData on EVERY call,
+  but the SWR fetch key (params: display/dates/customer/integration - the
+  anchor and the phone-week-span cookie never feed it) is unchanged when
+  the sheet re-submits the already-visible week ('3 Days' after 'Week', or
+  after a pickDay in the current range), so calendarData kept its
+  reference, the [posts] mirror effect never re-fired, and the week
+  rendered the "Nothing scheduled" overlay over zero chips until the key
+  moved (e.g. Month). The wipe is now conditional on the fetch key
+  actually changing, compared through a filtersRef mirror
+  (calendar.context.tsx). composer tags dropdown: the header row's own
+  phone:overflow-x-hidden (iteration-2 viewport guard) clipped the panel
+  the iteration-3 scoped CSS drops BELOW the header - overflow-x:hidden
+  computes overflow-y:auto, so the out-of-box panel read as buried under
+  the content; the guard came off the header row (the #cs-composer-shell
+  guard stays, min-w-0 keeps the chip shrinkable) and a popover z review
+  (tags/date/repeat/post-now z-300, emoji z-500, customer z-500) found no
+  other buried surface (manage.modal.tsx). composer date picker: the
+  footer popover centered on its trigger (start-50%/-translate-x-50%);
+  at 390 the wrapped split control sits at the start edge and half the
+  ~326px panel ran past the left viewport edge - on phone it re-roots to
+  the viewport (phone:fixed, no ancestor transform, verified) so the same
+  centering pair now clamps it to the screen, floating above the footer
+  with max-w/max-h guards (date.picker.tsx). composer char count: the
+  information block's min-w-0 let it shrink under its content inside the
+  phone:overflow-x-auto bottom bar and the counter painted over the
+  toolbar buttons - phone:min-w-fit + phone:shrink-0 restore natural
+  width there; desktop keeps flex-1/min-w-0 right-alignment
+  (media.component.tsx). phone list toolbar: the hairline sat flush under
+  the Queue dropdown / funnel / segmented (the desktop 45px tabs that own
+  the 12px air are phone-hidden) - the list toolbar row now carries
+  phone:pb-[12px], desktop pb-0 untouched so the active-tab underline
+  still touches the rule (filters.tsx). tsc clean.
+- 2026-08-11 - Screenshot-verified nits round (3 fixes). phone calendar
+  sheet: applyView in PhoneCalendarSheet now dismisses the sheet (the same
+  onClose the backdrop tap uses, including when the tapped view is already
+  active) - picking 3 Days/Week/Month previously left the sheet covering the
+  view it just applied; pickDay conversely STOPS closing (users pick a day
+  then a view; only the view buttons and Today dismiss), the picked-day
+  anchor still persists (filters.tsx). day card, caption-less posts: the
+  body strips content once (contentText/hasContent) and when a post has no
+  copy renders the media thumbnail if present, otherwise a named row - 24px
+  ChannelAvatar with platform badge + a muted type label built from
+  providerIdentifier + settings.post_type ('Instagram story', generic
+  'post' fallback) - so a caption-less story never renders an empty band
+  under its time label (calendar.tsx); the calendar payload now also
+  selects `settings` (posts.repository.ts getPosts, same precedent as
+  `image`) so the story/post distinction reaches the card. day card
+  fixed-basis: the media column dropped its fixed h-[180px]
+  (phone h-[96px]) - width stays the fixed axis (w/min-w-[180px]), the img
+  is h-auto capped at max-h-[180px]/phone:max-h-[96px] object-contain, so
+  the wrapper hugs the image's aspect and short-copy cards no longer
+  reserve a thumbnail-tall blank region between 'Add tags' and 'View'
+  (calendar.tsx). tsc clean.
+- 2026-08-11 - Phone calendar picked-date handoff + empty hour-grid state
+  (2 fixes, user-reported live). anchor: view switches now re-derive their
+  range from a persisted picked-day ANCHOR instead of today / the month's
+  first week - the PhoneCalendarSheet mini-picker pick is stored as
+  filters.anchor and mirrored to ?anchor=YYYY-MM-DD (calendar.context.tsx;
+  strictly validated since it is user-editable and re-serialized; omitted =
+  keep, null = clear), and every display switch (sheet 3 Days/Week/Month,
+  desktop Week|Month dropdown, both List|Calendar segmenteds) resolves its
+  reference date through the shared resolveAnchorDate in filters.tsx (picked
+  day while in range, else today when in range, else the range's owning day)
+  so picking Sep 15 from August then tapping Week lands on Sep 13-19, never
+  Aug 30-Sep 5; Today clears the anchor; next/prev keep it (it re-applies
+  only while in range); the phone title chip and mini-picker ring now track
+  the picked day. empty range: a week/3-day or day view whose fetched range
+  holds ZERO posts floats a centered muted 14px notice ("Nothing scheduled
+  this week" / "this day") over the hour grid (calendar.tsx;
+  pointer-events-none so add-post slots stay clickable, loading-guarded, no
+  button) so a legitimately empty week reads as empty, not broken; month
+  view unchanged. tsc clean.
+- 2026-08-11 - Screenshot-critic round (5 fixes). week/phone: removed the
+  legacy phone today-column gray wash (header + hour cells in WeekView, and
+  the week branch in CalendarColumn) - it collided with the new past-day
+  wash so the whole 3-day window read beige; today is now white on every
+  breakpoint, past columns keep the wash, the green header underline marks
+  today (calendar.tsx). notifications: ShowNotification rows get shrink-0 -
+  their explicit min-h-[32px] replaced the flex min-height:auto floor, so
+  the constrained list column (esp. the phone sheet) compressed ~10 rows
+  toward 32px and their two text lines painted over the next row; the list
+  also drops the 400px desktop cap on phone (phone:max-h-none) so it fills
+  and scrolls within the sheet's max-h-[70dvh]
+  (notification.component.tsx). day view: the time-label and slot rows get
+  shrink-0 - the day column is a definite-height (h-full) overflow-auto
+  flex column, so its rows shrank to their min-h floors (21px/60px) before
+  scrolling and card/avatar content painted over the rows below; rows now
+  keep natural height and the column scrolls, which also keeps the wrapped
+  empty-slot avatar cluster inside its bordered slot row (the row grows)
+  instead of colliding with the next time label. day card media: the 180px
+  thumbnail moved into a sized rounded-[8px] overflow-hidden wrapper
+  (shrink-0; onError hides the wrapper) so the raster is clipped to the
+  thumbnail silhouette and can never overhang the card's rounded corner;
+  the card itself cannot take overflow-hidden (the footer kebab menu pops
+  out below it). tsc clean.
+- 2026-08-11 - Buffer live-measure round (3 fixes). notifications: the bell
+  panel becomes a phone bottom sheet (notification.component.tsx) - the bell
+  now lives at the BOTTOM of the sidebar/drawer, so the anchored
+  DropdownPanel opened off-canvas (measured L:-212 B:1303 at 402x874); the
+  sheet reuses the filters.tsx phone-sheet shell (fixed scrim z-650, white
+  rounded-t-[16px] card, max-h-[70dvh], drag handle, backdrop tap closes,
+  no cs:surface-open announcement or the drawer would yield and unmount it)
+  with the exact same header + list rows; desktop keeps the anchored panel
+  behavior unchanged (phone:hidden only; the footer UTIL_FLIP flip-above-
+  bell intact) and both sidebar bell mounts (collapsed rail + expanded/
+  drawer, sidebar.tsx) render the one component. calendar: the past-date
+  wash now covers week AND day views (calendar.tsx) - Buffer re-verified
+  live: fully past DAYS carry the wash (repeated-strip + bg-newTableHeader,
+  the same month tokens) at date granularity only; week past day columns
+  wash header + hour cells via todayKey lexicographic compare, the day view
+  washes its slot cards when the VIEWED day (startDate) is past, today's
+  elapsed hours/slots and future days never wash, today circle/underline
+  logic untouched (new isPastDay in CalendarColumn; hour-level isBeforeNow
+  keeps the drag/'+' guards only). segmented: Buffer-measured geometry
+  (container 32px r8, 4px inset, white bg, hairline border; options 24px r6
+  at 14/500, active filled / inactive transparent) applied to the
+  List|Calendar toggle (PageHeader + phone toolbar icon variant,
+  filters.tsx) and the Assistant|Content control (agent.tsx, phone:h-[44px]
+  dropped); each control keeps its own active-fill token (lime mix /
+  boxFocused) and the 44px PhoneCalendarSheet segmented is untouched (phone
+  tap-target rule wins there). tsc clean.
 - 2026-08-11 - iPhone 16 Pro visual-defect round 2 (9 fixes). composer:
   the floating support launcher can never cover the footer CTA - ManageModal
   emits supportEmitter change=false on mount / true on unmount, the Chatbase

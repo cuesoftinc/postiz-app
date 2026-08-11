@@ -280,19 +280,21 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
           actions={
             <>
               {/* [Assistant | Content] segmented — launches List|Calendar
-                  anatomy (32px band, 4px inset, hairline r8; active =
-                  boxFocused/textItemFocused). Admin-only: without the
-                  Content segment there is nothing to switch. */}
+                  anatomy, Buffer geometry measured live 2026-08-10:
+                  container 32px r8, 4px inset, white, hairline; options
+                  24px r6 at 14/500 (active = boxFocused/textItemFocused
+                  fill, ours; inactive transparent). Admin-only: without
+                  the Content segment there is nothing to switch. */}
               {isAdmin && (
                 <div
                   data-cs
-                  className="flex h-[32px] phone:h-[44px] p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] shrink-0"
+                  className="flex items-center h-[32px] p-[4px] bg-newBgColorInner border border-newTableBorder rounded-[8px] text-[14px] font-[500] shrink-0"
                 >
                   <button
                     type="button"
                     onClick={() => switchMode('assistant')}
                     className={clsx(
-                      'flex items-center px-[8px] rounded-[6px] transition-colors duration-150',
+                      'flex items-center h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
                       !contentMode
                         ? 'bg-boxFocused text-textItemFocused'
                         : 'text-newTextColor/60 hover:text-newTextColor'
@@ -304,7 +306,7 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
                     type="button"
                     onClick={() => switchMode('content')}
                     className={clsx(
-                      'flex items-center px-[8px] rounded-[6px] transition-colors duration-150',
+                      'flex items-center h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
                       contentMode
                         ? 'bg-boxFocused text-textItemFocused'
                         : 'text-newTextColor/60 hover:text-newTextColor'

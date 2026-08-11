@@ -38,7 +38,7 @@ const relTime = (ts: number) => {
   return `${Math.floor(d / 7)}w`;
 };
 
-/** The bridge sessions rail (admin-only, shared by both segmented tabs):
+/** The bridge sessions rail (every org user, shared by both segmented tabs):
  *  the same visual shell as the copilot Chats rail in agent.tsx — 224px
  *  Buffer-calibrated side panel, SidePanelHeader + collapse cookie, 32px r8
  *  rows — listing the bridge's per-profile session index via the

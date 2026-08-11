@@ -22,12 +22,20 @@ import { capitalize } from 'lodash';
 import { ModalCloseButton } from '@gitroom/frontend/components/cuesoft/modal/modal-close-button';
 const resolver = classValidatorResolver(ApiKeyDto);
 
-export const useAddProvider = (update?: () => void, invite?: boolean) => {
+export const useAddProvider = (
+  update?: () => void,
+  invite?: boolean,
+  onOpen?: () => void
+) => {
   const modal = useModals();
   const fetch = useFetch();
   const t = useT();
   return useCallback(async () => {
     const data = await (await fetch('/integrations')).json();
+    // the Channels manage overlay (launches.component, z-500) sits ABOVE the
+    // modal-store layer this catalog opens in; the opener must dismiss it
+    // first or the catalog renders buried underneath (user report)
+    onOpen?.();
     modal.openModal({
       title: t('add_channel', 'Connect Channel'),
       withCloseButton: true,
@@ -35,14 +43,17 @@ export const useAddProvider = (update?: () => void, invite?: boolean) => {
         <AddProviderComponent invite={!!invite} update={update} {...data} />
       ),
     });
-  }, []);
+  }, [onOpen]);
 };
 export const AddProviderButton: FC<{
   update?: () => void;
+  /** fired right before the catalog modal opens, so a containing overlay
+      (the Channels manage dialog) can dismiss itself */
+  onOpen?: () => void;
 }> = (props) => {
-  const { update } = props;
-  const add = useAddProvider(update);
-  const invite = useAddProvider(update, true);
+  const { update, onOpen } = props;
+  const add = useAddProvider(update, false, onOpen);
+  const invite = useAddProvider(update, true, onOpen);
   const t = useT();
 
   return (

@@ -550,7 +550,10 @@ export const LaunchesComponent = () => {
   const channelManagement = (
     <>
             <div className="flex flex-col gap-[8px]">
-              <AddProviderButton update={() => update(true)} />
+              <AddProviderButton
+                update={() => update(true)}
+                onOpen={closeManage}
+              />
               {sortedIntegrations?.length > 0 &&
                 user?.tier?.ai &&
                 billingEnabled && <GeneratorComponent />}

@@ -90,9 +90,12 @@ const PostStats: FC<{ post: RecentPost; date: number }> = ({ post, date }) => {
 
   return (
     <div className="flex flex-wrap gap-x-[14px] gap-y-[4px]">
-      {items.map((item) => (
+      {items.map((item, index) => (
+        // index in the key: the analytics feed can hand two entries with the
+        // same label for one post (e.g. Impressions from two sources), which
+        // duplicated keys and threw the React warning (user report)
         <span
-          key={`${post.id}-${item.label}`}
+          key={`${post.id}-${item.label}-${index}`}
           className="text-[12px] text-newTextColor/60 whitespace-nowrap"
         >
           <span className="text-[13px] font-[550] text-newTextColor">

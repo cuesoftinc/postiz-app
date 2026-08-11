@@ -324,7 +324,7 @@ export const LinkedinPreview: FC<{
         }}
       />
       {!!renderContent?.[0]?.images?.length && (
-        <div className="h-[280px] -mx-[15px] overflow-hidden flex">
+        <div className="max-h-[585px] -mx-[15px] overflow-hidden flex">
           {renderContent?.[0]?.images.map((image, index) => (
             <a
               key={`image_${index}`}
@@ -332,7 +332,13 @@ export const LinkedinPreview: FC<{
               href={mediaDir.set(image.path)}
               target="_blank"
             >
-              <VideoOrImage autoplay={true} src={mediaDir.set(image.path)} />
+              <VideoOrImage
+                autoplay={true}
+                isContain={true}
+                imageClassName="max-h-[585px]"
+                videoClassName="max-h-[585px]"
+                src={mediaDir.set(image.path)}
+              />
             </a>
           ))}
         </div>

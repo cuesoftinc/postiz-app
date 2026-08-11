@@ -54,7 +54,8 @@ export const YoutubePreview: FC<{
       >
         {!!renderContent?.[0]?.images?.[0]?.path && (
           <VideoOrImage
-            imageClassName="w-full aspect-[calc(16/9)]"
+            isContain={true}
+            imageClassName="w-full aspect-[calc(16/9)] bg-black"
             videoClassName="w-full aspect-[calc(16/9)] bg-black"
             autoplay={true}
             src={mediaDir.set(renderContent?.[0]?.images?.[0]?.path || '')}

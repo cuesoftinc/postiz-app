@@ -9,6 +9,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import dayjs from 'dayjs';
@@ -57,6 +58,12 @@ function readStateParam(value: string | null): ListStateFilter {
     : 'all';
 }
 
+/** ?anchor= is user-editable AND re-serialized into the rewritten URL, so
+ *  anything that is not a plain YYYY-MM-DD collapses to null (absent). */
+function readAnchorParam(value: string | null): string | null {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
 /** Buffer's list-tab URLs: /schedule/list?tab=<queue|drafts|approvals|sent>.
  *  Mapped onto our list states; 'all' (the transient pre-coercion default)
  *  carries no ?tab. Unknown values fall back to the existing default. */
@@ -77,6 +84,12 @@ export const CalendarContext = createContext({
   // Buffer is Sunday-first — locale 'week', not 'isoWeek'
   startDate: newDayjs().startOf('week').format('YYYY-MM-DD'),
   endDate: newDayjs().endOf('week').format('YYYY-MM-DD'),
+  /** The explicitly picked day (phone sheet mini picker) the range is
+   *  anchored on, YYYY-MM-DD. null = nothing picked; anchor resolution
+   *  falls back to today-in-range / the range's owning day (filters.tsx).
+   *  Display switches re-derive their range from this date so month-to-week
+   *  never snaps back to the month's first week. */
+  anchor: null as string | null,
   customer: null as string | null,
   loading: true,
   sets: [] as { name: string; id: string; content: string[] }[],
@@ -107,6 +120,8 @@ export const CalendarContext = createContext({
     endDate: string;
     display: 'week' | 'month' | 'day' | 'list';
     customer: string | null;
+    /** omitted = keep the current anchor; null = clear it (re-anchor today) */
+    anchor?: string | null;
   }) => {
     /** empty **/
   },
@@ -272,6 +287,9 @@ export const CalendarWeekProvider: FC<{
   const initIntegration = searchParams.get('integration');
   const initState = readStateParam(searchParams.get('state'));
   const initTags = searchParams.get('tags');
+  // The picked-day anchor survives the force-dynamic remounts the same way
+  // the range does: through the URL (?anchor=YYYY-MM-DD).
+  const initAnchor = readAnchorParam(searchParams.get('anchor'));
 
   const initialRange =
     initStartDate && initEndDate
@@ -281,12 +299,18 @@ export const CalendarWeekProvider: FC<{
   const [filters, setFilters] = useState({
     startDate: initialRange.startDate,
     endDate: initialRange.endDate,
+    anchor: initAnchor,
     customer: initCustomer || null,
     integration: initIntegration || null,
     state: initState,
     tags: initTags || null,
     display,
   });
+  // Mirror of the live filters for the stable ([]-dep) setFiltersWrapper:
+  // it must know whether an incoming update actually moves the fetch key
+  // before it decides to wipe internalData (see below).
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
 
   // The sidebar's channel rows navigate to /schedule?integration=<id>, and the
   // toolbar dropdowns (state/tags) write their params with history.replaceState.
@@ -453,6 +477,8 @@ export const CalendarWeekProvider: FC<{
       customer: string | null;
       /** omitted = keep the current channel filter */
       integration?: string | null;
+      /** omitted = keep the current picked-day anchor; null = clear it */
+      anchor?: string | null;
     }) => {
       setDisplaySaved(newFilters.display);
       if (newFilters.display !== 'list') {
@@ -464,12 +490,36 @@ export const CalendarWeekProvider: FC<{
           newFilters.integration !== undefined
             ? newFilters.integration
             : prev.integration,
+        anchor:
+          newFilters.anchor !== undefined ? newFilters.anchor : prev.anchor,
         // The toolbar dropdowns own these (URL-driven) — never clobbered by
         // date/view navigation.
         state: prev.state,
         tags: prev.tags,
       }));
-      setInternalData([]);
+      // Drop the mirrored posts ONLY when the update actually moves the
+      // fetch key (params: display/dates/customer/integration; anchor and
+      // the phone 3-vs-7 span are presentation-only and never feed it).
+      // A key-identical update (the phone sheet's 3-Days tap re-submitting
+      // the already-visible week, or pickDay inside the current range) gives
+      // SWR nothing to do: calendarData keeps its reference, the mirror
+      // effect ([posts]) never re-fires, and an unconditional wipe here
+      // would leave internalData empty forever, rendering the "Nothing
+      // scheduled" overlay over zero chips until the key changes.
+      const current = filtersRef.current;
+      const nextIntegration =
+        newFilters.integration !== undefined
+          ? newFilters.integration
+          : current.integration;
+      const fetchKeyChanged =
+        current.display !== newFilters.display ||
+        current.startDate !== newFilters.startDate ||
+        current.endDate !== newFilters.endDate ||
+        (current.customer || null) !== (newFilters.customer || null) ||
+        (current.integration || null) !== (nextIntegration || null);
+      if (fetchKeyChanged) {
+        setInternalData([]);
+      }
 
       // Reset page when switching to list view
       if (newFilters.display === 'list') {
@@ -481,6 +531,12 @@ export const CalendarWeekProvider: FC<{
       const carried = new URLSearchParams(window.location.search);
       const carriedState = readStateParam(carried.get('state'));
       const carriedTags = carried.get('tags');
+      // ?anchor= mirrors the picked-day anchor (omitted = keep current)
+      const carriedAnchor = readAnchorParam(
+        newFilters.anchor !== undefined
+          ? newFilters.anchor
+          : carried.get('anchor')
+      );
       // ?tab= is list-view-only (Buffer: /schedule/list?tab=sent) — carried
       // while the target view is the list, dropped on the calendar paths.
       const carriedTab = carried.get('tab');
@@ -498,6 +554,7 @@ export const CalendarWeekProvider: FC<{
       const query = [
         `startDate=${newFilters.startDate}`,
         `endDate=${newFilters.endDate}`,
+        carriedAnchor ? `anchor=${carriedAnchor}` : ``,
         newFilters.customer ? `customer=${newFilters.customer}` : ``,
         newFilters.integration ? `integration=${newFilters.integration}` : ``,
         carriedState !== 'all' ? `state=${carriedState}` : ``,

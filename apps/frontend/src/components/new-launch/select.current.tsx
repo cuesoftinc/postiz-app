@@ -111,9 +111,12 @@ export const SelectCurrent: FC = () => {
             }}
             className={clsx(
               'cursor-pointer flex gap-[8px] rounded-[8px] w-[40px] h-[40px] justify-center items-center bg-newBgLineColor',
+              // selected = lime ring + INK glyph (kit rule: lime surfaces
+              // carry black ink; a lime glyph on the tinted chip was
+              // unreadable in light mode, user report)
               current !== 'global'
                 ? 'text-newTextColor/60'
-                : 'border border-btnPrimary text-btnPrimary'
+                : 'border border-btnPrimary text-newTextColor'
             )}
           >
             <div>
@@ -130,7 +133,7 @@ export const SelectCurrent: FC = () => {
               className={clsx(
                 'border cursor-pointer relative flex gap-[8px] w-[40px] h-[40px] rounded-[8px] items-center bg-newBgLineColor justify-center',
                 current === integration.id
-                  ? 'border-btnPrimary text-btnPrimary'
+                  ? 'border-btnPrimary text-newTextColor'
                   : 'border-transparent'
               )}
             >

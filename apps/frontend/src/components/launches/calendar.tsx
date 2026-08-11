@@ -356,7 +356,8 @@ const usePostActions = (onMutate?: () => void) => {
 
 export const DayView = () => {
   const calendar = useCalendar();
-  const { integrations, posts, startDate } = calendar;
+  const { integrations, posts, startDate, loading } = calendar;
+  const t = useT();
   const displayTimezone = useDisplayTimezone();
 
   // Set dayjs locale based on current language
@@ -402,9 +403,33 @@ export const DayView = () => {
   return (
     <div className="flex flex-col gap-[10px] flex-1 relative">
       <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
-        {options.map((option) => (
+        {options.map((option) => {
+          // options mixes real posts' times with every channel's PREFERRED
+          // posting slots. Future empty slots invite scheduling (grayed
+          // avatar cluster); a PAST empty slot has nothing to say and used
+          // to render a bare band under its time label (looked like a
+          // dropped card, user report + pixel critic x3). Skip it.
+          const hasPost = posts.some(
+            (p) =>
+              dayjs
+                .utc(p.publishDate)
+                .diff(dayjs.utc(p.publishDate).startOf('day'), 'minute') ===
+              option[0].time
+          );
+          const slotPast = currentDay
+            .startOf('day')
+            .add(option[0].time, 'minute')
+            .isBefore(newDayjs().utc());
+          if (!hasPost && slotPast) return null;
+          return (
+          // shrink-0 on BOTH row kinds: this column is a definite-height
+          // (h-full) flex column with overflow-auto, so its items compress
+          // before it scrolls; the explicit min-h floors below (21px/60px)
+          // override min-height:auto and let every slot squeeze to the
+          // floor, painting card/avatar content over the rows that follow.
+          // shrink-0 keeps each row at natural height and the column scrolls.
           <Fragment key={option[0].time}>
-            <div className="text-center text-[14px] min-h-[21px]">
+            <div className="shrink-0 text-center text-[14px] min-h-[21px]">
               {/* display-only: the queue gutter label; the slot's drop-target
                   date below keeps the exact legacy chain */}
               {(displayTimezone
@@ -422,7 +447,7 @@ export const DayView = () => {
             </div>
             <div
               key={option[0].time}
-              className="min-h-[60px] rounded-[10px] flex justify-center items-center gap-[10px] mb-[20px]"
+              className="shrink-0 min-h-[60px] rounded-[10px] flex justify-center items-center gap-[10px] mb-[20px]"
             >
               <CalendarContext.Provider
                 value={{
@@ -439,13 +464,25 @@ export const DayView = () => {
               </CalendarContext.Provider>
             </div>
           </Fragment>
-        ))}
+          );
+        })}
       </div>
+      {/* Same guarantee as the week grid: a day with ZERO posts shows a
+          lightweight centered notice instead of reading as broken. The queue
+          slots underneath stay clickable (pointer-events-none). */}
+      {!loading && posts.length === 0 && (
+        <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
+          <div className="text-[14px] text-newTextColor/60">
+            {t('nothing_scheduled_day', 'Nothing scheduled this day')}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 export const WeekView = () => {
-  const { startDate, endDate } = useCalendar();
+  const { startDate, endDate, posts, loading } = useCalendar();
+  const t = useT();
   const isPhone = useIsPhone();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -594,16 +631,24 @@ export const WeekView = () => {
           )}
           {visibleDays.map((day) => {
             const isToday = day.date.format('YYYY-MM-DD') === todayKey;
+            // Buffer (re-verified live): fully past DAY columns carry the
+            // warm wash (header and cells) while today and future columns
+            // stay white on EVERY breakpoint. Date granularity only:
+            // today's elapsed hours never wash. The old phone today-column
+            // gray is gone: it collided with the past wash (the whole 3-day
+            // window read beige); the green underline marks today alone.
+            const isPast = day.date.format('YYYY-MM-DD') < todayKey;
             return (
               <div
                 key={day.date.format('YYYY-MM-DD')}
                 className={clsx(
-                  'text-center bg-newBgColorInner flex justify-center items-center gap-[8px] h-[36px] sticky top-0 z-[20] text-[14px] border-b border-newGridLine',
+                  'text-center flex justify-center items-center gap-[8px] h-[36px] sticky top-0 z-[20] text-[14px] border-b border-newGridLine',
+                  isPast
+                    ? 'repeated-strip bg-newTableHeader'
+                    : 'bg-newBgColorInner',
                   isToday
                     ? 'font-[500] text-newTableTextFocused border-b-[2px] border-newTableTextFocused'
-                    : 'text-newTextColor',
-                  // Buffer phone washes the whole today column gray
-                  isToday && 'phone:bg-newTableHeader'
+                    : 'text-newTextColor'
                 )}
               >
                 <span>{day.date.format(isPhone ? 'ddd' : 'dddd')}</span>
@@ -642,10 +687,12 @@ export const WeekView = () => {
                 <div
                   key={`${day.date.format('YYYY-MM-DD')}-${hour}`}
                   className={clsx(
-                    'relative bg-newBgColorInner flex flex-col',
-                    // Buffer phone washes the whole today column gray
-                    day.date.format('YYYY-MM-DD') === todayKey &&
-                      'phone:bg-newTableHeader'
+                    'relative flex flex-col',
+                    // Buffer (re-verified live): past DAY columns wash at
+                    // date level, matching the CalendarColumn inside
+                    day.date.format('YYYY-MM-DD') < todayKey
+                      ? 'repeated-strip bg-newTableHeader'
+                      : 'bg-newBgColorInner'
                   )}
                 >
                   {!isPhone && indexDay === 0 && hour % 2 === 0 && (
@@ -662,6 +709,19 @@ export const WeekView = () => {
             </Fragment>
           ))}
         </div>
+        {/* A legitimately empty week/3-day range must never read as a
+            rendering failure: when the fetched range holds ZERO posts (and
+            the fetch is done), a lightweight centered notice floats over the
+            hour grid. pointer-events-none keeps the hour cells' add-post
+            targets clickable; z-[10] keeps it under the sticky day headers
+            (z-20) but over the cell layer. */}
+        {!loading && posts.length === 0 && (
+          <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
+            <div className="text-[14px] text-newTextColor/60">
+              {t('nothing_scheduled_week', 'Nothing scheduled this week')}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1141,6 +1201,7 @@ export const CalendarColumn: FC<{
     sets,
     signature,
     loading,
+    startDate,
   } = useCalendar();
   const modal = useModals();
   const fetch = useFetch();
@@ -1152,8 +1213,18 @@ export const CalendarColumn: FC<{
       const pList = dayjs.utc(post.publishDate).local();
       const check =
         display === 'day'
-          ? pList.format('YYYY-MM-DD HH:mm') ===
-            getDate.format('YYYY-MM-DD HH:mm')
+          ? // instant compare at minute granularity, NOT formatted-string
+            // equality. set.timezone.tsx patches `.local()` on the object
+            // dayjs.utc() returns to `.tz(localStorage 'timezone')`, while
+            // getDate arrives through a DERIVED chain
+            // (utc(startDate).startOf('day').add(min).local()) whose
+            // `.local()` is the machine-zone prototype method. With a
+            // scheduling timezone set that differs from the machine zone the
+            // two strings named the same instant on different wall clocks,
+            // never matched, and every day-view slot rendered empty between
+            // its time labels. isSame('minute') compares timestamps, which
+            // no display zone can shift.
+            pList.isSame(getDate, 'minute')
           : display === 'week'
           ? pList.isSameOrAfter(getDate.startOf('hour')) &&
             pList.isBefore(getDate.endOf('hour'))
@@ -1367,6 +1438,16 @@ export const CalendarColumn: FC<{
   // with the column the 3-day slice anchored
   const isToday =
     getDate.format('YYYY-MM-DD') === newDayjs().format('YYYY-MM-DD');
+  // Buffer past wash (re-verified live): FULLY past days only, at date
+  // granularity; today (even its elapsed hours/slots) and future days stay
+  // white, so this is never the hour-level isBeforeNow. Lexicographic
+  // compare on the same formatted keys the week slice/underline use. The
+  // day view keys on the VIEWED day (startDate) because its per-slot
+  // getDate goes through .local() and can cross midnight at the day edges.
+  const isPastDay =
+    (display === 'day'
+      ? newDayjs(startDate).format('YYYY-MM-DD')
+      : getDate.format('YYYY-MM-DD')) < newDayjs().format('YYYY-MM-DD');
   const isOtherMonth = !!monthLabel && monthLabel !== 'current-month';
   return (
     <div
@@ -1385,17 +1466,20 @@ export const CalendarColumn: FC<{
           : display === 'week'
           ? 'grow min-h-[105px] phone:min-h-[79px]'
           : 'min-h-full',
-        display === 'month' && isBeforeNow && 'repeated-strip',
+        isPastDay && 'repeated-strip',
         loading && 'animate-pulse',
-        // Buffer tint model (user-verified): the past wash is MONTH-only —
-        // week hour cells stay white even in the past, and future weekends /
-        // other-month days are flat white too
+        // Buffer tint model (re-verified live 2026-08-10): fully past DAYS
+        // carry the warm wash in ALL views (month cells, week day columns
+        // AND the day view) while today and future days stay flat white
+        // (future weekends / other-month days included)
         display !== 'day' &&
-          (display === 'month' && isBeforeNow
-            ? 'bg-newTableHeader'
-            : 'bg-newBgColorInner'),
-        // Buffer phone washes the whole today column gray in the hour grid
-        display === 'week' && isToday && 'phone:bg-newTableHeader',
+          (isPastDay ? 'bg-newTableHeader' : 'bg-newBgColorInner'),
+        // (no phone today-column wash here: it collided with the past-day
+        // wash and painted the whole 3-day window beige; today stays white
+        // like desktop, the green header underline marks it)
+        // day view past treatment: same wash tokens; rounded like the live
+        // slot cards so the tint stays inside the card silhouette
+        display === 'day' && isPastDay && 'bg-newTableHeader rounded-[8px]',
         display === 'day' &&
           (isBeforeNow
             ? 'cursor-not-allowed'
@@ -1790,6 +1874,46 @@ const CalendarItem: FC<{
   // First attached image of the post's media field (backend now selects it
   // through the minified payload); undefined when absent/broken/video-only
   const mediaUrl = useMemo(() => getFirstImageUrl(post.image), [post.image]);
+  // Thumbnail load failure is React state, not an imperative DOM hide: the
+  // old onError set display:none on the wrapper, which latched across
+  // re-renders and left a caption-less card with NO body at all (the
+  // avatar+label fallback below is gated on the thumbnail, so it must know
+  // when the thumbnail dies).
+  const [mediaFailed, setMediaFailed] = useState(false);
+  useEffect(() => {
+    setMediaFailed(false);
+  }, [mediaUrl]);
+  const showMedia = !!mediaUrl && !mediaFailed;
+  // Caption-less posts exist by design (Instagram/Facebook stories carry no
+  // copy): the day card must never render an empty band. Strip once, and
+  // when nothing is left name the post instead: platform + the composer's
+  // post_type when the payload carries settings ('Instagram story'),
+  // a generic 'post' otherwise.
+  const contentText = useMemo(
+    () =>
+      stripHtmlValidation('none', post.content || '', false, true, false).trim(),
+    [post.content]
+  );
+  const hasContent = contentText.length > 0;
+  const postTypeLabel = useMemo(() => {
+    const platform = (post.integration?.providerIdentifier || '').split('-')[0];
+    const platformName = platform
+      ? platform.charAt(0).toUpperCase() + platform.slice(1)
+      : '';
+    let type = 'post';
+    try {
+      const settings =
+        typeof post.settings === 'string' && post.settings.trim()
+          ? JSON.parse(post.settings)
+          : undefined;
+      if (typeof settings?.post_type === 'string' && settings.post_type) {
+        type = settings.post_type;
+      }
+    } catch {
+      // broken settings JSON - keep the generic noun
+    }
+    return `${platformName} ${type}`.trim();
+  }, [post.settings, post.integration?.providerIdentifier]);
   const showCreationMethodBadge =
     user?.impersonate &&
     post.creationMethod &&
@@ -2200,25 +2324,52 @@ const CalendarItem: FC<{
                   {t('draft', 'Draft')}
                 </div>
               )}
-              <div
-                ref={contentRef}
-                className={clsx(
-                  'w-full text-[15px] text-start break-words',
-                  !expanded && 'line-clamp-3'
-                )}
-              >
-                {stripHtmlValidation('none', post.content, false, true, false)}
-              </div>
-              {overflowing && !expanded && (
-                <div
-                  className="mt-[4px] text-[14px] text-newTextColor/60 text-start cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExpanded(true);
-                  }}
-                >
-                  {t('see_more', 'see more')}
-                </div>
+              {hasContent ? (
+                <>
+                  <div
+                    ref={contentRef}
+                    className={clsx(
+                      'w-full text-[15px] text-start break-words',
+                      !expanded && 'line-clamp-3'
+                    )}
+                  >
+                    {contentText}
+                  </div>
+                  {overflowing && !expanded && (
+                    <div
+                      className="mt-[4px] text-[14px] text-newTextColor/60 text-start cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpanded(true);
+                      }}
+                    >
+                      {t('see_more', 'see more')}
+                    </div>
+                  )}
+                </>
+              ) : (
+                !showMedia && (
+                  // no copy AND no RENDERED thumbnail (stories are
+                  // caption-less and often video-only; a broken/blocked
+                  // image counts as no thumbnail): name the post (channel
+                  // avatar with the platform badge + a muted type label) so
+                  // the body is never a blank band
+                  <div className="flex items-center gap-[10px]">
+                    <ChannelAvatar
+                      picture={post.integration.picture || ''}
+                      identifier={post.integration?.providerIdentifier || ''}
+                      name={post.integration.name}
+                      size={24}
+                      badgeSize={12}
+                      badgeOffset="-bottom-[2px] -end-[2px]"
+                      fallback="placeholder"
+                      className="min-w-[24px] min-h-[24px]"
+                    />
+                    <span className="text-[14px] text-newTextColor/60">
+                      {postTypeLabel}
+                    </span>
+                  </div>
+                )
               )}
               {/* Buffer card anatomy: an 'Add tags' affordance in the body
                   (below content) when the card carries no tags; a quiet ghost
@@ -2254,15 +2405,35 @@ const CalendarItem: FC<{
                 then */}
             {/* object-contain + wash letterbox (was object-cover): the
                 center-crop cut headlines off typographic brand tiles */}
-            {mediaUrl && (
-              <img
-                src={mediaUrl}
-                alt=""
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-                className="w-[180px] h-[180px] min-w-[180px] rounded-[8px] object-contain bg-newTableHeader border border-newTableBorder phone:w-[96px] phone:h-[96px] phone:min-w-[96px]"
-              />
+            {showMedia && (
+              // sized, rounded, overflow-hidden WRAPPER (not a bare img):
+              // the raster is clipped to the thumbnail silhouette, so it can
+              // never paint past the card's rounded corner; shrink-0 keeps
+              // the box from compressing inside the body row. The card
+              // itself cannot take overflow-hidden (the footer kebab menu
+              // pops out below the card and would be clipped).
+              // WIDTH is the only fixed axis: height hugs the image's aspect
+              // up to a 180 (phone 96) cap. The old fixed h-[180px] basis
+              // reserved a thumbnail-tall empty band on every short card
+              // (landscape media letterboxed inside it, copy-short cards
+              // stretched to it between 'Add tags' and 'View').
+              // the box reforms to the image (user-picked option): BOTH axes
+              // hug the raster up to the cap, so portrait tiles no longer
+              // letterbox against a wash background; no wash, no border, a
+              // clean rounded image like Buffer's thumbnails
+              <div className="w-fit shrink-0 rounded-[8px] overflow-hidden">
+                <img
+                  src={mediaUrl}
+                  alt=""
+                  onError={() => {
+                    // state, not a DOM hide: unmounts the whole tile (no
+                    // lingering gray box) AND lets the avatar+label fallback
+                    // above take over the body
+                    setMediaFailed(true);
+                  }}
+                  className="w-auto h-auto max-w-[180px] max-h-[180px] phone:max-w-[96px] phone:max-h-[96px] object-contain"
+                />
+              </div>
             )}
           </div>
           {/* Buffer card anatomy: a ghost 'View' button on the card surface

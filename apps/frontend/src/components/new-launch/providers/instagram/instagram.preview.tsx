@@ -63,7 +63,7 @@ export const InstagramPreview: FC<{
       </div>
       {!!renderContent?.[0]?.images?.length ? (
         <SliderComponent
-          className="h-[585px] rounded-[8px] overflow-hidden"
+          className="max-h-[585px] rounded-[8px] overflow-hidden"
           list={renderContent?.[0]?.images.map((image, index) => (
             <a
               key={`image_${index}`}
@@ -71,7 +71,13 @@ export const InstagramPreview: FC<{
               href={mediaDir.set(image.path)}
               target="_blank"
             >
-              <VideoOrImage autoplay={true} src={mediaDir.set(image.path)} />
+              <VideoOrImage
+                autoplay={true}
+                isContain={true}
+                imageClassName="max-h-[585px]"
+                videoClassName="max-h-[585px]"
+                src={mediaDir.set(image.path)}
+              />
             </a>
           ))}
         />

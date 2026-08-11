@@ -985,7 +985,17 @@ export const MultiMediaComponent: FC<{
             </div>
           )}
           {information && (
-            <div className="flex-1 min-w-0 justify-end flex py-[10px] b2 items-center gap-[4px]">
+            // Desktop: flex-1 + min-w-0 right-align the counter inside the
+            // fixed-width bar. Phone: the bar scrolls (overflow-x-auto), so
+            // the block must keep its NATURAL width; min-w-0 let it shrink
+            // under its content and the counter painted over the toolbar
+            // buttons. min-w-fit + shrink-0 restore the content floor there.
+            // phone:pe-[12px]: the bar's own px-[12px] end padding is
+            // dropped past overflowing content by WebKit scroll containers,
+            // so at max scroll the counter chip sat flush against the card
+            // edge with its rounded trailing border cut. Padding on the LAST
+            // CHILD lives inside the scrolled content and always renders.
+            <div className="flex-1 min-w-0 phone:min-w-fit phone:shrink-0 phone:pe-[12px] justify-end flex py-[10px] b2 items-center gap-[4px]">
               {information}
             </div>
           )}

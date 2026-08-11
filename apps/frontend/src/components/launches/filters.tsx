@@ -55,6 +55,43 @@ function getDateRange(
   }
 }
 
+/** The date the visible range is anchored on: the explicitly picked day
+ *  (the phone sheet's mini picker, kept in context/?anchor=) while it is
+ *  still inside the visible range, else today when the range contains it,
+ *  else the range's owning day (month = the owning month's 1st; week/day =
+ *  the range start). EVERY display switch derives its new range from this
+ *  date, so month-to-week lands on the picked date's week (never the
+ *  month's first week) and view switches never lose the navigated position. */
+function resolveAnchorDate(calendar: {
+  startDate: string;
+  endDate: string;
+  display: string;
+  anchor: string | null;
+}): dayjs.Dayjs {
+  const today = newDayjs();
+  const start = newDayjs(calendar.startDate);
+  const end = newDayjs(calendar.endDate);
+  if (calendar.anchor) {
+    const anchor = newDayjs(calendar.anchor);
+    if (
+      anchor.isValid() &&
+      // the list range is a degenerate today/today; the stored anchor
+      // stays authoritative there so list-to-calendar restores the
+      // anchored month/week instead of jumping to today's
+      (calendar.display === 'list' ||
+        (!anchor.isBefore(start, 'day') && !anchor.isAfter(end, 'day')))
+    ) {
+      return anchor;
+    }
+  }
+  if (!today.isBefore(start, 'day') && !today.isAfter(end, 'day')) {
+    return today;
+  }
+  return calendar.display === 'month'
+    ? start.add(15, 'day').startOf('month')
+    : start;
+}
+
 
 /* Buffer toolbar geometry (measured live): filter triggers are 32px tall r8,
  * transparent, 14/500, [16px icon][label][16px chevron]; Today and the view
@@ -713,41 +750,56 @@ const PhoneCalendarSheet: FC<{
 
   // '3 Days' -> week display + 3-day phone slice; 'Week' -> week display,
   // all 7 days; 'Month' -> month display. Range re-derives anchored on the
-  // current anchor date so navigation position survives the switch.
+  // current anchor date (the picked day when one is set) so month-to-week
+  // lands on the picked date's week, and the anchor is re-stamped so it
+  // survives further switches. Applying a view DISMISSES the sheet (same
+  // close the backdrop tap uses): the picked view was otherwise hidden
+  // behind it; tapping the already-active view just dismisses.
   const applyView = useCallback(
     (view: '3days' | 'week' | 'month') => {
       const isCalDisplay =
         calendar.display === 'week' || calendar.display === 'month';
-      if (isCalDisplay && view === activeView) return;
+      if (isCalDisplay && view === activeView) {
+        onClose();
+        return;
+      }
       if (view !== 'month') setPhoneWeekSpan(view === 'week' ? '7' : '3');
       const display = (view === 'month' ? 'month' : 'week') as 'week' | 'month';
-      const range = getDateRange(display, anchorDate.format('YYYY-MM-DD'));
+      const anchor = anchorDate.format('YYYY-MM-DD');
+      const range = getDateRange(display, anchor);
       calendar.setFilters({
         startDate: range.startDate,
         endDate: range.endDate,
         display,
         customer: calendar.customer,
+        anchor,
       });
+      onClose();
     },
-    [calendar, activeView, anchorDate, setPhoneWeekSpan]
+    [calendar, activeView, anchorDate, setPhoneWeekSpan, onClose]
   );
 
-  // picking a day re-anchors the visible range to that date and closes
+  // picking a day re-anchors the visible range to that date but keeps the
+  // sheet OPEN (users often pick a day and then a view), so only the view
+  // buttons (and Today) dismiss. The date is remembered (context/?anchor=)
+  // so the follow-up view switch re-anchors on it instead of the range's
+  // first week.
   const pickDay = useCallback(
     (day: dayjs.Dayjs) => {
       const display = (
         calendar.display === 'list' ? 'week' : calendar.display
       ) as 'day' | 'week' | 'month';
-      const range = getDateRange(display, day.format('YYYY-MM-DD'));
+      const anchor = day.format('YYYY-MM-DD');
+      const range = getDateRange(display, anchor);
       calendar.setFilters({
         startDate: range.startDate,
         endDate: range.endDate,
         display,
         customer: calendar.customer,
+        anchor,
       });
-      onClose();
     },
-    [calendar, onClose]
+    [calendar]
   );
 
   // Sunday-first 6-week grid around the browsed month
@@ -921,12 +973,16 @@ const ViewFilter: FC = () => {
     (display: 'week' | 'month') => {
       setOpen(false);
       if (calendar.display === display) return;
-      const range = getDateRange(display);
+      // anchored on the current position (picked day / today-in-range /
+      // owning day): a display switch must never jump back to today's range
+      const anchor = resolveAnchorDate(calendar).format('YYYY-MM-DD');
+      const range = getDateRange(display, anchor);
       calendar.setFilters({
         startDate: range.startDate,
         endDate: range.endDate,
         display,
         customer: calendar.customer,
+        anchor,
       });
     },
     [calendar]
@@ -1091,12 +1147,16 @@ export const PageHeader: FC = () => {
           : ((calendar.lastCalendarDisplay === 'week'
               ? 'week'
               : 'month') as 'week' | 'month');
-      const range = getDateRange(display);
+      // anchored on the current position so the List↔Calendar round trip
+      // preserves the picked/navigated date instead of jumping to today
+      const anchor = resolveAnchorDate(calendar).format('YYYY-MM-DD');
+      const range = getDateRange(display, anchor);
       calendar.setFilters({
         startDate: range.startDate,
         endDate: range.endDate,
         display,
         customer: calendar.customer,
+        anchor,
       });
     },
     [calendar, isListView]
@@ -1137,13 +1197,16 @@ export const PageHeader: FC = () => {
         </svg>
       </button>
       <div className="flex-1" />
-      {/* phone puts the segmented in the toolbar row (Buffer) — hidden here */}
-      <div className="phone:hidden flex h-[32px] p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500]" data-cs>
+      {/* phone puts the segmented in the toolbar row (Buffer) — hidden here.
+          Buffer segmented geometry (measured live 2026-08-10): container 32px
+          r8, 4px inset, white, hairline; options 24px r6 at 14/500, active
+          filled, inactive transparent */}
+      <div className="phone:hidden flex items-center h-[32px] p-[4px] bg-newBgColorInner border border-newTableBorder rounded-[8px] text-[14px] font-[500]" data-cs>
         <button
           type="button"
           onClick={() => toView('list')}
           className={clsx(
-            'flex items-center gap-[6px] px-[8px] rounded-[6px] transition-colors duration-150',
+            'flex items-center gap-[6px] h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
             isListView ? segActive : segInactive
           )}
         >
@@ -1161,7 +1224,7 @@ export const PageHeader: FC = () => {
           type="button"
           onClick={() => toView('calendar')}
           className={clsx(
-            'flex items-center gap-[6px] px-[8px] rounded-[6px] transition-colors duration-150',
+            'flex items-center gap-[6px] h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
             !isListView ? segActive : segInactive
           )}
         >
@@ -1228,31 +1291,30 @@ export const Filters = () => {
     return mid.format('MMMM YYYY');
   }, [calendar.startDate, calendar.display]);
 
-  // The phone title chip / date-picker sheet anchor: today when the visible
-  // range contains it, otherwise the range's owning day (month = the owning
-  // month's 1st; week/day = the range start).
-  const anchorDate = useMemo(() => {
-    const today = newDayjs();
-    const start = newDayjs(calendar.startDate);
-    const end = newDayjs(calendar.endDate);
-    if (!today.isBefore(start, 'day') && !today.isAfter(end, 'day')) {
-      return today;
-    }
-    return calendar.display === 'month'
-      ? start.add(15, 'day').startOf('month')
-      : start;
-  }, [calendar.startDate, calendar.endDate, calendar.display]);
+  // The phone title chip / date-picker sheet anchor: the picked day while it
+  // is in range, else today when the visible range contains it, otherwise the
+  // range's owning day (resolveAnchorDate, shared with every view switch).
+  const anchorDate = useMemo(
+    () => resolveAnchorDate(calendar),
+    [
+      calendar.startDate,
+      calendar.endDate,
+      calendar.display,
+      calendar.anchor,
+    ]
+  );
 
   const setToday = useCallback(() => {
-    const today = newDayjs();
     const currentRange = getDateRange(
       calendar.display as 'day' | 'week' | 'month'
     );
 
-    // Check if we're already showing today's range
+    // Check if we're already showing today's range (a lingering picked-day
+    // anchor still needs clearing so Today really re-anchors on today)
     if (
       calendar.startDate === currentRange.startDate &&
-      calendar.endDate === currentRange.endDate
+      calendar.endDate === currentRange.endDate &&
+      !calendar.anchor
     ) {
       return; // No need to set the same range
     }
@@ -1262,6 +1324,8 @@ export const Filters = () => {
       endDate: currentRange.endDate,
       display: calendar.display as 'day' | 'week' | 'month',
       customer: calendar.customer,
+      // clear the picked-day anchor: today owns the range again
+      anchor: null,
     });
   }, [calendar]);
 
@@ -1378,12 +1442,16 @@ export const Filters = () => {
           : ((calendar.lastCalendarDisplay === 'week'
               ? 'week'
               : 'month') as 'week' | 'month');
-      const range = getDateRange(display);
+      // anchored on the current position so the List↔Calendar round trip
+      // preserves the picked/navigated date instead of jumping to today
+      const anchor = resolveAnchorDate(calendar).format('YYYY-MM-DD');
+      const range = getDateRange(display, anchor);
       calendar.setFilters({
         startDate: range.startDate,
         endDate: range.endDate,
         display,
         customer: calendar.customer,
+        anchor,
       });
     },
     [calendar, isListView]
@@ -1478,8 +1546,12 @@ export const Filters = () => {
         'text-newTextColor flex flex-col !flex-row flex-wrap gap-[8px] items-center select-none',
         // Buffer's toolbar is a 48px band (32px controls centered in it)
         !isListView && 'min-h-[48px]',
-        // Buffer's list tabs sit on a full-width hairline track
-        isListView && 'border-b border-newTableBorder pb-[0px]'
+        // Buffer's list tabs sit on a full-width hairline track. Desktop
+        // keeps pb-0: the 45px tabs carry their own 12px air and the active
+        // underline must touch the rule. Phone hides the tabs, so the Queue
+        // dropdown / funnel / segmented otherwise sat flush on the border;
+        // the row gets its own 12px allowance there.
+        isListView && 'border-b border-newTableBorder pb-[0px] phone:pb-[12px]'
       )}
     >
       {!isListView && (
@@ -1711,14 +1783,16 @@ export const Filters = () => {
             <path d="M9 19h6" />
           </svg>
         </button>
-        {/* icon-only List|Calendar segmented (Buffer phone toolbar) */}
-        <div className="flex h-[32px] p-[4px] border border-newTableBorder rounded-[8px]">
+        {/* icon-only List|Calendar segmented (Buffer phone toolbar), same
+            measured geometry as the PageHeader segmented: 32px r8 4px-inset
+            white hairline container, 24px r6 options */}
+        <div className="flex items-center h-[32px] p-[4px] bg-newBgColorInner border border-newTableBorder rounded-[8px]" data-cs>
           <button
             type="button"
             aria-label={t('list', 'List')}
             onClick={() => toView('list')}
             className={clsx(
-              'flex items-center px-[8px] rounded-[6px] transition-colors duration-150',
+              'flex items-center h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
               isListView ? segActive : segInactive
             )}
           >
@@ -1736,7 +1810,7 @@ export const Filters = () => {
             aria-label={t('calendar_view', 'Calendar')}
             onClick={() => toView('calendar')}
             className={clsx(
-              'flex items-center px-[8px] rounded-[6px] transition-colors duration-150',
+              'flex items-center h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
               !isListView ? segActive : segInactive
             )}
           >

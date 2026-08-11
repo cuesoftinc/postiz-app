@@ -209,6 +209,10 @@ export class PostsRepository {
         group: true,
         creationMethod: true,
         image: true,
+        // settings carries the composer's per-provider options; the day-view
+        // card reads post_type from it to name caption-less posts
+        // ('Instagram story') instead of rendering an empty body
+        settings: true,
         createdAt: true,
         tags: {
           select: {

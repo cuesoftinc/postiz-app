@@ -48,7 +48,14 @@ export const DatePicker: FC<{
       {open && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="animate-fadeIn absolute bottom-[100%] mb-[16px] start-[50%] -translate-x-[50%] bg-newBgColorInner border border-newTableBorder text-newTextColor rounded-[16px] shadow-menu z-[300] p-[16px] flex flex-col"
+          // phone: the popover re-roots to the VIEWPORT (fixed; no ancestor
+          // carries a transform, verified) instead of centering on the
+          // trigger: the composer footer wraps the split control to the
+          // start edge at 390 and half the ~326px panel ran past the left
+          // viewport edge. Fixed + the same start-50%/-translate-x-50% pair
+          // now centers it in the screen; bottom-16 floats it above the
+          // footer, and the max sizes keep it inside small viewports.
+          className="animate-fadeIn absolute phone:fixed bottom-[100%] phone:bottom-[16px] mb-[16px] phone:mb-0 start-[50%] -translate-x-[50%] phone:max-w-[calc(100vw-16px)] phone:max-h-[calc(100dvh-32px)] phone:overflow-y-auto bg-newBgColorInner border border-newTableBorder text-newTextColor rounded-[16px] shadow-menu z-[300] p-[16px] flex flex-col"
         >
           <Calendar
             onChange={changeDate('date')}

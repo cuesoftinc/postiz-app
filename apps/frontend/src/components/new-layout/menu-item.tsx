@@ -40,7 +40,10 @@ export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClic
     // colour has to work on BOTH a white bar (light mode) and a dark one, so
     // neither #fff nor stock's dark text survives. Brand violet + a top
     // indicator instead.
-    isActive && 'phone:bg-transparent phone:text-btnPrimary'
+    // ink, not lime: a lime LABEL on the white phone bar fails contrast in
+    // light mode (same accessibility class as the composer globe, user
+    // report); the top indicator alone carries the accent
+    isActive && 'phone:bg-transparent phone:text-newTextColor'
   );
 
   const inner = (

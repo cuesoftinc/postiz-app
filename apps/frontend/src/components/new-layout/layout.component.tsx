@@ -103,7 +103,11 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       bg, 56px tall, hairline at y=56, white card below):
                       ☰ 40×40 with a presence dot + logo lockup + streak as
                       the only right-side element (no bell, no separators) */}
-                  <div className="hidden phone:flex h-[56px] items-center gap-[10px] px-[8px] border-b border-newBgLineColor">
+                  {/* ps 8 keeps the hamburger's icon at Buffer's optical inset
+                      (icon centers inside the 40px hit box); pe 16 gives the
+                      streak chip real edge clearance (user report: badge sat
+                      nearly flush with the screen edge) */}
+                  <div className="hidden phone:flex h-[56px] items-center gap-[10px] ps-[8px] pe-[16px] border-b border-newBgLineColor">
                     <button
                       type="button"
                       aria-label={drawerOpen ? 'Close menu' : 'Menu'}

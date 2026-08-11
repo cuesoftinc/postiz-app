@@ -586,25 +586,44 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           1px ambient), not a heavy drop shadow. */}
       <div
         id="cs-composer"
-        className="flex w-full max-w-[1100px] h-full max-h-[813px] bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.02)]"
+        className="flex w-full max-w-[1100px] phone:min-w-0 phone:max-w-[100vw] h-full max-h-[813px] bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.02)]"
       >
         {/* HEADER — spans the full modal width above both panes. Title is
             18px/500 Inter, the BODY face — measured on Buffer's composer
             (data-cs keeps the ladder off text-[18px]); beside it the existing
             tags control restyled as the Buffer chip. */}
-        <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] ps-[32px] pe-[24px] phone:ps-[16px] phone:pe-[16px] phone:max-w-full phone:overflow-x-hidden">
+        {/* NO phone:overflow-x-hidden here (the shell keeps the viewport
+            guard): the tags popover drops BELOW this row (scoped CSS above),
+            and overflow-x:hidden forces overflow-y:auto, so the panel was
+            clipped at the header's box and read as buried under the content.
+            min-w-0 on the tags chip keeps the row itself shrinkable. */}
+        <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] ps-[32px] pe-[24px] phone:ps-[16px] phone:pe-[16px] phone:max-w-full">
           <div
             data-cs
             className="text-[18px] font-[500] leading-[22.5px] text-newTextColor whitespace-nowrap"
           >
             {t('create_post_title', 'Create Post')}
           </div>
-          <CreationMethodBadge
-            creationMethod={existingData?.posts?.[0]?.creationMethod}
-            size="sm"
-          />
+          {/* phone: the API/creation badge is a dev-facing nicety Buffer has
+              no equivalent for, and it is exactly the width that pushed the
+              header row past the viewport with a selected tag */}
+          <div className="phone:hidden flex">
+            <CreationMethodBadge
+              creationMethod={existingData?.posts?.[0]?.creationMethod}
+              size="sm"
+            />
+          </div>
+          {/* phone: hard cap the chip so a selected tag pill + chevron can
+              never widen the header row past the viewport (the row's
+              overflow guard was deliberately removed to unclip the
+              dropdown). The chip's inner min-w-0 chain truncates the tag
+              label instead; the dropdown is absolute, so the cap does not
+              clip it. */}
           {!dummy && (
-            <div id="cs-tags-chip" className="flex items-center min-w-0">
+            <div
+              id="cs-tags-chip"
+              className="flex items-center min-w-0 phone:max-w-[140px]"
+            >
               <TagsComponent
                 name="tags"
                 label={t('tags', 'Tags')}

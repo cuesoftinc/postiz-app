@@ -14,7 +14,11 @@ export const VideoOrImage: FC<{
       <video
         src={src}
         autoPlay={autoplay}
-        className={clsx('w-full h-full', videoClassName)}
+        className={clsx(
+          isContain && 'object-contain',
+          'w-full h-full',
+          videoClassName
+        )}
         muted={true}
         loop={true}
       />

@@ -40,7 +40,6 @@ const Invalid: FC = () => {
       strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-white"
     >
       <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
       <path d="M12 9v4" />
@@ -165,24 +164,29 @@ export const InformationComponent: FC<{
     <div
       className={clsx(
         'group rounded-[6px] gap-[4px] h-[30px] px-[6px] flex justify-center items-center relative',
-        isValid ? 'border border-newColColor' : 'bg-[#FF3F3F]'
+        // color pairs WITH the fill at the same node and children inherit
+        // currentColor: a hardcoded white icon went invisible whenever the
+        // red fill was lost (user report, light mode)
+        isValid
+          ? 'border border-newColColor text-newTextColor'
+          : 'bg-[#FF3F3F] text-white'
       )}
     >
       {isValid ? <Valid /> : <Invalid />}
 
       {!isGlobal && (
-        <div className={clsx("text-[12px] font-[500] flex justify-center items-center", !isValid && 'text-white')}>
+        <div className={clsx("text-[12px] font-[500] flex justify-center items-center")}>
           {totalChars}/{totalAllowedChars}
         </div>
       )}
       {isGlobal && globalDisplayLimit !== null && (
-        <div className={clsx("text-[12px] font-[500] flex justify-center items-center", !isValid && 'text-white')}>
+        <div className={clsx("text-[12px] font-[500] flex justify-center items-center")}>
           {totalChars}/{globalDisplayLimit}
         </div>
       )}
       {((isGlobal && selectedIntegrations.length) || !isValid) && (
         <svg
-          className={clsx('group-hover:rotate-180', !isValid && 'text-white')}
+          className={clsx('group-hover:rotate-180')}
           xmlns="http://www.w3.org/2000/svg"
           width="16"
           height="16"
@@ -199,7 +203,16 @@ export const InformationComponent: FC<{
       {((isGlobal && selectedIntegrations.length) || !isValid) && (
         <div
           className={clsx(
+            // phone: the chip lives inside the bottom bar, which is now a
+            // scroll container (phone:overflow-x-auto) — an absolute panel
+            // gets clipped to a sliver at its edge. Re-root it to the
+            // VIEWPORT exactly like the date-picker popover (no ancestor
+            // carries a transform, verified there): fixed + centered via
+            // start-50%/-translate-x-50%, floated 16px off the bottom, and
+            // capped to the viewport with its own scroll. end-auto releases
+            // the desktop end-0 anchor so start-50% can center it.
             'z-[300] hidden rounded-[12px] bg-newBgColorInner group-hover:flex absolute end-0 bottom-[100%] mb-[5px] p-[12px] flex-col',
+            'phone:fixed phone:end-auto phone:start-[50%] phone:-translate-x-[50%] phone:bottom-[16px] phone:mb-0 phone:max-w-[calc(100vw-16px)] phone:max-h-[calc(100dvh-32px)] phone:overflow-y-auto',
             isValid ? 'border border-newColColor' : 'border border-[#FF3F3F]'
           )}
         >

@@ -27,7 +27,7 @@ type ChatMessage = {
 
 export type BridgeProfile = 'content' | 'assistant';
 
-/** Claude Code content chat (admin-only): each message drives a headless
+/** Claude Code content chat (every org user): each message drives a headless
  *  Claude Code turn on the host via the loopback bridge; deltas stream in
  *  live and the bridge session id keeps the thread continuous. One instance
  *  per bridge profile ('content' drafts, 'assistant' operates the schedule). */
@@ -218,19 +218,11 @@ export const ContentChatComponent: FC<{
     [send]
   );
 
-  if (!(user as any)?.admin) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-[14px] text-newTextColor/60">
-        {t('content_chat_admin_only', 'The content chat is admin-only.')}
-      </div>
-    );
-  }
-
   return (
-    // pb matches the copilot pane's admin clearance (agent.chat.tsx pins
-    // pb-[56px] under the composer for the fixed admin pill; this pane is
-    // admin-only, so it always needs the same dead space) — toggling the
-    // segmented must not move the composer
+    // pb matches the copilot pane's clearance (agent.chat.tsx pins
+    // pb-[56px] under the composer for the fixed admin pill; kept for
+    // everyone so the composer sits identically whoever is signed in) —
+    // toggling the segmented must not move the composer
     // phone:h-[65dvh] mirrors the copilot pane's phone:min-h-[65dvh]
     // (agent.chat.tsx) — exact `h` because this pane's list is in-flow, so a
     // min-h alone would let history grow the pane past the viewport

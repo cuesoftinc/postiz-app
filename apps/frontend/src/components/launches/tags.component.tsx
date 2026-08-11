@@ -161,18 +161,24 @@ export const TagsComponentInner: FC<{
     <div
       ref={ref}
       className={clsx(
-        'border rounded-[8px] justify-center flex items-center relative h-[44px] text-[15px] font-[550] select-none',
+        // min-w-0 down the chain: the composer header caps this chip on
+        // phone (phone:max-w on #cs-tags-chip), and without it flex
+        // min-width:auto let the selected-tag pill push the chip - and the
+        // whole header row - wider than the viewport. The pill's truncate
+        // span is the only node that gives way; icon, +N and chevron keep
+        // their natural width.
+        'border rounded-[8px] justify-center flex items-center relative h-[44px] text-[15px] font-[550] select-none min-w-0',
         isOpen ? 'border-forth' : 'border-newTextColor/10'
       )}
     >
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="px-[16px] justify-center flex gap-[8px] items-center h-full select-none flex-1"
+        className="px-[16px] justify-center flex gap-[8px] items-center h-full select-none flex-1 min-w-0"
       >
         <div className="cursor-pointer">
           <TagIcon />
         </div>
-        <div className="cursor-pointer flex gap-[4px] whitespace-nowrap">
+        <div className="cursor-pointer flex gap-[4px] whitespace-nowrap min-w-0">
           {tagValue.length === 0 ? (
             <>
               {/* phone: Buffer's short "Tags" — the full label wrapped to
@@ -185,10 +191,14 @@ export const TagsComponentInner: FC<{
           ) : (
             <>
               <div
-                className="h-full flex justify-center items-center px-[8px] rounded-[4px]"
+                className="h-full flex justify-center items-center px-[8px] rounded-[4px] min-w-0"
                 style={{ backgroundColor: tagValue[0].color }}
               >
-                <span className="text-shadow-tags text-white">
+                {/* one line, ellipsized past ~140px; ink via
+                    mix-blend-difference (the calendar pills' treatment) -
+                    the old 4-way black text-shadow read as a strike-through
+                    on light tag colors like #EDE9FE */}
+                <span className="text-white mix-blend-difference whitespace-nowrap max-w-[140px] truncate">
                   {tagValue[0].name}
                 </span>
               </div>
@@ -230,13 +240,24 @@ export const TagsComponentInner: FC<{
                 onChange={() => {}}
                 value={!!tagValue.find((a) => a.id === p.id)}
               />
-              <div className="h-full flex items-center flex-1 break-all">
-                <span
-                  className="text-white px-[8px] rounded-[8px] text-shadow-tags"
+              {/* min-w-0 (not break-all) so the chip can shrink and ellipsize:
+                  break-all wrapped 'needs-approval' mid-word in the 195px
+                  popover ('needs-approva' + a lone 'l'). The pill background
+                  sits on the outer div and the blend on an inner span, so
+                  mix-blend-difference inverts only the label ink - the old
+                  4-way black text-shadow outline read as struck-through on
+                  light tag colors. Cap at 200px (was 140): 140 ellipsized
+                  typical names like 'needs-approval'; the min-w-0 chain
+                  still shrinks the pill when the row is narrower. */}
+              <div className="h-full flex items-center flex-1 min-w-0">
+                <div
+                  className="px-[8px] rounded-[8px] max-w-[200px] overflow-hidden"
                   style={{ backgroundColor: p.color }}
                 >
-                  {p.name}
-                </span>
+                  <div className="text-white mix-blend-difference whitespace-nowrap truncate">
+                    {p.name}
+                  </div>
+                </div>
               </div>
               {!tagValue.find((a) => a.id === p.id) && (
                 <div

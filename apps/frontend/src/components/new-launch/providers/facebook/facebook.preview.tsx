@@ -168,7 +168,7 @@ export const FacebookPreview: FC<{
         />
       )}
       {!!renderContent?.[0]?.images?.length && (
-        <div className="h-[280px] -mx-[15px] overflow-hidden flex">
+        <div className="max-h-[585px] -mx-[15px] overflow-hidden flex">
           {renderContent?.[0]?.images.map((image, index) => (
             <a
               key={`image_${index}`}
@@ -176,7 +176,13 @@ export const FacebookPreview: FC<{
               href={mediaDir.set(image.path)}
               target="_blank"
             >
-              <VideoOrImage autoplay={true} src={mediaDir.set(image.path)} />
+              <VideoOrImage
+                autoplay={true}
+                isContain={true}
+                imageClassName="max-h-[585px]"
+                videoClassName="max-h-[585px]"
+                src={mediaDir.set(image.path)}
+              />
             </a>
           ))}
         </div>
@@ -301,7 +307,7 @@ export const FacebookPreview: FC<{
                       }}
                     />
                     {!!value.images?.length && (
-                      <div className="h-[100px] mt-[12px] -mx-[15px] overflow-hidden flex">
+                      <div className="max-h-[100px] mt-[12px] -mx-[15px] overflow-hidden flex">
                         {value.images.map((image, index) => (
                           <a
                             key={`image_${index}`}
@@ -311,6 +317,9 @@ export const FacebookPreview: FC<{
                           >
                             <VideoOrImage
                               autoplay={true}
+                              isContain={true}
+                              imageClassName="max-h-[100px]"
+                              videoClassName="max-h-[100px]"
                               src={mediaDir.set(image.path)}
                             />
                           </a>

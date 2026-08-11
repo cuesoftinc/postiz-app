@@ -67,7 +67,11 @@ export const TiktokPreview: FC<{
               href={mediaDir.set(image.path)}
               target="_blank"
             >
-              <VideoOrImage autoplay={true} src={mediaDir.set(image.path)} />
+              <VideoOrImage
+                autoplay={true}
+                isContain={true}
+                src={mediaDir.set(image.path)}
+              />
             </a>
           ))}
           className="h-full bg-black aspect-[calc(9/16)] rounded-[3px] overflow-hidden"
