@@ -83,15 +83,27 @@ export const ContentChatComponent: FC<{
   const runRef = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // follow the stream only while the reader is at the bottom: scrolling up
+  // to reread must not fight the typewriter. Programmatic pinning lands the
+  // list back at the bottom, so the flag re-arms itself via onScroll.
+  const stickToBottomRef = useRef(true);
+
+  const onListScroll = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    stickToBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  }, []);
 
   useEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   const newChat = useCallback(() => {
     runRef.current++;
     sessionRef.current = null;
+    stickToBottomRef.current = true;
     setMessages([]);
     setStreaming(false);
     onSessionChange?.(null);
@@ -113,6 +125,7 @@ export const ContentChatComponent: FC<{
     if ((activeSessionId || null) === sessionRef.current) return;
     runRef.current++;
     setStreaming(false);
+    stickToBottomRef.current = true;
     sessionRef.current = activeSessionId || null;
     if (!activeSessionId) {
       setMessages([]);
@@ -144,6 +157,8 @@ export const ContentChatComponent: FC<{
     setInput('');
     // send keeps focus in the composer (parity with agent.input.tsx's send)
     textareaRef.current?.focus();
+    // sending always returns the reader to the live end of the thread
+    stickToBottomRef.current = true;
     setStreaming(true);
     setMessages((list) => [
       ...list,
@@ -159,6 +174,32 @@ export const ContentChatComponent: FC<{
         }
         return next;
       });
+    // typewriter: deltas arrive as multi-word chunks; queue them and write
+    // a few characters per tick so the reply types on smoothly. The rate
+    // scales with the backlog (~30 ticks to drain whatever is queued), so
+    // the render stays within ~half a second of the live stream instead of
+    // falling behind on long answers. setTimeout, not rAF: background tabs
+    // clamp timers but never stop them, so the drain always completes.
+    let pending = '';
+    let draining = false;
+    const drain = () => {
+      if (runRef.current !== run) return; // pane moved on: stop writing
+      if (!pending) {
+        draining = false;
+        return;
+      }
+      const step = Math.max(2, Math.ceil(pending.length / 30));
+      appendAssistant(pending.slice(0, step));
+      pending = pending.slice(step);
+      setTimeout(drain, 16);
+    };
+    const queueAssistant = (text: string) => {
+      pending += text;
+      if (!draining) {
+        draining = true;
+        drain();
+      }
+    };
     const showOffline = () =>
       setMessages((list) => [
         ...list.filter(
@@ -209,7 +250,7 @@ export const ContentChatComponent: FC<{
           } catch {
             continue;
           }
-          if (evt.type === 'delta' && evt.text) appendAssistant(evt.text);
+          if (evt.type === 'delta' && evt.text) queueAssistant(evt.text);
           if (
             (evt.type === 'session' || evt.type === 'done') &&
             evt.sessionId &&
@@ -223,6 +264,11 @@ export const ContentChatComponent: FC<{
       }
     } catch {
       if (runRef.current === run) showOffline();
+    }
+    // let the typewriter finish writing what the stream already delivered
+    // before the caret goes away and the turn is declared over
+    while ((pending || draining) && runRef.current === run) {
+      await new Promise((r) => setTimeout(r, 50));
     }
     if (runRef.current === run) {
       setStreaming(false);
@@ -271,6 +317,7 @@ export const ContentChatComponent: FC<{
           scrollbar styles on the pane */}
       <div
         ref={listRef}
+        onScroll={onListScroll}
         className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-[16px] py-[16px] scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor"
       >
         {messages.length === 0 && (

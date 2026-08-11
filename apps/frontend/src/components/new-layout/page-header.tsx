@@ -65,7 +65,7 @@ export const PageShell: FC<{
   <div
     data-cs
     className={clsx(
-      'bg-newBgColorInner flex-1 flex flex-col pt-[24px] px-[32px] pb-[20px] gap-[8px] phone:pt-[12px] phone:px-[12px]',
+      'bg-newBgColorInner flex-1 min-h-0 flex flex-col pt-[24px] px-[32px] pb-[20px] gap-[8px] phone:pt-[12px] phone:px-[12px]',
       className
     )}
   >

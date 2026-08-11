@@ -89,7 +89,15 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                 // card starts flush against the 240px sidebar region (ps-0 —
                 // the sidebar carries its own inner padding). Phone: the card
                 // is full-bleed on the canvas, so no page padding at all.
-                'flex flex-col min-h-screen min-w-screen text-newTextColor pt-[8px] pe-[8px] pb-[8px] ps-0 font-sans phone:p-0'
+                'flex flex-col min-w-screen text-newTextColor pt-[8px] pe-[8px] pb-[8px] ps-0 font-sans phone:p-0',
+                // /agents is an app frame, not a document: the window never
+                // scrolls — the chat transcript and the sessions rail scroll
+                // inside (header, composer box and rail stay fixed). Desktop
+                // only: on phone the rail stacks above the chat, so the page
+                // keeps its natural document flow there.
+                (pathname || '').startsWith('/agents')
+                  ? 'h-dvh phone:h-auto phone:min-h-screen'
+                  : 'min-h-screen'
               )}
             >
               {/* Admin tool renders as a fixed bottom-center pill (Buffer has
@@ -187,7 +195,10 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                     </div>
                   )}
                   <AnnouncementBanner />
-                  <div className="flex-1 flex">
+                  {/* min-h-0 through this chain lets the /agents app frame
+                      clamp to the viewport; on document-flow pages it is
+                      inert (it only lowers the minimum, never the size) */}
+                  <div className="flex-1 flex min-h-0">
                     <Support />
                     {/* Desktop nav is the Buffer-replica 240px sidebar (flat on
                         the page bg, no border); it hides itself on phone. */}
@@ -195,7 +206,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                     {/* Buffer card: white, r12, 1px hairline border, flush
                         against the sidebar (no gap). Phone: full-bleed — edge
                         hairlines only, small top radius, runs to the bottom. */}
-                    <div className="flex-1 bg-newBgLineColor rounded-[12px] border border-newTableBorder overflow-hidden flex flex-col gap-[1px] blurMe phone:rounded-none phone:rounded-t-[8px] phone:border-t-0">
+                    <div className="flex-1 min-h-0 bg-newBgLineColor rounded-[12px] border border-newTableBorder overflow-hidden flex flex-col gap-[1px] blurMe phone:rounded-none phone:rounded-t-[8px] phone:border-t-0">
                       {/* 64px desktop-only top bar — now just the page Title.
                           The utility cluster (bell, theme, language, extension,
                           feedback, org switch) moved into the sidebar footer so
@@ -231,7 +242,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       )}
                       {/* stacks on a phone — a side panel plus content does not
                           fit side by side at 390px */}
-                      <div className="flex flex-1 gap-[1px] phone:flex-col">
+                      <div className="flex flex-1 min-h-0 gap-[1px] phone:flex-col">
                         {children}
                       </div>
                     </div>
