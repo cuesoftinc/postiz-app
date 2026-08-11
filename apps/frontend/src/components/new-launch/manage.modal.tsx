@@ -1156,7 +1156,7 @@ const AssistantPane: FC<{ open: boolean; onClose: () => void }> = ({
           data-cs
           className="flex-1 text-[16px] font-[550] text-newTextColor"
         >
-          {t('assistant', 'Assistant')}
+          {t('post_assistant', 'Post Assistant')}
         </div>
         <div
           data-cs
@@ -1169,7 +1169,19 @@ const AssistantPane: FC<{ open: boolean; onClose: () => void }> = ({
       {/* content profile, not assistant: the content prompt is primed on the
           brand voice and content brief (formulation); the assistant profile
           is the schedule operator and deliberately cannot create */}
-      <ContentChatComponent profile="content" contextPrefix={contextPrefix} />
+      <ContentChatComponent
+        profile="content"
+        contextPrefix={contextPrefix}
+        emptyTitle={t('post_assistant_title', 'Write this post with Claude')}
+        emptyHint={t(
+          'post_assistant_hint',
+          'It knows your draft, selected channels and schedule time. Try "Give me three hooks", "Write the LinkedIn version" or "Add hashtags and a first comment".'
+        )}
+        inputPlaceholder={t(
+          'post_assistant_placeholder',
+          'Ask for hooks, captions, variants…'
+        )}
+      />
     </div>
   );
 };

@@ -54,6 +54,12 @@ export const ContentChatComponent: FC<{
       embedding surface (the composer's assistant pane) hand the bridge its
       live context without polluting the chat. */
   contextPrefix?: string;
+  /** Copy overrides for embedding surfaces (the composer's post assistant):
+      empty-state title/hint and the input placeholder. Defaults keep the
+      agents-page per-profile copy. */
+  emptyTitle?: string;
+  emptyHint?: string;
+  inputPlaceholder?: string;
 }> = ({
   profile = 'content',
   activeSessionId,
@@ -61,6 +67,9 @@ export const ContentChatComponent: FC<{
   onTurnEnd,
   registerReset,
   contextPrefix,
+  emptyTitle,
+  emptyHint,
+  inputPlaceholder,
 }) => {
   const t = useT();
   const fetch = useFetch();
@@ -282,20 +291,22 @@ export const ContentChatComponent: FC<{
               )}
             </div>
             <div className="text-[16px] font-[600] text-newTextColor">
-              {profile === 'assistant'
-                ? t('assistant_chat_title', 'Ask about your schedule')
-                : t('content_chat_title', 'Draft content with Claude')}
+              {emptyTitle ??
+                (profile === 'assistant'
+                  ? t('assistant_chat_title', 'Ask about your schedule')
+                  : t('content_chat_title', 'Draft content with Claude'))}
             </div>
             <div className="text-[14px] text-newTextColor/60 max-w-[420px]">
-              {profile === 'assistant'
-                ? t(
-                    'assistant_chat_hint',
-                    'Ask about your scheduled content, e.g. "What is scheduled this week?" or "How did last week perform?"'
-                  )
-                : t(
-                    'content_chat_hint',
-                    'Ask for content built from the content brief, e.g. "Draft week 34 posts".'
-                  )}
+              {emptyHint ??
+                (profile === 'assistant'
+                  ? t(
+                      'assistant_chat_hint',
+                      'Ask about your scheduled content, e.g. "What is scheduled this week?" or "How did last week perform?"'
+                    )
+                  : t(
+                      'content_chat_hint',
+                      'Ask for content built from the content brief, e.g. "Draft week 34 posts".'
+                    ))}
             </div>
           </div>
         )}
@@ -403,9 +414,10 @@ export const ContentChatComponent: FC<{
           onKeyDown={onKeyDown}
           maxRows={6}
           placeholder={
-            profile === 'assistant'
+            inputPlaceholder ??
+            (profile === 'assistant'
               ? t('assistant_chat_placeholder', 'Ask your assistant…')
-              : t('content_chat_placeholder', 'Ask for content…')
+              : t('content_chat_placeholder', 'Ask for content…'))
           }
           // min-h-[56px] restates the copilot floor here — agent.styles.scss
           // pins `.copilotKitInput > textarea { min-height: 56px }`, which

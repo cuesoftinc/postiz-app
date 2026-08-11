@@ -24,6 +24,35 @@ changelog line). Statuses:
 **The loop ends when no `NEEDS-WORK` or `NEEDS-BUFFER-MEASUREMENT` rows remain.**
 
 **Changelog**
+- 2026-08-11 - DropdownPanel portaled to document.body (live-verified defect:
+  at 1180px the calendar toolbar's timezone panel opened at L:98-378 under
+  the 240px sidebar's nav rows, and z-300 inline on the panel plus every
+  positioned ancestor could not flip the paint order - the content card's
+  stacking context loses to the sidebar's sticky column no matter what z is
+  used inside it, so anchored-in-place panels can never be guaranteed above
+  the sidebar). The shared panel (dropdown-panel.tsx; consumers: toolbar
+  timezone/state/tags/view filters, channels dropdown, list state dropdown,
+  sidebar channel submenu + New menu, third-party kebab, notifications
+  desktop) now renders open via createPortal into body at position:fixed,
+  placed from the anchor wrapper's getBoundingClientRect (a hidden marker
+  span keeps the old `relative` wrapper as the anchor, so the API stays
+  byte-compatible); the start/end anchor prop maps to dir-aware logical
+  edges (documentElement direction, RTL mirrors), the consumer's mt-*
+  stays the trigger gap, and the panel flips above the trigger (bottom-
+  anchored) when it would overflow the viewport bottom with more room above
+  - this replaces the sidebar footer's UTIL_FLIP retarget for the bell
+  panel, with an 8px horizontal viewport clamp keeping the 420px
+  notifications panel on-screen. Repositions on capture-phase passive
+  scroll, window resize and panel ResizeObserver; listeners cleaned on
+  close. Outside-click preserved: the portaled panel stops native
+  mousedown/touchstart from reaching document, so useClickAway/useDropdown
+  keep treating in-panel presses as inside (use-dropdown.ts comment
+  updated). className rides the portaled node, so width utilities and the
+  notifications/channels phone:hidden gates still apply; `!static`
+  consumers (impersonate pill card) keep the in-place render. z stays in
+  the dropdown band (100), which in a body portal resolves in the root
+  stacking context and is immune to ancestor contexts (canonical scale
+  comment updated in global.scss). tsc clean.
 - 2026-08-11 - Composer assistant: the stock CopilotKit popup (CopilotPopup
   in manage.modal.tsx; transparent panel the composer's globe tab/editor
   bled through, mis-stacked, "Powered by CopilotKit" footer) is replaced by

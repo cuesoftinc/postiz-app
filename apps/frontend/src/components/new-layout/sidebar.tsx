@@ -797,14 +797,16 @@ const ChannelsLimitCard: FC = () => {
  *    (OrganizationSelector with one org, ChromeExtension without billing,
  *    AttachToFeedbackIcon without a Sentry DSN, ModeComponent pre-mount), so
  *    no phantom 32px hover squares appear.
- *  - UTIL_FLIP retargets the subtree's two class-positioned popovers (the
- *    bell's DropdownPanel and the org selector's hover menu, both
- *    `absolute top-[100%] end-0`): in the DESKTOP footer they must open
- *    UPWARD (the row sits ~90px above the viewport bottom) and hug `start`
- *    (end-anchoring at the screen's start edge would push the 420px
- *    notifications panel off-screen). The language flag's inline-style
- *    absolute img is untouched (class selector only). In the phone drawer
- *    the row is high in the page with room below, so stock anchoring stays.
+ *  - UTIL_FLIP retargets the subtree's class-positioned popover, the org
+ *    selector's hover menu (`absolute top-[100%] end-0`): in the DESKTOP
+ *    footer it must open UPWARD (the row sits ~90px above the viewport
+ *    bottom) and hug `start`. The bell's DropdownPanel used to be flipped by
+ *    this too, but it is PORTALED into document.body now and gets the same
+ *    behavior from its own viewport math (bottom-overflow flip + horizontal
+ *    clamp, so the 420px notifications panel still hugs the screen start
+ *    instead of hanging off it). The language flag's inline-style absolute
+ *    img is untouched (class selector only). In the phone drawer the row is
+ *    high in the page with room below, so stock anchoring stays.
  *  - The org selector's trailing 1px block separator (a top-bar artifact) is
  *    hidden; the row gap provides the rhythm.
  *

@@ -126,9 +126,11 @@ export const NotificationOpenComponent: FC<{
 
   return (
     <>
-      {/* Desktop: the anchored dropdown, behavior unchanged (the sidebar
-          footer's UTIL_FLIP still flips it above the bell); phone:hidden only
-          adds the max-767 cutoff. */}
+      {/* Desktop: the anchored dropdown, behavior unchanged (the portaled
+          DropdownPanel's own viewport math flips it above the bell in the
+          sidebar footer and clamps it inside the screen, replacing the old
+          UTIL_FLIP retarget); phone:hidden only adds the max-767 cutoff and
+          keeps working because the portal carries this className. */}
       <DropdownPanel
         surface="panel"
         anchor="end"
@@ -149,8 +151,8 @@ export const NotificationOpenComponent: FC<{
           PhoneCalendarSheet shell from launches/filters.tsx (fixed scrim,
           white rounded-t card, backdrop tap closes; h-[100dvh] because a
           fixed inset-0 box refuses to stretch between insets in this stack).
-          `fixed` (not .absolute) also keeps it clear of the footer's
-          UTIL_FLIP retarget. No 'cs:surface-open' announcement: the drawer
+          `fixed` (not .absolute) keeps it clear of the footer's UTIL_FLIP
+          retarget. No 'cs:surface-open' announcement: the drawer
           would yield (close) and unmount this sheet with it, and the scrim
           already covers the drawer; closing returns to it. */}
       <div

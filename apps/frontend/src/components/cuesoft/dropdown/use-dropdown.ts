@@ -8,9 +8,14 @@ import { useClickAway } from '@uidotdev/usehooks';
  * (plan row 13's companion hook). One dismissal contract everywhere:
  * click-away closes, Escape closes, the trigger toggles.
  *
- * The returned ref goes on the wrapper that contains BOTH the trigger and
- * the panel (the `relative` anchor), matching how the notification bell
- * already structured its click-away.
+ * The returned ref goes on the wrapper that contains the trigger (the
+ * `relative` anchor), matching how the notification bell already structured
+ * its click-away. NOTE: DropdownPanel is PORTALED into document.body, so the
+ * open panel is NOT inside this ref's subtree anymore; useClickAway's
+ * document-level mousedown/touchstart handlers would read presses inside the
+ * panel as outside. The panel itself compensates - it stops those events
+ * from reaching document (see dropdown-panel.tsx), so this hook needs no
+ * panel ref and raw useClickAway call sites keep working unchanged.
  */
 export const useDropdown = <T extends HTMLElement = HTMLDivElement>() => {
   const [open, setOpen] = useState(false);

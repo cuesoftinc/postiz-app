@@ -52,9 +52,9 @@ export const ThirdPartyMenuComponent: FC<{
   };
 
   return (
-    // `relative` stays on the wrapper — it anchors the absolute DropdownPanel;
-    // the 32px hover box (S4: quiet icon triggers get a visible box + a
-    // >=32px tap target) lives on the button inside it.
+    // The wrapper is the DropdownPanel's placement anchor (the portal
+    // measures its rect); the 32px hover box (S4: quiet icon triggers get a
+    // visible box + a >=32px tap target) lives on the button inside it.
     <div className="relative select-none" ref={ref}>
       <button
         type="button"
@@ -197,7 +197,7 @@ export const ThirdPartyComponent = () => {
           </div>
         ) : data?.length ? (
           // Bordered card list (radius 12). No overflow-hidden: the kebab's
-          // DropdownPanel is `absolute top-[100%]` and must escape the card;
+          // DropdownPanel is portaled (clipping cannot reach it), but the
           // first/last radii keep the row hover fill inside the corners.
           <div className="flex flex-col border border-newTableBorder rounded-[12px]">
             {data.map((p: any) => (

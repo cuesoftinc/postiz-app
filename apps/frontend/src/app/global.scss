@@ -905,7 +905,12 @@ html[dir='rtl'] [dir='ltr'] {
    [100]     dropdowns + popovers in page context - every DropdownPanel
              surface, toolbar filters (channels/state/tags/timezone/view),
              org selector, sidebar plan menu, calendar cell kebabs
-             (viewport-rooted; backdrops 99)
+             (viewport-rooted; backdrops 99). DropdownPanel is PORTALED into
+             document.body (fixed, placed from the anchor rect), so its 100
+             resolves in the ROOT stacking context and is immune to ancestor
+             contexts - the sidebar's sticky column can no longer paint over
+             it (live-verified 1180px timezone-panel defect). The `!static`
+             in-place escape (impersonate pill card) still resolves locally.
    [150-199] fixed page furniture - support bubble 199, impersonate pill 199,
              bottom billing bar 150, chatbase launcher cap 199
    [200-299] modal layer - new-modal store keeps inline zIndex 200+index;
