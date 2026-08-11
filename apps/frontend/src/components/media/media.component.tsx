@@ -985,7 +985,7 @@ export const MultiMediaComponent: FC<{
             </div>
           )}
           {information && (
-            <div className="flex-1 justify-end flex py-[10px] b2 items-center gap-[4px]">
+            <div className="flex-1 min-w-0 justify-end flex py-[10px] b2 items-center gap-[4px]">
               {information}
             </div>
           )}

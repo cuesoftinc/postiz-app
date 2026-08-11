@@ -360,7 +360,7 @@ export const EditorWrapper: FC<{
   return (
     <div
       className={clsx(
-        'relative flex-col gap-[20px] flex-1',
+        'relative flex-col gap-[20px] flex-1 min-w-0',
         (items.length === 1 || !canEdit || !comments) && 'flex',
         ((!canEdit && !isCreateSet) || !comments) &&
           'bg-newSettings rounded-[12px]'
@@ -703,7 +703,7 @@ export const Editor: FC<{
   }
 
   return (
-    <div className="flex flex-col gap-[20px] flex-1">
+    <div className="flex flex-col gap-[20px] flex-1 min-w-0">
       <div
         className={clsx(
           'relative flex-1 min-w-0 px-[12px] pt-[12px] pb-[12px] flex flex-col',
