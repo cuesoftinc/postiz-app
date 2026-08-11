@@ -29,7 +29,7 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { capitalize } from 'lodash';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
-import { CopilotPopup } from '@copilotkit/react-ui';
+import { ContentChatComponent } from '@gitroom/frontend/components/content-agent/content-chat.component';
 import { DummyCodeComponent } from '@gitroom/frontend/components/new-launch/dummy.code.component';
 import { CreationMethodBadge } from '@gitroom/frontend/components/launches/creation.method.badge';
 import {
@@ -63,6 +63,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   // phone sheet opens editor-first while the desktop pane keeps default-ON.
   // Same rule as showPreview: visual only, the pane is never unmounted.
   const [showPreviewPhone, setShowPreviewPhone] = useState(false);
+  // Assistant slide-over (Claude Code bridge; replaced the stock CopilotKit
+  // popup, whose transparent panel let the composer bleed through). Visual
+  // only: the pane stays mounted so the bridge session survives toggling.
+  const [showAssistant, setShowAssistant] = useState(false);
   const { data: shortlinkPreferenceData } = useShortlinkPreference();
 
   const { addEditSets, mutate, customClose, dummy } = props;
@@ -464,13 +468,17 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           bracket-escaping of arbitrary Tailwind classes. */}
       <style>
         {`
-          #cs-composer [class*="h-[30px]"][class*="rounded-[6px]"] {
+          /* :not([class*="bg-[#FF"]) exempts the char-counter chip: this
+             quiet-chip restyle was stripping its invalid-state red fill
+             with !important, leaving white icon/text on a light surface
+             (user report; the icon color itself was never the bug) */
+          #cs-composer [class*="h-[30px]"][class*="rounded-[6px]"]:not([class*="bg-[#FF"]) {
             height: 32px !important;
             border-radius: 8px !important;
             background: transparent !important;
             border: 1px solid var(--new-table-border);
           }
-          #cs-composer [class*="h-[30px]"][class*="rounded-[6px]"]:hover {
+          #cs-composer [class*="h-[30px]"][class*="rounded-[6px]"]:not([class*="bg-[#FF"]):hover {
             background: var(--new-table-header) !important;
           }
           #cs-composer [class*="w-[30px]"][class*="rounded-[6px]"] {
@@ -586,7 +594,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           1px ambient), not a heavy drop shadow. */}
       <div
         id="cs-composer"
-        className="flex w-full max-w-[1100px] phone:min-w-0 phone:max-w-[100vw] h-full max-h-[813px] bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.02)]"
+        className="relative flex w-full max-w-[1100px] phone:min-w-0 phone:max-w-[100vw] h-full max-h-[813px] bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.02)]"
       >
         {/* HEADER — spans the full modal width above both panes. Title is
             18px/500 Inter, the BODY face — measured on Buffer's composer
@@ -635,6 +643,38 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           )}
           <div className="flex-1" />
+          {/* Assistant ghost toggle: same quiet-control anatomy as Preview
+              (32px, 14/500, hover wash; lime boxFocused pair while the pane
+              is open). Opens the Claude Code bridge slide-over below. */}
+          <button
+            type="button"
+            data-cs
+            onClick={() => setShowAssistant(!showAssistant)}
+            className={clsx(
+              'h-[32px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors shrink-0',
+              showAssistant
+                ? 'bg-boxFocused text-textItemFocused'
+                : 'text-textItemBlur hover:bg-newTableHeader'
+            )}
+          >
+            {/* sparkle: the assistant glyph the bridge chat pane uses */}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+              <path d="M20 3v4" />
+              <path d="M22 5h-4" />
+            </svg>
+            {/* Buffer's phone header shows glyph-only controls */}
+            <span className="phone:hidden">{t('assistant', 'Assistant')}</span>
+          </button>
           {/* Buffer header quiet control: 32px, 14/500, muted ink + hover
               wash (borderless); active keeps the lime boxFocused pair
               (Buffer uses light sage; buttons-only lime stays per kit). */}
@@ -1005,29 +1045,131 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           </div>
         </div>
+        {/* ASSISTANT SLIDE-OVER: Claude Code bridge chat about THE POST
+            BEING COMPOSED (replaces the stock CopilotPopup, whose
+            transparent panel let the globe tab/editor bleed through).
+            Absolutely positioned over the composer, so the 1100px two-pane
+            geometry and its min-w-0 chains never see it. Mounted for the
+            modal's lifetime (hidden when closed) so the bridge session
+            survives toggling. */}
+        <AssistantPane
+          open={showAssistant}
+          onClose={() => setShowAssistant(false)}
+        />
       </div>
-      <CopilotPopup
-        hitEscapeToClose={false}
-        clickOutsideToClose={true}
-        instructions={`
-You are an assistant that help the user to schedule their social media posts,
-Here are the things you can do:
-- Add a new comment / post to the list of posts
-- Delete a comment / post from the list of posts
-- Add content to the comment / post
-- Activate or deactivate the comment / post
+    </div>
+  );
+};
 
-Post content can be added using the addPostContentFor{num} function.
-After using the addPostFor{num} it will create a new addPostContentFor{num+ 1} function.
-`}
-        labels={{
-          title: t('your_assistant', 'Your Assistant'),
-          initial: t(
-            'assistant_initial_message',
-            'Hi! I can help you to refine your social media posts.'
-          ),
-        }}
-      />
+/** Editor values are HTML; the bridge prefix wants plain text. Block/br
+ *  boundaries become newlines so a thread reads as separate lines. */
+const stripHtml = (html: string) =>
+  html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+/** Assistant slide-over: hosts the Claude Code bridge chat ('assistant'
+ *  profile) with a context prefix built from the LIVE composer state
+ *  (useLaunchStore), so the session's first bridge turn knows exactly which
+ *  post is on screen. Desktop: 380px right pane, full modal height, OPAQUE
+ *  bg-newBgColorInner; phone: full-screen sheet (the composer is already
+ *  full-viewport at <=1100px, so absolute inset-0 covers the screen without
+ *  position:fixed, which the modal layer above us could break with
+ *  transforms).
+ *  z-[560] = the in-modal-popovers band of the canonical z scale
+ *  (global.scss), above mention/tippy 550, so no composer chrome bleeds
+ *  through the pane (the bug the stock CopilotKit popup had). */
+const AssistantPane: FC<{ open: boolean; onClose: () => void }> = ({
+  open,
+  onClose,
+}) => {
+  const t = useT();
+  const existingData = useExistingData();
+  const { global, internal, current, selectedIntegrations, date } =
+    useLaunchStore(
+      useShallow((state) => ({
+        global: state.global,
+        internal: state.internal,
+        current: state.current,
+        selectedIntegrations: state.selectedIntegrations,
+        date: state.date,
+      }))
+    );
+
+  const contextPrefix = useMemo(() => {
+    // the text the user is looking at: the active channel tab's own values
+    // when it split off the global stack, else the global editor values
+    const values =
+      (current !== 'global' &&
+        internal.find((p) => p.integration.id === current)
+          ?.integrationValue) ||
+      global;
+    const raw = stripHtml(
+      (values || []).map((v) => v?.content || '').join('\n\n')
+    );
+    const text = raw.slice(0, 2000);
+    const channels = selectedIntegrations
+      .map((p) => `${p.integration.name} (${p.integration.identifier})`)
+      .join(', ');
+    return [
+      'You are helping the user WRITE the content of this specific Postiz post: the composer is open right now and your job is formulation. Draft captions, hooks, platform-fitted variants for the selected channels, hashtags and first-comment copy in the Cuesoft brand voice from the content brief. Always answer with ready-to-paste copy blocks and keep iterating with the user. Do NOT schedule anything, do NOT run pipeline or build scripts, and do NOT edit repo files in this conversation; this chat is for writing this one post.',
+      `Channels: ${channels || 'none selected yet'}`,
+      `Scheduled for: ${date.format('YYYY-MM-DD HH:mm')}`,
+      ...(existingData?.group
+        ? [`Editing existing post id: ${existingData.group}`]
+        : []),
+      `Current draft text (HTML stripped${
+        raw.length > 2000 ? ', truncated to 2000 chars' : ''
+      }):`,
+      text || '(empty)',
+    ].join('\n');
+  }, [
+    global,
+    internal,
+    current,
+    selectedIntegrations,
+    date,
+    existingData?.group,
+  ]);
+
+  return (
+    <div
+      className={clsx(
+        // rounded-e matches the modal's r16 corners (#cs-composer has no
+        // overflow-hidden to clip square ones); hidden (not unmounted) so
+        // the bridge session survives toggling
+        'absolute inset-y-0 end-0 z-[560] w-[380px] max-w-full flex flex-col bg-newBgColorInner border-s border-newTableBorder rounded-e-[16px] phone:inset-0 phone:w-full phone:border-s-0 phone:rounded-none',
+        !open && 'hidden'
+      )}
+    >
+      <div className="min-h-[56px] px-[16px] border-b border-newTableBorder flex items-center gap-[8px] shrink-0">
+        <div
+          data-cs
+          className="flex-1 text-[16px] font-[550] text-newTextColor"
+        >
+          {t('assistant', 'Assistant')}
+        </div>
+        <div
+          data-cs
+          onClick={onClose}
+          className="cursor-pointer flex items-center justify-center w-[32px] h-[32px] rounded-[8px] hover:bg-newTableHeader transition-colors shrink-0"
+        >
+          <CloseIcon className="text-textItemBlur" />
+        </div>
+      </div>
+      {/* content profile, not assistant: the content prompt is primed on the
+          brand voice and content brief (formulation); the assistant profile
+          is the schedule operator and deliberately cannot create */}
+      <ContentChatComponent profile="content" contextPrefix={contextPrefix} />
     </div>
   );
 };

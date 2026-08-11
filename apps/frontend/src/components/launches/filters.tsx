@@ -1761,6 +1761,7 @@ export const Filters = () => {
           customer={calendar.customer as string}
           onChange={(customer: string) => setCustomer(customer)}
           integrations={calendar.integrations}
+          layer="page"
         />
         <TimezoneFilter />
       </div>

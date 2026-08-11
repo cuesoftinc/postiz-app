@@ -620,12 +620,12 @@ export const WeekView = () => {
         >
           {isPhone && (
             // 7-span: the corner spacer pins on BOTH axes (sticky top+start)
-            // and sits above the z-20 day headers so they slide under it
-            // during sideways scroll
+            // and sits above the day headers (sticky-chrome band: headers 50,
+            // spacer 52) so they slide under it during sideways scroll
             <div
               className={clsx(
-                'bg-newBgColorInner h-[36px] sticky top-0 border-b border-newGridLine',
-                sevenSpan ? 'start-0 z-[30]' : 'z-[20]'
+                'bg-newBgColorInner h-[36px] sticky top-0 border-b border-newGridLine z-[52]',
+                sevenSpan && 'start-0'
               )}
             />
           )}
@@ -642,7 +642,7 @@ export const WeekView = () => {
               <div
                 key={day.date.format('YYYY-MM-DD')}
                 className={clsx(
-                  'text-center flex justify-center items-center gap-[8px] h-[36px] sticky top-0 z-[20] text-[14px] border-b border-newGridLine',
+                  'text-center flex justify-center items-center gap-[8px] h-[36px] sticky top-0 z-[50] text-[14px] border-b border-newGridLine',
                   isPast
                     ? 'repeated-strip bg-newTableHeader'
                     : 'bg-newBgColorInner',
@@ -661,11 +661,11 @@ export const WeekView = () => {
               {isPhone && (
                 // 7-span: the 48px time gutter pins to the start edge so the
                 // hour labels keep working while the days scroll sideways —
-                // under the z-20 sticky day headers, over the day cells
+                // under the z-50 sticky day headers, over the day cells
                 <div
                   className={clsx(
                     'bg-newBgColorInner',
-                    sevenSpan ? 'sticky start-0 z-[15]' : 'relative'
+                    sevenSpan ? 'sticky start-0 z-[48]' : 'relative'
                   )}
                 >
                   {/* hour 0 skipped: half-translated up, its label clipped
@@ -714,7 +714,7 @@ export const WeekView = () => {
             the fetch is done), a lightweight centered notice floats over the
             hour grid. pointer-events-none keeps the hour cells' add-post
             targets clickable; z-[10] keeps it under the sticky day headers
-            (z-20) but over the cell layer. */}
+            (z-50) but over the cell layer. */}
         {!loading && posts.length === 0 && (
           <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
             <div className="text-[14px] text-newTextColor/60">
@@ -825,7 +825,7 @@ export const MonthView = () => {
           {localizedDays.map((day) => (
             <div
               key={day.full}
-              className="z-[20] p-2 bg-newBgColorInner flex justify-center items-center flex-col h-full sticky top-0 min-w-0 overflow-hidden border-b border-newGridLine"
+              className="z-[50] p-2 bg-newBgColorInner flex justify-center items-center flex-col h-full sticky top-0 min-w-0 overflow-hidden border-b border-newGridLine"
             >
               <div className="text-[14px] font-[500] text-newTextColor/70">
                 <span className="phone:hidden">{day.full}</span>
@@ -1556,7 +1556,7 @@ export const CalendarColumn: FC<{
           )}
         >
           {loading && (
-            <div className="h-full w-full p-[5px] animate-pulse absolute left-0 top-0 z-[50]">
+            <div className="h-full w-full p-[5px] animate-pulse absolute left-0 top-0 z-[40]">
               <div className="h-full w-full bg-newSettings rounded-[10px]" />
             </div>
           )}
@@ -1937,7 +1937,37 @@ const CalendarItem: FC<{
   }, [post.content, display, expanded]);
   // Buffer parity: the card actions live in a labeled dropdown behind one
   // kebab, not a row of bare icons. Same handlers, new surface.
-  const [menuOpen, setMenuOpen] = useState(false);
+  // Z scale (global.scss): the kebab menu is a page dropdown (band 100,
+  // backdrop 99). It used to be `absolute` INSIDE the overflow-auto week/
+  // month grids, which clipped it on edge/bottom cells - it is now
+  // viewport-rooted: position:fixed at the trigger's rect, so no scroll
+  // container can clip it (invariant 2: never fix this by re-clipping
+  // ancestors). menuPos doubles as the open flag.
+  const [menuPos, setMenuPos] = useState<{
+    top?: number;
+    bottom?: number;
+    right: number;
+  } | null>(null);
+  const toggleMenu = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    // capture the rect eagerly - currentTarget is only valid during dispatch
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuPos((v) => {
+      if (v) {
+        return null;
+      }
+      const right = Math.max(
+        8,
+        document.documentElement.clientWidth - rect.right
+      );
+      // flip above the trigger when the (estimated, tallest ~320px) menu
+      // would fall off the bottom of the viewport
+      if (rect.bottom + 4 + 320 > window.innerHeight) {
+        return { bottom: window.innerHeight - rect.top + 4, right };
+      }
+      return { top: rect.bottom + 4, right };
+    });
+  }, []);
+  const closeMenu = useCallback(() => setMenuPos(null), []);
   // kit menu rows: fixed 32px tall, 14px/500
   const menuItemCls =
     'flex items-center gap-[10px] px-[10px] h-[32px] rounded-[6px] hover:bg-boxHover cursor-pointer text-[14px] font-[500] whitespace-nowrap text-newTextColor';
@@ -2100,7 +2130,7 @@ const CalendarItem: FC<{
         <div
           className={menuItemCls}
           onClick={() => {
-            setMenuOpen(false);
+            closeMenu();
             moveToDrafts();
           }}
         >
@@ -2111,7 +2141,7 @@ const CalendarItem: FC<{
       <div
         className={menuItemCls}
         onClick={() => {
-          setMenuOpen(false);
+          closeMenu();
           duplicatePost();
         }}
       >
@@ -2121,7 +2151,7 @@ const CalendarItem: FC<{
       <div
         className={menuItemCls}
         onClick={() => {
-          setMenuOpen(false);
+          closeMenu();
           preview();
         }}
       >
@@ -2136,7 +2166,7 @@ const CalendarItem: FC<{
           <div
             className={menuItemCls}
             onClick={() => {
-              setMenuOpen(false);
+              closeMenu();
               missingRelease();
             }}
           >
@@ -2147,7 +2177,7 @@ const CalendarItem: FC<{
           <div
             className={menuItemCls}
             onClick={() => {
-              setMenuOpen(false);
+              closeMenu();
               statistics();
             }}
           >
@@ -2159,7 +2189,7 @@ const CalendarItem: FC<{
         <div
           className={menuItemCls}
           onClick={() => {
-            setMenuOpen(false);
+            closeMenu();
             copyDebugJson();
           }}
         >
@@ -2171,7 +2201,7 @@ const CalendarItem: FC<{
       <div
         className={clsx(menuItemCls, '!text-[#FF3F3F]')}
         onClick={() => {
-          setMenuOpen(false);
+          closeMenu();
           deletePost();
         }}
       >
@@ -2240,7 +2270,7 @@ const CalendarItem: FC<{
               )}
               onClick={(e) => {
                 e.stopPropagation();
-                setMenuOpen((v) => !v);
+                toggleMenu(e);
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
@@ -2250,18 +2280,19 @@ const CalendarItem: FC<{
               </svg>
             </div>
           </div>
-          {menuOpen && (
+          {menuPos && (
             <>
               <div
-                className="fixed inset-0 z-[290]"
+                className="fixed inset-0 z-[99]"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setMenuOpen(false);
+                  closeMenu();
                 }}
               />
               <div
                 onClick={(e) => e.stopPropagation()}
-                className="absolute top-[26px] end-0 z-[300] min-w-[195px] py-[12px] px-[8px] bg-newBgColorInner rounded-[12px] shadow-[0_0_0_1px_rgba(0,0,0,.08),0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] dark:border dark:border-tableBorder flex flex-col"
+                style={menuPos}
+                className="fixed z-[100] min-w-[195px] py-[12px] px-[8px] bg-newBgColorInner rounded-[12px] shadow-[0_0_0_1px_rgba(0,0,0,.08),0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] dark:border dark:border-tableBorder flex flex-col"
               >
                 {actionMenuItems}
               </div>
@@ -2562,7 +2593,7 @@ const CalendarItem: FC<{
                 aria-label={t('more_actions', 'More actions')}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setMenuOpen((v) => !v);
+                  toggleMenu(e);
                 }}
                 className="w-[32px] h-[32px] min-w-[32px] phone:w-[40px] phone:h-[40px] phone:min-w-[40px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover"
               >
@@ -2581,18 +2612,19 @@ const CalendarItem: FC<{
                   <circle cx="12" cy="19" r="1" />
                 </svg>
               </button>
-              {menuOpen && (
+              {menuPos && (
                 <>
                   <div
-                    className="fixed inset-0 z-[290]"
+                    className="fixed inset-0 z-[99]"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setMenuOpen(false);
+                      closeMenu();
                     }}
                   />
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-[36px] end-0 z-[300] min-w-[195px] py-[12px] px-[8px] bg-newBgColorInner rounded-[12px] shadow-[0_0_0_1px_rgba(0,0,0,.08),0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] dark:border dark:border-tableBorder flex flex-col"
+                    style={menuPos}
+                    className="fixed z-[100] min-w-[195px] py-[12px] px-[8px] bg-newBgColorInner rounded-[12px] shadow-[0_0_0_1px_rgba(0,0,0,.08),0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] dark:border dark:border-tableBorder flex flex-col"
                   >
                     {actionMenuItems}
                   </div>

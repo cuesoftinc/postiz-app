@@ -1040,7 +1040,7 @@ export const Impersonate = () => {
   // the bottom-START corner on ALL breakpoints (bottom-end is reserved for
   // the help bubble slot, like Buffer). The popover left-aligns with it.
   return (
-    <div className="fixed bottom-[12px] inset-x-0 z-[600] flex flex-col items-start gap-[8px] pointer-events-none ps-[12px]">
+    <div className="fixed bottom-[12px] inset-x-0 z-[199] flex flex-col items-start gap-[8px] pointer-events-none ps-[12px]">
       {open && (
         <>
           {/* click-away layer — painted under the panel/pill (source order) */}

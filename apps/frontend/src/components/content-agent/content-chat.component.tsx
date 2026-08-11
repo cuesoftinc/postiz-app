@@ -48,12 +48,19 @@ export const ContentChatComponent: FC<{
   /** Hands the pane's session-reset up to the page header's New chat button
       (agent.tsx) — session state itself never leaves this component. */
   registerReset?: (reset: (() => void) | null) => void;
+  /** Prepended ONCE to the first message of a session before it goes to the
+      bridge (no session id minted yet = first message). Invisible to the
+      transcript: the thread renders only the user's own text. Lets an
+      embedding surface (the composer's assistant pane) hand the bridge its
+      live context without polluting the chat. */
+  contextPrefix?: string;
 }> = ({
   profile = 'content',
   activeSessionId,
   onSessionChange,
   onTurnEnd,
   registerReset,
+  contextPrefix,
 }) => {
   const t = useT();
   const fetch = useFetch();
@@ -116,6 +123,14 @@ export const ContentChatComponent: FC<{
   const send = useCallback(async () => {
     const message = input.trim();
     if (!message || streaming) return;
+    // first message of a session (nothing minted/resumed yet): the context
+    // prefix rides along to the bridge but never enters the transcript. If
+    // the first turn fails before a session exists, the retry re-prefixes;
+    // that is still the session's first message.
+    const outbound =
+      contextPrefix && !sessionRef.current
+        ? `${contextPrefix}\n\n${message}`
+        : message;
     const run = ++runRef.current;
     setInput('');
     // send keeps focus in the composer (parity with agent.input.tsx's send)
@@ -152,7 +167,7 @@ export const ContentChatComponent: FC<{
       const response = await fetch('/copilot/content-chat', {
         method: 'POST',
         body: JSON.stringify({
-          message,
+          message: outbound,
           sessionId: sessionRef.current || undefined,
           profile,
         }),
@@ -204,7 +219,16 @@ export const ContentChatComponent: FC<{
       setStreaming(false);
       onTurnEnd?.();
     }
-  }, [input, streaming, fetch, t, profile, onSessionChange, onTurnEnd]);
+  }, [
+    input,
+    streaming,
+    fetch,
+    t,
+    profile,
+    contextPrefix,
+    onSessionChange,
+    onTurnEnd,
+  ]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {

@@ -72,7 +72,7 @@ export const CheckPaymentInner: FC<{
     // Buffer-style: a ghost card of skeleton rows (shaped like the payment
     // confirmation that is about to appear) instead of a 250px spinner
     return (
-      <div className="fixed bg-black/40 w-full h-full flex justify-center items-center z-[400]">
+      <div className="fixed bg-black/40 w-full h-full flex justify-center items-center z-[290]">
         <div className="w-[360px] max-w-[calc(100vw-48px)] bg-newBgColorInner border border-newTableBorder rounded-[12px] p-[20px] flex flex-col gap-[16px]">
           <Skeleton className="h-[16px] w-[55%]" />
           <SkeletonText rows={3} />

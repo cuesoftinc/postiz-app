@@ -131,7 +131,7 @@ export const LinkedinCompany: FC<{
     }
   };
   return (
-    <div className="text-newTextColor fixed start-0 top-0 bg-newBackdrop/80 z-[300] w-full h-full p-[60px] animate-fade justify-center flex">
+    <div className="text-newTextColor fixed start-0 top-0 bg-newBackdrop/80 z-[250] w-full h-full p-[60px] animate-fade justify-center flex">
       <div className="flex flex-col w-[500px] h-[250px] bg-newBgColorInner border-newTableBorder border rounded-[16px] pb-[20px] px-[20px] relative">
         <div className="flex">
           <div className="flex-1">

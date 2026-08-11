@@ -313,10 +313,10 @@ export const MenuComponent: FC<
                 : continueIntegration(integration)
             }
           >
-            <div className="bg-red-500 w-[15px] h-[15px] rounded-full start-[5px] top-[5px] absolute z-[200] text-[10px] flex justify-center items-center">
+            <div className="bg-red-500 w-[15px] h-[15px] rounded-full start-[5px] top-[5px] absolute z-[20] text-[10px] flex justify-center items-center">
               !
             </div>
-            <div className="bg-primary/60 w-[39px] h-[46px] start-0 top-0 absolute rounded-full z-[199]" />
+            <div className="bg-primary/60 w-[39px] h-[46px] start-0 top-0 absolute rounded-full z-[10]" />
           </div>
         )}
         <ImageWithFallback
@@ -603,7 +603,7 @@ export const LaunchesComponent = () => {
       <CalendarWeekProvider integrations={sortedIntegrations}>
         {manageOpen && (
           <div
-            className="flex fixed inset-0 z-[500] bg-black/60 items-start justify-center overflow-y-auto py-[48px] phone:py-0"
+            className="flex fixed inset-0 z-[210] bg-black/60 items-start justify-center overflow-y-auto py-[48px] phone:py-0"
             onClick={(e) => {
               if (e.target === e.currentTarget) closeManage();
             }}
@@ -656,7 +656,12 @@ export const LaunchesComponent = () => {
           </span>
           <PageHeader />
           <Filters />
-          <div className="flex-1 flex">
+          {/* phone floor: the week/day grids are position:absolute (zero
+              intrinsic height), so the in-flow drawer used to crush this
+              flex-1 pane to ~2px. A viewport-scale min-height makes the
+              drawer PUSH the calendar down (page scrolls) like Buffer,
+              never compress it. */}
+          <div className="flex-1 flex phone:min-h-[calc(100dvh-180px)]">
             <Calendar />
             <UndatedDraftsPanel />
           </div>

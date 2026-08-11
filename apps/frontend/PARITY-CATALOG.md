@@ -24,6 +24,48 @@ changelog line). Statuses:
 **The loop ends when no `NEEDS-WORK` or `NEEDS-BUFFER-MEASUREMENT` rows remain.**
 
 **Changelog**
+- 2026-08-11 - Composer assistant: the stock CopilotKit popup (CopilotPopup
+  in manage.modal.tsx; transparent panel the composer's globe tab/editor
+  bled through, mis-stacked, "Powered by CopilotKit" footer) is replaced by
+  the Claude Code bridge chat. New AssistantPane slide-over INSIDE the
+  composer modal (desktop: 380px right pane, full modal height, opaque
+  bg-newBgColorInner + border-s hairline, rounded-e-16; phone: full-screen
+  sheet via absolute inset-0 over the full-viewport composer), z-[560] on
+  the canonical scale (in-modal-popovers band, above mention/tippy 550;
+  scale comment updated). Trigger: ghost "Assistant" header button next to
+  Preview (32px, 14/500, sparkle glyph, glyph-only at phone, lime
+  boxFocused pair while open). The pane mounts ContentChatComponent
+  (profile 'assistant') with a new contextPrefix prop: prepended once to a
+  session's FIRST message, server-bound only (the transcript renders the
+  user's own text), built live from useLaunchStore (current tab's editor
+  values HTML-stripped and capped at 2000 chars, selected channel
+  names/platforms, scheduled date, existing post group id when editing).
+  The pane is absolutely positioned and kept mounted (hidden) so the 1100px
+  two-pane geometry, its min-w-0 chains and the bridge session all survive
+  toggling; editor.tsx's useCopilotReadable/useCopilotAction stay (harmless
+  without the popup; removing them risks store regressions). tsc clean.
+- 2026-08-11 - Z-index normalization: one canonical scale (documented as a
+  comment block atop the Cuesoft section of global.scss). Bands: 0-40
+  content chrome, 50 sticky chrome (calendar day headers 50, week gutter 48,
+  corner spacer 52), 100 page dropdowns (EVERY DropdownPanel surface incl.
+  the timezone/channels/state/tags/view filters, org selector, sidebar plan
+  menu; the panel surface's out-of-band z-[600] outranked the modal layer),
+  150-199 fixed furniture (support bubble + impersonate pill 199, billing
+  bar 150, chatbase cap 199), 200-299 modals (store keeps 200+index;
+  manage-channels 210; drop.files 240, linkedin/post-url/finish-trial/
+  heygen 250, polonto 260, check.payment 290, login-required gate 200),
+  300-599 in-modal popovers (mention/tippy 1000->550, bp5-portal 9999->599,
+  react-tags listbox 1000->599; tags/date/repeat/delay 300, subreddits 400,
+  emoji + customer select 500 kept), 650 phone sheets (kept), 700+ toasts
+  (toaster 900 kept) with tooltips at 750 as a single declaration (the
+  #tooltip{10000} escalation in global.scss is deleted; top.tip.tsx carries
+  z-[750]). Calendar cell kebab menus are now viewport-rooted (position:
+  fixed at the trigger rect, band 100/backdrop 99) so the overflow-auto
+  week/month grids can no longer clip edge/bottom cells; SelectCustomer
+  gained a layer prop (page toolbar 100 / composer 500) and its fixed menu
+  is explicitly layered; impersonate/user-search legacy 998/999 retired to
+  99/100; channel attention dot/halo 200/199 -> 20/10; media badges
+  100-200 -> 20/21. tsc clean.
 - 2026-08-11 - Post Preview media frames flex to the media. The fixed-height
   frames (instagram slider h-[585px], facebook/linkedin rows h-[280px],
   facebook comment row h-[100px]) height-capped or dead-banded contained

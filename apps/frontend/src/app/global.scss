@@ -45,9 +45,8 @@ body * {
   position: relative;
   z-index: 2;
 }
-#tooltip {
-  z-index: 10000;
-}
+/* #tooltip z-index escalation removed: tooltips carry their single z
+   declaration (750, tooltip band) on the component class in top.tip.tsx. */
 .box:after {
   border-radius: 50px;
   width: 100%;
@@ -329,7 +328,11 @@ body * {
 }
 
 .bp5-portal {
-  z-index: 9999 !important;
+  /* blueprint datetime portal (portals to <body>, so this resolves in the
+     ROOT context): top of the in-modal popover band - above the modal layer
+     (200-299) it opens from, below phone sheets (650) and toasts (700+).
+     !important still needed to beat blueprint's own overlay z. */
+  z-index: 599 !important;
 }
 
 :empty + .existing-empty {
@@ -381,6 +384,11 @@ body * {
 //}
 
 .trz {
+  /* HAZARD (see the canonical z scale below): translateZ(0) creates a
+     stacking context AND becomes the containing block for position:fixed
+     descendants. Chat panes (sessions rail, agent chat) use it for paint
+     isolation - never host a popover, tooltip anchor, or anything that
+     needs position:fixed under a .trz element. */
   transform: translateZ(0);
 }
 
@@ -493,7 +501,9 @@ div div .set-font-family {
 }
 
 .tags-top .react-tags__listbox {
-  z-index: 1000 !important;
+  /* react-tags listbox inside the composer modal context: top of the
+     in-modal popover band (was 1000, which outranked the toaster). */
+  z-index: 599 !important;
 }
 
 .tags-top .react-tags__list-item > div {
@@ -883,6 +893,50 @@ html[dir='rtl'] [dir='ltr'] {
    that is what silently pinned the super-admin banner to 40px when the
    component asked for `h-[52px]` at auto height.
    ========================================================================== */
+
+/* ============================================================================
+   CANONICAL Z SCALE (postiz-app fork, apps/frontend)
+
+   [0-40]    in-content chrome - avatars/badges/hour labels/empty-state
+             notices/cell hover affordances
+   [50]      sticky chrome inside scroll containers - calendar day headers 50,
+             week time gutter 48 (under headers), week corner spacer 52 (over
+             headers)
+   [100]     dropdowns + popovers in page context - every DropdownPanel
+             surface, toolbar filters (channels/state/tags/timezone/view),
+             org selector, sidebar plan menu, calendar cell kebabs
+             (viewport-rooted; backdrops 99)
+   [150-199] fixed page furniture - support bubble 199, impersonate pill 199,
+             bottom billing bar 150, chatbase launcher cap 199
+   [200-299] modal layer - new-modal store keeps inline zIndex 200+index;
+             manage-channels overlay 210; fixed full-screen helpers:
+             drop.files 240, linkedin/post-url/finish.trial/heygen 250,
+             polonto 260, check.payment 290; login-required gate 200
+   [300-599] in-modal popovers - tags/date/repeat/delay/information 300,
+             subreddit autocompletes 400, emoji + customer select 500,
+             mention/tippy 550, composer assistant slide-over 560
+             (manage.modal.tsx AssistantPane; opaque pane, must beat every
+             in-editor popover), bp5-portal + react-tags listbox 599
+   [650]     phone bottom sheets (notifications, PhoneFilterSheet,
+             PhoneCalendarSheet, channels sheet, analytics sheet)
+   [700+]    toasts 700-900 (toaster 900), tooltips 750 as ONE declaration
+             (top.tip.tsx z-[750]; the old #tooltip{10000} escalation is gone)
+
+   INVARIANTS
+   (1) a page dropdown must beat sticky chrome (50) and lose to modals (200+).
+   (2) nothing absolutely-positioned inside an overflow-auto/hidden ancestor
+       may be a popover - viewport-root it (fixed + anchor rect) or portal
+       it; the calendar grids (calendar.tsx WeekView/MonthView) and the
+       layout card (layout.component.tsx overflow-hidden) are the live clip
+       boundaries.
+   (3) transform containers (.trz translateZ(0) on chat panes; rule above in
+       this file) create stacking contexts and break position:fixed inside
+       them - never host popovers under one.
+   (4) position:sticky/fixed elements self-create stacking contexts, so
+       their z caps everything inside them.
+   (5) never fix stacking by re-clipping ancestors (no overflow-hidden
+       band-aids: that class of fix buried the tags dropdown).
+   ========================================================================== */
 html {
   font-size: 14px;
 }
@@ -1215,13 +1269,13 @@ select, label[for], input[type="checkbox"], input[type="radio"] { cursor: pointe
 
 .group > [class*="rounded-br-[10px]"][class*="rounded-bl-[10px]"],          /* post card */
 [class*="group/profile"],                                                   /* channel + settings rows */
-[class*="rtl:rotate-180"]:not([class*="cursor-not-allowed"]),               /* pager arrows */
-[class*="grid-cols-7"] .flex.flex-col.w-full[class*="min-h-full"]:not([class*="cursor-not-allowed"]), /* future calendar day */
+[class*="rtl:rotate-180"]:not([class~="cursor-not-allowed"]),               /* pager arrows */
+[class*="grid-cols-7"] .flex.flex-col.w-full[class*="min-h-full"]:not([class~="cursor-not-allowed"]), /* future calendar day */
 .w-full.h-full[class*="rounded-[6px]"][class*="border-[4px]"]               /* media tile */
 { cursor: pointer; }
 
 /* never override an explicit disabled affordance (past days, disabled pager) */
-[class*="cursor-not-allowed"], button:disabled { cursor: not-allowed !important; }
+[class~="cursor-not-allowed"], button:disabled { cursor: not-allowed !important; }
 
 /* ===== Focus =====
    Keyboard focus gets a 1px brand-blue ring — blue reads on both themes and

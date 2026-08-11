@@ -73,7 +73,7 @@ const ErrorDetailsModal: FC<{ row: ErrorRow }> = ({ row }) => {
       gap={0}
       className="rounded-[4px] border border-newTableBorder bg-newBgColorInner px-[16px] pb-[16px] relative w-full max-h-[80vh] overflow-auto"
     >
-      <div className="sticky top-0 bg-newBgColorInner py-[16px] flex items-center justify-between gap-[12px] z-10 border-b border-newTableBorder mb-[12px]">
+      <div className="sticky top-0 bg-newBgColorInner py-[16px] flex items-center justify-between gap-[12px] z-[50] border-b border-newTableBorder mb-[12px]">
         <div className="text-[16px] font-[550]">Error Details</div>
         <div className="flex gap-[8px] items-center">
           <Button onClick={copyAll}>Copy Debug Code</Button>

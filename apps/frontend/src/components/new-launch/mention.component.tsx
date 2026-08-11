@@ -155,7 +155,7 @@ const updatePosition = (editor: any, element: any) => {
     element.style.position = strategy;
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
-    element.style.zIndex = '1000';
+    element.style.zIndex = '550';
   });
 };
 
@@ -210,7 +210,7 @@ export const suggestion = (
           }
 
           component.element.style.position = 'absolute';
-          component.element.style.zIndex = '1000';
+          component.element.style.zIndex = '550';
 
           const container =
             document.querySelector('.mantine-Paper-root') || document.body;

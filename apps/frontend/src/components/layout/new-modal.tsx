@@ -333,6 +333,10 @@ export const ModalManagerInner: FC = () => {
   return (
     <>
       <style>{`body, html { overflow: hidden !important; }`}</style>
+      {/* 200+index is the canonical modal-band anchor (200-299 - see the z
+          scale in global.scss). Each wrapper's inline zIndex makes it the
+          stacking context that contains ALL in-modal popovers (300-599
+          resolve locally inside it). */}
       {modalManager.map((modal, index) => (
         <Component
           isLast={modalManager.length - 1 === index}

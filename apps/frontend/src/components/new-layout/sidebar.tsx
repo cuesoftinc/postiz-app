@@ -933,7 +933,7 @@ const SidebarOrganization: FC<{
     <div
       className={clsx(
         'absolute bottom-[calc(100%+4px)] flex flex-col',
-        'min-w-[184px] p-[4px] gap-[2px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] z-[600]',
+        'min-w-[184px] p-[4px] gap-[2px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] z-[100]',
         collapsed ? 'start-0' : 'start-0 end-0'
       )}
     >

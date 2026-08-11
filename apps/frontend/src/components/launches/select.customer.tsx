@@ -15,8 +15,18 @@ export const SelectCustomer: FC<{
   onChange: (value: string) => void;
   integrations: Integrations[];
   customer?: string;
+  /**
+   * Which stacking context hosts the menu (canonical z scale, global.scss):
+   * - 'page'  (launches toolbar): dropdown band 100 in the root context -
+   *   above sticky calendar chrome (50), below the modal layer (200+).
+   * - 'modal' (composer): 500 resolves INSIDE the composer modal's inline
+   *   zIndex context - top of the in-modal popover band.
+   * The menu itself is already viewport-rooted (fixed at the trigger rect),
+   * so no overflow ancestor can clip it; only the band differs per host.
+   */
+  layer?: 'page' | 'modal';
 }> = (props) => {
-  const { onChange, integrations, customer: currentCustomer } = props;
+  const { onChange, integrations, customer: currentCustomer, layer = 'modal' } = props;
   const { setCurrent } = useLaunchStore(
     useShallow((state) => ({
       setCurrent: state.setCurrent,
@@ -52,7 +62,7 @@ export const SelectCustomer: FC<{
   }
 
   return (
-    <div className="relative select-none z-[500]" ref={ref}>
+    <div className="relative select-none" ref={ref}>
       <div
         data-tooltip-id="tooltip"
         data-tooltip-content={t('select_customer_tooltip', 'Select Customer')}
@@ -72,7 +82,10 @@ export const SelectCustomer: FC<{
       {open && (
         <div
           style={pos}
-          className="flex flex-col fixed pt-[12px] bg-newBgColorInner menu-shadow min-w-[250px]"
+          className={clsx(
+            'flex flex-col fixed pt-[12px] bg-newBgColorInner menu-shadow min-w-[250px]',
+            layer === 'modal' ? 'z-[500]' : 'z-[100]'
+          )}
         >
           <div className="text-[14px] font-[550] px-[12px] mb-[5px]">
             {t('customers', 'Customers')}

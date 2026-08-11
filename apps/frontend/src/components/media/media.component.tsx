@@ -642,18 +642,18 @@ export const MediaBox: FC<{
                     onClick={addRemoveSelected(media)}
                   >
                     {!!selected.find((p: any) => p.id === media.id) ? (
-                      <div className="text-white flex z-[101] justify-center items-center text-[14px] font-[500] w-[24px] h-[24px] rounded-full bg-forth absolute -bottom-[10px] -end-[10px]">
+                      <div className="text-white flex z-[21] justify-center items-center text-[14px] font-[500] w-[24px] h-[24px] rounded-full bg-forth absolute -bottom-[10px] -end-[10px]">
                         {selected.findIndex((z: any) => z.id === media.id) + 1}
                       </div>
                     ) : (
                       <DeleteCircleIcon
-                        className="cursor-pointer hidden z-[100] group-hover:block absolute -top-[5px] -end-[5px]"
+                        className="cursor-pointer hidden z-[20] group-hover:block absolute -top-[5px] -end-[5px]"
                         onClick={deleteImage(media)}
                       />
                     )}
                     {/* filename badge: hover-only (Buffer never stamps
                         permanent text over thumbnails), 12px type floor */}
-                    <div className="hidden group-hover:block absolute bottom-[10px] end-[10px] z-[100] text-[12px] text-white bg-black/50 px-[6px] rounded-[6px] truncate max-w-[90%]">
+                    <div className="hidden group-hover:block absolute bottom-[10px] end-[10px] z-[20] text-[12px] text-white bg-black/50 px-[6px] rounded-[6px] truncate max-w-[90%]">
                       {media.originalName}
                     </div>
                     <div className="w-full h-full rounded-[8px] overflow-hidden relative">
@@ -706,8 +706,8 @@ export const MediaBox: FC<{
             current={page}
             totalPages={data?.pages}
             setPage={setPage}
-            // standalone page: clear the fixed bottom-center admin pill
-            // (fixed bottom-[16px] z-[600]) so it never covers the pager (S6)
+            // standalone page: clear the fixed bottom-start admin pill
+            // (fixed bottom-[12px] z-[199]) so it never covers the pager (S6)
             className={
               // `admin` is an API-only field (same untyped check gates the
               // pill render in new-layout/layout.component.tsx:86)
@@ -913,7 +913,7 @@ export const MultiMediaComponent: FC<{
                         }}
                         className="absolute top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%] bg-black/80 rounded-[6px] opacity-0 group-hover:opacity-100 transition-opacity z-[9]"
                       >
-                        <MediaSettingsIcon className="cursor-pointer relative z-[200]" />
+                        <MediaSettingsIcon className="cursor-pointer relative z-[20]" />
                       </div>
                       {hasExtension(media?.path, 'mp4') ? (
                         <VideoFrame url={mediaDirectory.set(media?.path)} />

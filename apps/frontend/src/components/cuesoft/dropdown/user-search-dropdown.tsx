@@ -11,11 +11,13 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
  * impersonate search).
  *
  * Pixel parity contract: backdrop (`bg-primary/80 fixed start-0 top-0 w-full
- * h-full z-[998]`), panel (`absolute top-[100%] start-0 w-full bg-sixth
- * border border-customColor6 text-newTextColor z-[999]`) and rows (`p-[10px]
+ * h-full`), panel (`absolute top-[100%] start-0 w-full bg-sixth
+ * border border-customColor6 text-newTextColor`) and rows (`p-[10px]
  * border-b border-customColor6 hover:bg-tableBorder cursor-pointer`) are
  * verbatim from the sources. The call site provides the `relative` ancestor,
- * so per-site anchoring is unchanged.
+ * so per-site anchoring is unchanged. Z re-banded from the legacy 998/999
+ * pair to the dropdown band (backdrop 99, panel 100 - canonical z scale in
+ * global.scss); both resolve inside the impersonate pill's fixed context.
  *
  * Twin-drift fixes baked in (plan-sanctioned):
  * - the row guards an empty name (the impersonate twin printed a dangling
@@ -52,12 +54,12 @@ export const UserSearchDropdown: FC<{
   return (
     <>
       <div
-        className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[998]"
+        className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[99]"
         onClick={onDismiss}
       />
       <div
         className={clsx(
-          'absolute top-[100%] start-0 w-full bg-sixth border border-customColor6 text-newTextColor z-[999]',
+          'absolute top-[100%] start-0 w-full bg-sixth border border-customColor6 text-newTextColor z-[100]',
           className
         )}
       >

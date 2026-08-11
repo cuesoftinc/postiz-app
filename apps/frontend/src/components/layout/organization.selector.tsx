@@ -82,7 +82,7 @@ export const OrganizationSelector: FC<{ asOpenSelect?: boolean }> = ({
             <div
               className={clsx(
                 'hidden group-hover:flex absolute top-[100%] end-0 cursor-pointer flex-col',
-                'min-w-[200px] p-[4px] gap-[2px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] z-[600]',
+                'min-w-[200px] p-[4px] gap-[2px] bg-newBgColorInner rounded-[8px] border border-newTableBorder shadow-[0_1px_1px_rgba(0,0,0,.02),0_4px_8px_rgba(0,0,0,.04)] z-[100]',
                 asOpenSelect ? '!flex !relative max-w-[500px] mx-auto mb-[10px]' : '',
               )}
             >

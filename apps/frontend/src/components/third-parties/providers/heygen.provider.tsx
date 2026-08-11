@@ -153,7 +153,7 @@ const HeygenProviderComponent = () => {
   return (
     <div>
       {form.formState.isSubmitting && (
-        <div className="fixed left-0 top-0 w-full h-screen bg-black/90 z-50 flex flex-col justify-center items-center text-center gap-[12px] p-[20px]">
+        <div className="fixed left-0 top-0 w-full h-screen bg-black/90 z-[250] flex flex-col justify-center items-center text-center gap-[12px] p-[20px]">
           {/* dark overlay: white ink, not the theme tokens (light mode's
               newTextColor is near-black and vanishes on black/90) */}
           <div data-cs className="text-[18px] font-[500] text-white">

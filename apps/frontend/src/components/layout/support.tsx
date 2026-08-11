@@ -56,7 +56,7 @@ export const Support = () => {
       aria-label={t('support', 'Support')}
       title={t('discord_support', 'Discord Support')}
       onClick={() => window.open(discordUrl)}
-      className="fixed end-[20px] bottom-[20px] z-[500] w-[36px] h-[36px] rounded-full flex items-center justify-center bg-[#def0ff] text-[#004781] shadow-[0_2px_8px_rgba(0,0,0,0.15)] cursor-pointer transition-transform duration-150 hover:scale-105"
+      className="fixed end-[20px] bottom-[20px] z-[199] w-[36px] h-[36px] rounded-full flex items-center justify-center bg-[#def0ff] text-[#004781] shadow-[0_2px_8px_rgba(0,0,0,0.15)] cursor-pointer transition-transform duration-150 hover:scale-105"
     >
       <svg
         width="20"

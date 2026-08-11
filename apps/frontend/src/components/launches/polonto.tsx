@@ -105,7 +105,7 @@ const Polonto: FC<{
     };
   }, []);
   return (
-    <div className="bg-white text-black relative z-[400] polonto">
+    <div className="bg-white text-black relative z-[260] polonto">
       <CloseContext.Provider
         value={{
           close: () => closeModal(),
