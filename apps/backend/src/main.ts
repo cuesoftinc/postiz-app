@@ -61,7 +61,20 @@ async function start() {
   });
 
   app.use(cookieParser());
-  app.use(compression());
+  // never compress SSE: the compressor buffers small writes, so heartbeats
+  // and deltas produce no wire bytes until the response ends — long quiet
+  // streams (content-bridge chat turns) then idle past nginx/Cloudflare
+  // timeouts and die as 520s mid-turn
+  app.use(
+    compression({
+      filter: (req, res) =>
+        String(res.getHeader('content-type') || '').includes(
+          'text/event-stream'
+        )
+          ? false
+          : compression.filter(req, res),
+    })
+  );
   app.useGlobalFilters(new SubscriptionExceptionFilter());
   app.useGlobalFilters(new PostValidationExceptionFilter());
   app.useGlobalFilters(new HttpExceptionFilter());

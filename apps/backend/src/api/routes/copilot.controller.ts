@@ -53,6 +53,9 @@ export class CopilotController {
       process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
     res.setHeader('content-type', 'text/event-stream');
     res.setHeader('cache-control', 'no-cache');
+    // the container's nginx must pass stream bytes through as they arrive:
+    // buffered SSE idles past proxy timeouts on long tool-using turns
+    res.setHeader('x-accel-buffering', 'no');
     (res as any).flushHeaders?.();
     const emitError = (message: string) => {
       try {
