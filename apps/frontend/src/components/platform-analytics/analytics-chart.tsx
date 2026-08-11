@@ -9,28 +9,32 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { AnalyticsDataItem } from '@gitroom/frontend/components/platform-analytics/render.analytics';
 import { ChartSkeleton } from '@gitroom/frontend/components/platform-analytics/analytics.skeletons';
+import { modeEmitter } from '@gitroom/frontend/components/layout/mode.component';
 
-/* Single flat accent for the one plotted series — the page's existing
-   data-positive green (validated ≥3:1 on the white surface). One series →
-   no legend; the metric picker names it. */
-const ACCENT = '#2f7d44';
+/* Single flat accent for the one plotted series, per theme: the page's
+   data-positive green on the white surface (validated ≥3:1 there), the brand
+   lime on dark — #2f7d44 on the near-black card reads ~2:1 and vanishes
+   (user report 2026-08-11). One series → no legend; the picker names it. */
+const ACCENT_LIGHT = '#2f7d44';
+const ACCENT_DARK = '#bfff72';
 
 /* Chart.js needs literal colors, and the tokens live in CSS variables
    (--new-textColor is bare "R G B" components, --new-table-border a full
-   rgba() string). Resolve at draw time with the Buffer-measured light values
-   as fallbacks, so the chart re-inks itself per theme like the rest of the
-   page. */
+   rgba() string). Resolve at draw time from document.BODY — the theme class
+   lives there (mode.component), so reading documentElement always returned
+   the LIGHT values and dark mode drew ghost labels (same user report). */
 const readChartInk = () => {
   const fallback = {
     muted: 'rgba(41, 41, 40, 0.6)',
     hairline: 'rgba(43, 32, 17, 0.12)',
     ink: 'rgba(41, 41, 40, 1)',
     surface: '#ffffff',
+    accent: ACCENT_LIGHT,
   };
   if (typeof window === 'undefined') {
     return fallback;
   }
-  const style = getComputedStyle(document.documentElement);
+  const style = getComputedStyle(document.body);
   const parts = style
     .getPropertyValue('--new-textColor')
     .trim()
@@ -44,6 +48,9 @@ const readChartInk = () => {
     ink: `rgba(${rgb}, 1)`,
     surface:
       style.getPropertyValue('--new-bgColorInner').trim() || fallback.surface,
+    accent: document.body.classList.contains('dark')
+      ? ACCENT_DARK
+      : ACCENT_LIGHT,
   };
 };
 
@@ -54,6 +61,18 @@ const readChartInk = () => {
 const MetricLine: FC<{ item: AnalyticsDataItem }> = ({ item }) => {
   const ref = useRef<HTMLCanvasElement>(null);
   const chart = useRef<DrawChart | null>(null);
+  // theme flips re-ink the canvas: chart.js keeps literal colors, so the
+  // chart must redraw when the mode toggles. The emitter fires BEFORE the
+  // body class updates (mode.component emits, then commits), hence the
+  // deferred tick.
+  const [themeTick, setThemeTick] = useState(0);
+  useEffect(() => {
+    const onMode = () => setTimeout(() => setThemeTick((v) => v + 1), 50);
+    modeEmitter.on('mode', onMode);
+    return () => {
+      modeEmitter.off('mode', onMode);
+    };
+  }, []);
 
   const points = useMemo(() => {
     return [...(item.data || [])]
@@ -134,13 +153,13 @@ const MetricLine: FC<{ item: AnalyticsDataItem }> = ({ item }) => {
           {
             label: item.label,
             data: points.map((p) => Number(p.total) || 0),
-            borderColor: ACCENT,
+            borderColor: colors.accent,
             borderWidth: 2,
             fill: false,
             tension: 0.3,
             pointRadius: 0,
             pointHoverRadius: 5,
-            pointHoverBackgroundColor: ACCENT,
+            pointHoverBackgroundColor: colors.accent,
             pointHoverBorderColor: colors.surface,
             pointHoverBorderWidth: 2,
           },
@@ -151,7 +170,7 @@ const MetricLine: FC<{ item: AnalyticsDataItem }> = ({ item }) => {
       chart.current?.destroy();
       chart.current = null;
     };
-  }, [points, item.label, item.average]);
+  }, [points, item.label, item.average, themeTick]);
 
   return <canvas className="w-full h-full" ref={ref} />;
 };
