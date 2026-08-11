@@ -175,11 +175,12 @@ export const ContentChatComponent: FC<{
         return next;
       });
     // typewriter: deltas arrive as multi-word chunks; queue them and write
-    // a few characters per tick so the reply types on smoothly. The rate
-    // scales with the backlog (~30 ticks to drain whatever is queued), so
-    // the render stays within ~half a second of the live stream instead of
-    // falling behind on long answers. setTimeout, not rAF: background tabs
-    // clamp timers but never stop them, so the drain always completes.
+    // a few characters per tick so the reply types on smoothly. Base pace is
+    // ~40 chars/s (1 char per 24ms tick — user-tuned, the faster first cut
+    // read as bursts), easing up with the backlog (~100 ticks ≈ 2.5s to
+    // drain whatever is queued) so long answers still converge. setTimeout,
+    // not rAF: background tabs clamp timers but never stop them, so the
+    // drain always completes.
     let pending = '';
     let draining = false;
     const drain = () => {
@@ -188,10 +189,10 @@ export const ContentChatComponent: FC<{
         draining = false;
         return;
       }
-      const step = Math.max(2, Math.ceil(pending.length / 30));
+      const step = Math.max(1, Math.ceil(pending.length / 100));
       appendAssistant(pending.slice(0, step));
       pending = pending.slice(step);
-      setTimeout(drain, 16);
+      setTimeout(drain, 24);
     };
     const queueAssistant = (text: string) => {
       pending += text;
@@ -209,7 +210,7 @@ export const ContentChatComponent: FC<{
           role: 'system',
           text: t(
             'content_bridge_offline',
-            'Content bridge is offline. Start it on the host: postiz/bridge/run.sh'
+            'The assistant is unavailable right now. Please try again in a moment.'
           ),
         },
       ]);
@@ -308,7 +309,7 @@ export const ContentChatComponent: FC<{
     <div
       // px/pb: the pane's seam lines must never touch the composer box (the
       // messages align to the same inset)
-      className="flex flex-col flex-1 min-h-0 px-[16px] pb-[56px] phone:h-[65dvh] phone:px-[4px]"
+      className="flex flex-col flex-1 min-h-0 px-[16px] pb-[12px] phone:h-[65dvh] phone:px-[4px]"
       data-cs
     >
       {/* messages — scrollbar chrome matches the sibling kit panes (Threads
