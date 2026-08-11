@@ -1166,11 +1166,11 @@ const AssistantPane: FC<{ open: boolean; onClose: () => void }> = ({
           <CloseIcon className="text-textItemBlur" />
         </div>
       </div>
-      {/* content profile, not assistant: the content prompt is primed on the
-          brand voice and content brief (formulation); the assistant profile
-          is the schedule operator and deliberately cannot create */}
+      {/* 'post' = the content profile's prompt and fence (formulation, primed
+          on brand voice and the content brief) but on the bridge's fast model;
+          the assistant profile is the schedule operator and cannot create */}
       <ContentChatComponent
-        profile="content"
+        profile="post"
         contextPrefix={contextPrefix}
         emptyTitle={t('post_assistant_title', 'Write this post with Claude')}
         emptyHint={t(

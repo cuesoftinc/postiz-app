@@ -76,10 +76,12 @@ export class CopilotController {
             typeof (req.body as any)?.sessionId === 'string'
               ? (req.body as any).sessionId
               : undefined,
-          // one bridge profile per web chat tab; anything unexpected falls
-          // back to the read-only default rather than erroring
-          profile:
-            (req.body as any)?.profile === 'assistant' ? 'assistant' : 'content',
+          // one bridge profile per chat surface (assistant/content tabs +
+          // the composer's 'post'); anything unexpected falls back to the
+          // content default rather than erroring
+          profile: ['assistant', 'post'].includes((req.body as any)?.profile)
+            ? (req.body as any).profile
+            : 'content',
         }),
         signal: controller.signal,
       });
@@ -111,10 +113,9 @@ export class CopilotController {
   ) {
     const bridgeUrl =
       process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
-    const query =
-      profile === 'assistant' || profile === 'content'
-        ? `?profile=${profile}`
-        : '';
+    const query = ['assistant', 'content', 'post'].includes(profile || '')
+      ? `?profile=${profile}`
+      : '';
     try {
       const upstream = await fetch(`${bridgeUrl}/sessions${query}`, {
         headers: {

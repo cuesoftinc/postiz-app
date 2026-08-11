@@ -25,7 +25,7 @@ type ChatMessage = {
   text: string;
 };
 
-export type BridgeProfile = 'content' | 'assistant';
+export type BridgeProfile = 'content' | 'assistant' | 'post';
 
 /** Claude Code content chat (every org user): each message drives a headless
  *  Claude Code turn on the host via the loopback bridge; deltas stream in
