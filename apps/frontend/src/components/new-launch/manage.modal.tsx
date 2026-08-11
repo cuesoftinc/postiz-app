@@ -1156,7 +1156,7 @@ const AssistantPane: FC<{ open: boolean; onClose: () => void }> = ({
           data-cs
           className="flex-1 text-[16px] font-[550] text-newTextColor"
         >
-          {t('post_assistant', 'Post Assistant')}
+          {t('post_assistant', 'Ace')}
         </div>
         <div
           data-cs
@@ -1172,7 +1172,7 @@ const AssistantPane: FC<{ open: boolean; onClose: () => void }> = ({
       <ContentChatComponent
         profile="post"
         contextPrefix={contextPrefix}
-        emptyTitle={t('post_assistant_title', 'Write this post with Claude')}
+        emptyTitle={t('post_assistant_title', 'Write this post with Ace')}
         emptyHint={t(
           'post_assistant_hint',
           'It knows your draft, selected channels and schedule time. Try "Give me three hooks", "Write the LinkedIn version" or "Add hashtags and a first comment".'

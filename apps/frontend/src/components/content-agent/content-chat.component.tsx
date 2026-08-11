@@ -210,7 +210,7 @@ export const ContentChatComponent: FC<{
           role: 'system',
           text: t(
             'content_bridge_offline',
-            'The assistant is unavailable right now. Please try again in a moment.'
+            'Ace is unavailable right now. Please try again in a moment.'
           ),
         },
       ]);
@@ -341,8 +341,8 @@ export const ContentChatComponent: FC<{
             <div className="text-[16px] font-[600] text-newTextColor">
               {emptyTitle ??
                 (profile === 'assistant'
-                  ? t('assistant_chat_title', 'Ask about your schedule')
-                  : t('content_chat_title', 'Draft content with Claude'))}
+                  ? t('assistant_chat_title', 'Ask Ace about your schedule')
+                  : t('content_chat_title', 'Draft content with Ace'))}
             </div>
             <div className="text-[14px] text-newTextColor/60 max-w-[420px]">
               {emptyHint ??
@@ -464,7 +464,7 @@ export const ContentChatComponent: FC<{
           placeholder={
             inputPlaceholder ??
             (profile === 'assistant'
-              ? t('assistant_chat_placeholder', 'Ask your assistant…')
+              ? t('assistant_chat_placeholder', 'Ask Ace…')
               : t('content_chat_placeholder', 'Ask for content…'))
           }
           // min-h-[56px] restates the copilot floor here — agent.styles.scss

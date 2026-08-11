@@ -276,7 +276,7 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
               <path d="M22 5h-4" />
             </svg>
           }
-          title={t('agent', 'Agent')}
+          title={t('agent', 'Ace')}
           actions={
             <>
               {/* [Assistant | Content] segmented — launches List|Calendar
