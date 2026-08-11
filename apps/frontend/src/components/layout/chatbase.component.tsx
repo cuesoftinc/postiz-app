@@ -32,6 +32,11 @@ const launcherOverride = `
   left: auto !important;
   right: 16px !important;
   bottom: 16px !important;
+  /* The embed inlines zIndex 2147483646, which floats the launcher over the
+     modal layer (new-modal.tsx stacks at 200+) and let it cover the create
+     post footer CTA. Cap it just below the modals so it can never overlap
+     one; the Support emitter additionally hides it while a modal is open. */
+  z-index: 199 !important;
   width: 44px !important;
   height: 44px !important;
   min-width: 0 !important;

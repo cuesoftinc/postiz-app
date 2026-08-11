@@ -3,6 +3,11 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Audit hygiene: the dev-tools badge (and its expanded issue pill) floats
+  // over product UI in every dev-server screenshot — 'Today' in the date
+  // sheet, the list gutter, month day cells, the Insights y-axis. Hide the
+  // overlay entirely; runtime errors still land in the console/Sentry.
+  devIndicators: false,
   experimental: {
     proxyTimeout: 90_000,
     // SPA feel: our routes are force-dynamic (root layout reads cookies), and

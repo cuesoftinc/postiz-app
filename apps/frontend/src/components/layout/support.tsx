@@ -30,7 +30,23 @@ export const Support = () => {
     };
   }, []);
   if (isChatBase) {
-    return <ChatbaseComponent />;
+    // Keep the widget mounted while hidden (its embed script + the scoped
+    // launcher restyle live inside it); hide via CSS so `supportEmitter`
+    // works for Chatbase exactly like it does for the Discord bubble.
+    // Doubled id selector out-specifies the launcher restyle's own
+    // !important rules regardless of document order.
+    return (
+      <>
+        <ChatbaseComponent />
+        {!show && (
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `#chatbase-bubble-button#chatbase-bubble-button, #chatbase-bubble-window#chatbase-bubble-window, #chatbase-message-bubbles#chatbase-message-bubbles { display: none !important; }`,
+            }}
+          />
+        )}
+      </>
+    );
   }
   if (!discordUrl || !show) return null;
   return (

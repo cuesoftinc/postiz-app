@@ -14,7 +14,9 @@ export const Slider: FC<{
   return (
     <div
       className={clsx(
-        'w-[57px] h-[34px] p-[4px] border-newTableBorder border rounded-[100px]',
+        // shrink-0: the toggle is a fixed-size control — inside justify-between
+        // rows the longest label was crushing its siblings' pills to ~42px
+        'w-[57px] h-[34px] p-[4px] border-newTableBorder border rounded-[100px] shrink-0',
         value === 'on' && fill && 'bg-btnPrimary'
       )}
       onClick={change}

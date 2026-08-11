@@ -24,6 +24,37 @@ changelog line). Statuses:
 **The loop ends when no `NEEDS-WORK` or `NEEDS-BUFFER-MEASUREMENT` rows remain.**
 
 **Changelog**
+- 2026-08-11 - iPhone 16 Pro visual-defect round 2 (9 fixes). composer:
+  the floating support launcher can never cover the footer CTA - ManageModal
+  emits supportEmitter change=false on mount / true on unmount, the Chatbase
+  path now honors the emitter (CSS hide via doubled-id selector; widget +
+  scoped restyle stay mounted - support.tsx), and the launcher restyle caps
+  z-index at 199, under the 200+ modal layer (chatbase.component.tsx; the
+  embed inlines zIndex 2147483646 - ids verified current in embed.min.js).
+  three-day: the phone hour grid hides scrollbar chrome (scrollbar-none;
+  the `scrollbar` utilities forced classic 16px webkit bars = the headerless
+  4th-column sliver + the bottom thumb; desktop keeps styled bars), phone
+  day columns are exact thirds of the scrollport for BOTH week spans (3-day
+  fits exactly, 7-day pans sideways by whole columns), and scroll-to-now
+  retries across frames until the scrollport has real height (the one-shot
+  assignment clamped to 0 against unresolved flex ancestors = "opens at
+  midnight"). list: the byline gets its own full-width line above the
+  action row on phone (was crushed to 'Y..'); Publish Now/Request
+  changes/Approve/Edit + kebab now phone:h-[40px] (kebab 40x40), matching
+  the fixed comment bubble. composer toolbar: the 32px icon squares
+  (bold/underline/link/bullets/heading/emoji + 30px signature) and the
+  30px labeled chips (insert/design media, AI image/video, third-party)
+  are 40px on phone. settings: Slider root gains shrink-0 so every toggle
+  holds the 57px footprint (label length was crushing siblings to ~42px).
+  composer: the reorder/trash gutter hides when items.length === 1 (both
+  arrows were disabled anyway; editor + toolbar span the full width); the
+  upload dropzone opts out (data-cs) of the phone toolbar-toggle rule in
+  global.scss (rule now :not([data-cs])) - it was stretching the box and
+  flinging icon/caption apart. audits: devIndicators:false in
+  next.config.js so dev overlays never mask product UI; the Insights
+  '1 Issue' pill traced (frontend-dev.log) to 'clsx is not defined' at
+  Impersonate from a stale Fast Refresh chunk mid-edit - committed source
+  imports clsx; not reproducible on a fresh load. tsc clean.
 - 2026-08-11 - composer parity pass (iter3 Buffer spec, 16 diffs;
   new-launch/** plus scoped CSS). dialog: fixed 1100px wide / 813px cap,
   centered (shell justify+items-center; the <=1100px sheet media query

@@ -44,6 +44,7 @@ import { useShortlinkPreference } from '@gitroom/frontend/components/settings/sh
 import dayjs from 'dayjs';
 import { Button } from '@gitroom/react/form/button';
 import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
+import { supportEmitter } from '@gitroom/frontend/components/layout/support';
 
 export const ManageModal: FC<AddEditModalProps> = (props) => {
   const t = useT();
@@ -105,6 +106,15 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       setHide(false);
     }
   }, [hide]);
+
+  // Buffer parity r2 — the floating support launcher (Chatbase/Discord) must
+  // never sit over the composer footer CTA. Hide it for the modal's lifetime.
+  useEffect(() => {
+    supportEmitter.emit('change', false);
+    return () => {
+      supportEmitter.emit('change', true);
+    };
+  }, []);
 
   const currentIntegrationText = useMemo(() => {
     if (current === 'global') {

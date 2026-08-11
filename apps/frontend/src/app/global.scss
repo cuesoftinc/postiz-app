@@ -1101,9 +1101,13 @@ button { white-space: nowrap; }
   [class^="min-w-[80px]"], [class*=" min-w-[80px]"] {
     min-width: 0 !important; padding-left: 10px !important; padding-right: 10px !important;
   }
-  /* stock stacks the calendar/list toggle centred under the tabs */
-  .select-none.flex.flex-col[class*="gap-[8px]"] { align-items: stretch !important; width: 100%; }
-  .select-none.flex.flex-col[class*="gap-[8px]"] > *:last-child { align-self: flex-end; }
+  /* stock stacks the calendar/list toggle centred under the tabs.
+     :not([data-cs]): the combo also matched the composer's upload dropzone
+     (select-none flex flex-col gap-[8px]) and tore its centered icon+caption
+     stack apart (icon flushed left, caption pushed to flex-end) — the
+     dropzone opts out with data-cs. */
+  .select-none.flex.flex-col[class*="gap-[8px]"]:not([data-cs]) { align-items: stretch !important; width: 100%; }
+  .select-none.flex.flex-col[class*="gap-[8px]"]:not([data-cs]) > *:last-child { align-self: flex-end; }
 
   /* type steps down again for a 390px screen */
   [class^="text-[24px]"], [class*=" text-[24px]"] { font-size: 18px !important; }

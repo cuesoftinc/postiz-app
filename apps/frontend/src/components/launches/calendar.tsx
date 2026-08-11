@@ -478,11 +478,12 @@ export const WeekView = () => {
       ? '3'
       : getCookie('phone-week-span') || '3';
   // Buffer's phone 7-day week does NOT squeeze seven columns into 390: it
-  // keeps ~100px day columns and scrolls HORIZONTALLY inside the grid
-  // (measured chips 101x31 at 390 with no page overflow). The sideways
-  // overflow lives on the existing overflow-auto scroll container below —
-  // never the page — so position:fixed overlays stay safe. The 3-day span
-  // and desktop keep the exact fit-to-width behavior.
+  // keeps 3-per-screen day columns (same exact-thirds width as the 3-day
+  // span, sized in gridTemplateColumns below) and scrolls HORIZONTALLY
+  // inside the grid. The sideways overflow lives on the existing
+  // overflow-auto scroll container below — never the page — so
+  // position:fixed overlays stay safe. The 3-day span and desktop keep the
+  // exact fit-to-width behavior.
   const sevenSpan = isPhone && phoneWeekSpan === '7';
   // ONE today for the whole view — the 3-day slice anchor, the header
   // underline and the day-cell wash all derive from this key, so they can
@@ -511,7 +512,7 @@ export const WeekView = () => {
   // scrolled reads as glitching.
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || el.scrollTop !== 0) {
+    if (!el) {
       return;
     }
     const now = newDayjs();
@@ -520,7 +521,29 @@ export const WeekView = () => {
     if (now.isBefore(rangeStart) || now.isAfter(rangeEnd)) {
       return;
     }
-    el.scrollTop = Math.max(0, (now.hour() - 1) * (isPhone ? 80 : 106));
+    // The grid can mount before its flex ancestors have resolved a height —
+    // against a 0/short scrollport the scrollTop assignment clamps back to 0
+    // and the view "opens at midnight". Retry across frames (~2s cap) until
+    // the container can actually scroll; bail the moment the user scrolls.
+    let raf = 0;
+    let tries = 0;
+    const jump = () => {
+      if (el.scrollTop !== 0) {
+        return; // user already scrolled — never re-jump under their thumb
+      }
+      if (el.clientHeight > 0 && el.scrollHeight > el.clientHeight) {
+        el.scrollTop = Math.max(
+          0,
+          (newDayjs().hour() - 1) * (isPhone ? 80 : 106)
+        );
+        return;
+      }
+      if (tries++ < 120) {
+        raf = requestAnimationFrame(jump);
+      }
+    };
+    jump();
+    return () => cancelAnimationFrame(raf);
   }, [startDate, endDate, isPhone]);
 
   return (
@@ -529,7 +552,16 @@ export const WeekView = () => {
         <div
           ref={scrollRef}
           className={clsx(
-            'grid gap-[1px] bg-newGridLine border border-newGridLine rounded-[12px] absolute h-full start-0 top-0 w-full scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
+            'grid gap-[1px] bg-newGridLine border border-newGridLine rounded-[12px] absolute h-full start-0 top-0 w-full',
+            // Buffer's phone grid shows NO scrollbar chrome: the `scrollbar`
+            // utilities force classic 16px webkit bars that stole a
+            // column-wide strip from the scrollport (read as a headerless
+            // 4th-column sliver) and drew a thumb across the bottom chips —
+            // phone hides both bars and pans like iOS; desktop keeps the
+            // styled bars.
+            isPhone
+              ? 'scrollbar-none'
+              : 'scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor',
             // 3-day divides the window exactly — any sub-pixel spill must
             // never draw a sideways scrollbar / 4th-column sliver
             isPhone && !sevenSpan
@@ -537,17 +569,15 @@ export const WeekView = () => {
               : 'overflow-auto'
           )}
           style={{
-            // 7-span phone columns get a 100px floor (7×100 + 48px gutter =
-            // 748px → the overflow-auto container scrolls sideways); 3-day
-            // divides the remaining window EXACTLY into 3 (100% minus the
-            // 48px gutter minus the 3 column gaps) so no partial 4th column
-            // ever peeks; desktop stays minmax(0,1fr) fit-to-width
+            // phone: the 48px gutter + THREE day columns + their 3 column
+            // gaps always fill the viewport width EXACTLY — Buffer's phone
+            // reference fits 3 full columns with no partial column peeking.
+            // The 3-day span therefore never overflows sideways; the 7-span
+            // keeps the same per-column width and pans horizontally through
+            // the remaining days (scrollbars hidden above). Desktop stays
+            // minmax(0,1fr) fit-to-width.
             gridTemplateColumns: isPhone
-              ? `48px repeat(${visibleDays.length}, ${
-                  sevenSpan
-                    ? 'minmax(100px, 1fr)'
-                    : `calc((100% - 48px - ${visibleDays.length}px) / ${visibleDays.length})`
-                })`
+              ? `48px repeat(${visibleDays.length}, calc((100% - 48px - 3px) / 3))`
               : `repeat(${visibleDays.length}, minmax(0, 1fr))`,
           }}
         >
@@ -2245,14 +2275,25 @@ const CalendarItem: FC<{
                 e.stopPropagation();
                 preview();
               }}
-              className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
+              className="h-[32px] phone:h-[40px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
             >
               {t('view', 'View')}
             </button>
           </div>
           <div className="h-[1px] bg-newTableBorder" />
-          <div className="flex items-center gap-[8px] px-[16px] py-[8px]">
-            <div className="flex-1 min-w-0 text-[14px] text-start truncate">
+          {/* phone: the byline gets its own full-width line above the action
+              buttons — squeezed into the button row it truncated to ~2
+              characters ('Y..') */}
+          <div className="hidden phone:block px-[16px] pt-[8px] text-[14px] text-start truncate">
+            <span className="font-[550] text-newTextColor">
+              {t('you_created_this', 'You created this')}
+            </span>{' '}
+            <span className="text-newTextColor/60">
+              {dayjs.utc(post.createdAt || post.publishDate).fromNow()}
+            </span>
+          </div>
+          <div className="flex items-center gap-[8px] px-[16px] py-[8px] phone:justify-end">
+            <div className="flex-1 min-w-0 text-[14px] text-start truncate phone:hidden">
               <span className="font-[550] text-newTextColor">
                 {t('you_created_this', 'You created this')}
               </span>{' '}
@@ -2264,7 +2305,7 @@ const CalendarItem: FC<{
               <button
                 type="button"
                 onClick={publishNow}
-                className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
+                className="h-[32px] phone:h-[40px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
               >
                 <svg
                   width="16"
@@ -2286,14 +2327,14 @@ const CalendarItem: FC<{
                 <button
                   type="button"
                   onClick={openCommentsForPost}
-                  className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
+                  className="h-[32px] phone:h-[40px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
                 >
                   {t('request_changes', 'Request changes')}
                 </button>
                 <button
                   type="button"
                   onClick={approvePost}
-                  className="h-[32px] px-[10px] rounded-[8px] bg-btnPrimary text-black flex items-center gap-[6px] text-[14px] font-[500] whitespace-nowrap transition-all duration-150 hover:opacity-90"
+                  className="h-[32px] phone:h-[40px] px-[10px] rounded-[8px] bg-btnPrimary text-black flex items-center gap-[6px] text-[14px] font-[500] whitespace-nowrap transition-all duration-150 hover:opacity-90"
                 >
                   <svg
                     width="16"
@@ -2315,7 +2356,7 @@ const CalendarItem: FC<{
               <button
                 type="button"
                 onClick={publishDraftNow}
-                className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
+                className="h-[32px] phone:h-[40px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center gap-[6px] text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
               >
                 <svg
                   width="16"
@@ -2340,7 +2381,7 @@ const CalendarItem: FC<{
                 e.stopPropagation();
                 editPost();
               }}
-              className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
+              className="h-[32px] phone:h-[40px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center text-[14px] font-[500] text-newTextColor whitespace-nowrap transition-all duration-150 hover:bg-boxHover"
             >
               {t('edit', 'Edit')}
             </button>
@@ -2352,7 +2393,7 @@ const CalendarItem: FC<{
                   e.stopPropagation();
                   setMenuOpen((v) => !v);
                 }}
-                className="w-[32px] h-[32px] min-w-[32px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover"
+                className="w-[32px] h-[32px] min-w-[32px] phone:w-[40px] phone:h-[40px] phone:min-w-[40px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor transition-all duration-150 hover:bg-boxHover"
               >
                 <svg
                   width="16"

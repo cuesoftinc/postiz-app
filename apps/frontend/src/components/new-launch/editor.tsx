@@ -495,7 +495,10 @@ export const EditorWrapper: FC<{
                 }
               />
             </div>
-            {comments && (
+            {/* single post: every control in this gutter is inert (both
+                arrows disabled, trash and delay hidden) — drop the column so
+                the editor + toolbar span the full modal width */}
+            {comments && items.length > 1 && (
               <div className="flex flex-col items-center gap-[10px] pe-[12px]">
                 <UpDownArrow
                   isUp={index !== 0}
@@ -783,6 +786,11 @@ export const Editor: FC<{
                     }
                     open();
                   }}
+                  // data-cs: opts out of the phone toolbar-toggle rule in
+                  // global.scss (.select-none.flex.flex-col[gap-8]) that
+                  // stretched this box and flung icon/caption apart — the
+                  // Buffer dropzone is ONE centered icon+caption stack
+                  data-cs
                   className="w-[120px] h-[120px] phone:w-full rounded-[8px] border border-dashed border-newTableBorder flex flex-col items-center justify-center gap-[8px] cursor-pointer select-none hover:bg-newTableHeader/50 transition-colors"
                 >
                   <svg
@@ -869,7 +877,7 @@ export const Editor: FC<{
                       <div
                         data-tooltip-id="tooltip"
                         data-tooltip-content={t('insert_emoji', 'Insert Emoji')}
-                        className="select-none cursor-pointer rounded-[8px] w-[32px] h-[32px] border border-newTableBorder hover:bg-newTableHeader flex justify-center items-center"
+                        className="select-none cursor-pointer rounded-[8px] w-[32px] h-[32px] phone:w-[40px] phone:h-[40px] border border-newTableBorder hover:bg-newTableHeader flex justify-center items-center"
                         onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
                       >
                         <EmojiIcon />
