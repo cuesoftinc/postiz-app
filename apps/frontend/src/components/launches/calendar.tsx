@@ -161,9 +161,13 @@ const formatPostTime = (
 // The post's media field ("image" on the Post model) is a JSON string of
 // uploaded items ({ name, path, ... }). Tolerate raw strings, arrays, single
 // objects and broken payloads — a bad value must never break the card.
-// Images only: obvious video files are skipped.
+// Prefers the first IMAGE (a TikTok post's cover, not its mp4); a video-only
+// post (story reshares) falls back to its first video so the card gets the
+// same thumbnail anatomy as every other card instead of a special layout.
 const VIDEO_EXTENSION = /\.(mp4|mov|webm|avi|mkv|m4v)(\?|#|$)/i;
-const getFirstImageUrl = (media: unknown): string | undefined => {
+type MediaThumb = { url: string; isVideo: boolean };
+const getFirstMediaThumb = (media: unknown): MediaThumb | undefined => {
+  let firstVideo: string | undefined;
   try {
     const parsed =
       typeof media === 'string'
@@ -175,14 +179,14 @@ const getFirstImageUrl = (media: unknown): string | undefined => {
     for (const item of items) {
       const path =
         typeof item === 'string' ? item : item?.path || item?.url || '';
-      if (typeof path === 'string' && path && !VIDEO_EXTENSION.test(path)) {
-        return path;
-      }
+      if (typeof path !== 'string' || !path) continue;
+      if (!VIDEO_EXTENSION.test(path)) return { url: path, isVideo: false };
+      if (!firstVideo) firstVideo = path;
     }
   } catch {
     // broken media JSON — render the card without a thumbnail
   }
-  return undefined;
+  return firstVideo ? { url: firstVideo, isVideo: true } : undefined;
 };
 
 export const hours = Array.from(
@@ -1875,9 +1879,10 @@ const CalendarItem: FC<{
     display: calendarDisplay,
   } = useCalendar();
   const displayTimezone = useDisplayTimezone();
-  // First attached image of the post's media field (backend now selects it
-  // through the minified payload); undefined when absent/broken/video-only
-  const mediaUrl = useMemo(() => getFirstImageUrl(post.image), [post.image]);
+  // First attached media of the post's field (backend selects it through the
+  // minified payload): image preferred, video for video-only posts (story
+  // reshares), undefined when absent/broken
+  const mediaThumb = useMemo(() => getFirstMediaThumb(post.image), [post.image]);
   // Thumbnail load failure is React state, not an imperative DOM hide: the
   // old onError set display:none on the wrapper, which latched across
   // re-renders and left a caption-less card with NO body at all (the
@@ -1886,8 +1891,8 @@ const CalendarItem: FC<{
   const [mediaFailed, setMediaFailed] = useState(false);
   useEffect(() => {
     setMediaFailed(false);
-  }, [mediaUrl]);
-  const showMedia = !!mediaUrl && !mediaFailed;
+  }, [mediaThumb?.url]);
+  const showMedia = !!mediaThumb && !mediaFailed;
   // Caption-less posts exist by design (Instagram/Facebook stories carry no
   // copy): the day card must never render an empty band. Strip once, and
   // when nothing is left name the post instead: platform + the composer's
@@ -2389,12 +2394,12 @@ const CalendarItem: FC<{
                   )}
                 </>
               ) : (
-                !showMedia && (
-                  // no copy AND no RENDERED thumbnail (stories are
-                  // caption-less and often video-only; a broken/blocked
-                  // image counts as no thumbnail): name the post (channel
-                  // avatar with the platform badge + a muted type label) so
-                  // the body is never a blank band
+                (
+                  // no copy (stories are caption-less by design): name the
+                  // post (channel avatar with the platform badge + a muted
+                  // type label) where the caption would sit, so the card
+                  // keeps the same [text left | thumbnail right] anatomy as
+                  // every other card and the body is never a blank band
                   <div className="flex items-center gap-[10px]">
                     <ChannelAvatar
                       picture={post.integration.picture || ''}
@@ -2462,18 +2467,41 @@ const CalendarItem: FC<{
               // hug the raster up to the cap, so portrait tiles no longer
               // letterbox against a wash background; no wash, no border, a
               // clean rounded image like Buffer's thumbnails
-              <div className="w-fit shrink-0 rounded-[8px] overflow-hidden">
-                <img
-                  src={mediaUrl}
-                  alt=""
-                  onError={() => {
-                    // state, not a DOM hide: unmounts the whole tile (no
-                    // lingering gray box) AND lets the avatar+label fallback
-                    // above take over the body
-                    setMediaFailed(true);
-                  }}
-                  className="w-auto h-auto max-w-[180px] max-h-[180px] phone:max-w-[96px] phone:max-h-[96px] object-contain"
-                />
+              <div className="w-fit shrink-0 rounded-[8px] overflow-hidden relative">
+                {mediaThumb!.isVideo ? (
+                  // video-only posts (story reshares) get the SAME thumbnail
+                  // anatomy as image cards: #t=0.1 makes the browser paint
+                  // the first frame as a poster, the play badge says "video"
+                  <>
+                    <video
+                      src={mediaThumb!.url + '#t=0.1'}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      onError={() => setMediaFailed(true)}
+                      className="w-auto h-auto max-w-[180px] max-h-[180px] phone:max-w-[96px] phone:max-h-[96px] object-contain"
+                    />
+                    <div className="absolute inset-0 grid place-items-center pointer-events-none">
+                      <div className="w-[28px] h-[28px] rounded-full bg-black/50 grid place-items-center">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <img
+                    src={mediaThumb!.url}
+                    alt=""
+                    onError={() => {
+                      // state, not a DOM hide: unmounts the whole tile (no
+                      // lingering gray box) AND lets the avatar+label fallback
+                      // above take over the body
+                      setMediaFailed(true);
+                    }}
+                    className="w-auto h-auto max-w-[180px] max-h-[180px] phone:max-w-[96px] phone:max-h-[96px] object-contain"
+                  />
+                )}
               </div>
             )}
           </div>
@@ -2708,17 +2736,26 @@ const CalendarItem: FC<{
                 {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
               </span>
               {/* media slot — 23px r6 measured on Buffer's month pills
-                  (desktop only) */}
-              {mediaUrl && (
-                <img
-                  src={mediaUrl}
-                  alt=""
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                  className="w-[23px] h-[23px] min-w-[23px] rounded-[6px] object-cover ms-auto"
-                />
-              )}
+                  (desktop only); videos paint their first frame as poster */}
+              {mediaThumb &&
+                (mediaThumb.isVideo ? (
+                  <video
+                    src={mediaThumb.url + '#t=0.1'}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="w-[23px] h-[23px] min-w-[23px] rounded-[6px] object-cover ms-auto"
+                  />
+                ) : (
+                  <img
+                    src={mediaThumb.url}
+                    alt=""
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    className="w-[23px] h-[23px] min-w-[23px] rounded-[6px] object-cover ms-auto"
+                  />
+                ))}
             </div>
           </>
         ) : display === 'week' ? (
@@ -2745,16 +2782,25 @@ const CalendarItem: FC<{
                 {state === 'DRAFT' ? t('draft', 'Draft') + ': ' : ''}
                 {stripHtmlValidation('none', post.content, false, true, false)}
               </div>
-              {mediaUrl && (
-                <img
-                  src={mediaUrl}
-                  alt=""
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                  className="w-[44px] h-[44px] min-w-[44px] rounded-[6px] object-cover"
-                />
-              )}
+              {mediaThumb &&
+                (mediaThumb.isVideo ? (
+                  <video
+                    src={mediaThumb.url + '#t=0.1'}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="w-[44px] h-[44px] min-w-[44px] rounded-[6px] object-cover"
+                  />
+                ) : (
+                  <img
+                    src={mediaThumb.url}
+                    alt=""
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    className="w-[44px] h-[44px] min-w-[44px] rounded-[6px] object-cover"
+                  />
+                ))}
             </div>
           </>
         ) : null}
