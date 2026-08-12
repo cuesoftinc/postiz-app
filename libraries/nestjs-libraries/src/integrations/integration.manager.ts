@@ -37,6 +37,10 @@ import { SkoolProvider } from '@gitroom/nestjs-libraries/integrations/social/sko
 import { WhopProvider } from '@gitroom/nestjs-libraries/integrations/social/whop.provider';
 import { MeweProvider } from '@gitroom/nestjs-libraries/integrations/social/mewe.provider';
 import { TumblrProvider } from '@gitroom/nestjs-libraries/integrations/social/tumblr.provider';
+import {
+  BufferLinkedinProvider,
+  BufferTiktokProvider,
+} from '@gitroom/nestjs-libraries/integrations/social/buffer.relay.provider';
 
 export const socialIntegrationList: Array<SocialAbstract & SocialProvider> = [
   new XProvider(),
@@ -73,6 +77,12 @@ export const socialIntegrationList: Array<SocialAbstract & SocialProvider> = [
   new SkoolProvider(),
   new MeweProvider(),
   new TumblrProvider(),
+  // Cuesoft: LinkedIn and TikTok publish through Buffer, not their own APIs.
+  // The identifiers are deliberately hyphen-free — the identifier becomes the
+  // Temporal task queue name, and a hyphenated one enqueues where no worker
+  // listens, so posts would hang silently with no error.
+  new BufferLinkedinProvider(),
+  new BufferTiktokProvider(),
   // new MastodonCustomProvider(),
 ];
 

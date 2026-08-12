@@ -61,7 +61,9 @@ export type AllProvidersSettings =
   | ProviderExtension<'skool', SkoolDto>
   | ProviderExtension<'mewe', MeweDto>
   | ProviderExtension<'tumblr', TumblrDto>
-  | ProviderExtension<'whop', WhopDto>;
+  | ProviderExtension<'whop', WhopDto>
+  | ProviderExtension<'linkedinbuffer', None>
+  | ProviderExtension<'tiktokbuffer', None>;
 
 type None = NonNullable<unknown>;
 
@@ -101,6 +103,11 @@ export const allProviders = (setEmpty?: any) => {
     { value: WhopDto, name: 'whop' },
     { value: MeweDto, name: 'mewe' },
     { value: TumblrDto, name: 'tumblr' },
+    // Buffer relays: no per-post settings of their own. They MUST be listed
+    // here even so — __type is validated against this list, so an unlisted
+    // identifier connects fine and then 400s on every post creation.
+    { value: setEmpty, name: 'linkedinbuffer' },
+    { value: setEmpty, name: 'tiktokbuffer' },
   ].filter((f) => f.value);
 };
 
