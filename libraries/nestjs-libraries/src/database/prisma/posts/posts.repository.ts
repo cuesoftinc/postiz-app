@@ -259,10 +259,16 @@ export class PostsRepository {
     const skip = page * limit;
 
     const stateFilter = query.state || 'all';
+    // A post that FAILED to publish used to appear in no tab at all: not in
+    // Queue (its date is now in the past), not in Drafts, not in Sent. It only
+    // showed on the calendar, so a failure was invisible in the view people
+    // actually work from. Failures ride along with the queue — they are the
+    // most actionable thing in it — and the date floor below deliberately does
+    // not apply to them, since a failure is always in the past.
     const stateAndDate =
       stateFilter === 'scheduled'
         ? {
-            state: State.QUEUE,
+            state: { in: [State.QUEUE, State.ERROR] },
           }
         : stateFilter === 'draft'
         ? { state: State.DRAFT }
@@ -290,8 +296,17 @@ export class PostsRepository {
       ...stateAndDate,
       // Published posts were already posted (publishDate in the past), so fetch
       // all of them; everything else stays upcoming. Ordering handles the rest.
+      // The queue is the exception: it also carries failures, whose dates are
+      // necessarily past, so the floor is expressed per-state there.
       ...(stateFilter === 'published'
         ? {}
+        : stateFilter === 'scheduled'
+        ? {
+            OR: [
+              { state: State.QUEUE, publishDate: { gte: dayjs.utc().toDate() } },
+              { state: State.ERROR },
+            ],
+          }
         : { publishDate: { gte: dayjs.utc().toDate() } }),
       deletedAt: null as Date | null,
       parentPostId: null as string | null,

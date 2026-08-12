@@ -2554,7 +2554,14 @@ const CalendarItem: FC<{
                 {dayjs.utc(post.createdAt || post.publishDate).fromNow()}
               </span>
             </div>
-            {state === 'QUEUE' && (
+            {/* A failed post's whole reason for being in this list is that it
+                needs another go, so it gets the same action, labelled Retry. */}
+            {state === 'ERROR' && (
+              <div className="flex-1 min-w-0 text-[14px] text-start truncate text-red-400 phone:flex-none phone:w-full">
+                {t('failed_to_publish', 'Failed to publish')}
+              </div>
+            )}
+            {(state === 'QUEUE' || state === 'ERROR') && (
               <button
                 type="button"
                 onClick={publishNow}
@@ -2572,7 +2579,9 @@ const CalendarItem: FC<{
                 >
                   <path d="m6 3 14 9-14 9z" />
                 </svg>
-                {t('publish_now', 'Publish Now')}
+                {state === 'ERROR'
+                  ? t('retry', 'Retry')
+                  : t('publish_now', 'Publish Now')}
               </button>
             )}
             {state === 'DRAFT' && listState === 'approvals' && (

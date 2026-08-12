@@ -35,10 +35,13 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 
 const BUFFER_API = 'https://api.buffer.com';
 
-// Buffer's queue is not instant. `post()` runs at the scheduled minute, so the
-// post is already due; this small lead just keeps dueAt from landing in the
-// past between building the payload and Buffer receiving it.
-const DUE_LEAD_SECONDS = 60;
+// There is exactly ONE gate in this system and it lives in Postiz: a post has
+// to be approved there before it is ever scheduled. By the time this provider
+// runs, Postiz's own timer has already fired at the chosen minute — the
+// decision is made and the moment has arrived. Buffer's job from here is to
+// deliver, immediately, and nothing else: `shareNow` with `automatic`, no due
+// date, no second approval step. A gate in Buffer would strand posts behind a
+// queue nobody is watching.
 
 const CREATE_POST = `mutation($input: CreatePostInput!) {
   createPost(input: $input) {
@@ -290,10 +293,6 @@ export abstract class BufferRelayProvider
       /* fall back to the token */
     }
 
-    // Test/hold mode: park posts this many days out in Buffer instead of
-    // sending them. Unset or 0 = publish normally.
-    const holdDays = Number(process.env.BUFFER_RELAY_HOLD_DAYS || 0) || 0;
-
     const out: PostResponse[] = [];
 
     // Sequential on purpose: Buffer rate limits, and a thread here is a series
@@ -308,19 +307,10 @@ export abstract class BufferRelayProvider
         channelId,
         text: post.message || '',
         assets,
-        dueAt: holdDays
-          ? dayjs().add(holdDays, 'day').toISOString()
-          : dayjs().add(DUE_LEAD_SECONDS, 'second').toISOString(),
-        mode: 'customScheduled',
+        // Send it now. No dueAt: `shareNow` means exactly this, and Buffer
+        // accepts the shape with or without one (probed 2026-08-12).
+        mode: 'shareNow',
         schedulingType: 'automatic',
-        // Buffer rejects needsApproval outright unless the channel's own
-        // posting policy requires approval ("needsApproval is only valid when
-        // your posting policy on this channel requires approval", 2026-08-12),
-        // so it cannot be used as a safety switch. BUFFER_RELAY_HOLD_DAYS is
-        // the one that works: park the post far in Buffer's future queue,
-        // where it is visible and deletable and nothing publishes. Use it to
-        // exercise this path against live channels without posting.
-        needsApproval: false,
         source: 'postiz-relay',
       };
 

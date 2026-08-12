@@ -55,6 +55,17 @@ export const Providers = [
     identifier: 'linkedin',
     component: LinkedinProvider,
   },
+  // The Buffer relays reuse their platform's own editor component. Without an
+  // entry here the composer falls back to an empty component and the submit
+  // never settles — the button spins forever and no request is ever sent.
+  {
+    identifier: 'linkedinbuffer',
+    component: LinkedinProvider,
+  },
+  {
+    identifier: 'tiktokbuffer',
+    component: TiktokProvider,
+  },
   {
     identifier: 'linkedin-page',
     component: LinkedinProvider,
