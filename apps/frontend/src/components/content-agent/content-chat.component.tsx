@@ -198,11 +198,23 @@ export const ContentChatComponent: FC<{
         }
         return next;
       });
-    const commitNarration = () => {
+    // A tool call closes the current narration AND records the step Ace took.
+    // The step matters: Ace often acts without narrating, and a working panel
+    // that then had nothing to keep simply vanished at the end of the turn
+    // (user report) — the notes must say what it DID, not only what it said.
+    let lastStep = '';
+    const commitWork = (label?: string) => {
       const chunk = buffer.trim();
       buffer = '';
-      if (!chunk) return; // a tool with no narration before it
-      notes = notes ? notes + '\n' + chunk : chunk;
+      const lines: string[] = [];
+      if (chunk) lines.push(chunk);
+      // consecutive repeats of the same step collapse into one line
+      if (label && label !== lastStep) {
+        lines.push(`· ${label}`);
+        lastStep = label;
+      }
+      if (!lines.length) return;
+      notes = notes ? `${notes}\n${lines.join('\n')}` : lines.join('\n');
       setMessages((list) => {
         const next = [...list];
         const last = next[next.length - 1];
@@ -279,7 +291,7 @@ export const ContentChatComponent: FC<{
             continue;
           }
           if (evt.type === 'delta' && evt.text) buffer += evt.text;
-          if (evt.type === 'tool_start') commitNarration();
+          if (evt.type === 'tool_start') commitWork(evt.label);
           if (evt.type === 'done' && typeof evt.result === 'string') {
             finalResult = evt.result;
           }
@@ -438,6 +450,14 @@ export const ContentChatComponent: FC<{
                       target (measured at 393px; iOS minimum) */}
                   <summary className="cursor-pointer select-none text-[12px] font-[550] text-newTextColor/50 hover:text-newTextColor/80 transition-colors duration-150 phone:py-[13px]">
                     {t('ace_show_working', "Show Ace's working")}
+                    {(() => {
+                      const steps =
+                        m.working.split('\n').filter((l) => l.startsWith('· '))
+                          .length || m.working.split('\n').length;
+                      return ` · ${steps} ${
+                        steps === 1 ? t('ace_step', 'step') : t('ace_steps', 'steps')
+                      }`;
+                    })()}
                   </summary>
                   <div className="mt-[6px] rounded-[10px] border border-newTableBorder bg-newTableHeader/60 px-[10px] py-[8px] text-[13px] leading-[1.55] text-newTextColor/60 whitespace-pre-wrap">
                     {m.working}
