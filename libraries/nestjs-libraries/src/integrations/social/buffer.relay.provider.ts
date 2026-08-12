@@ -1,6 +1,7 @@
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { SocialAbstract, BadBody } from '../social.abstract';
 import {
+  AnalyticsData,
   AuthTokenDetails,
   PostDetails,
   PostResponse,
@@ -56,6 +57,29 @@ const CHANNELS = `query($orgId: OrganizationId!) {
 }`;
 
 const ORGANIZATIONS = `{ account { organizations { id name } } }`;
+
+// Insights. Buffer keeps the numbers each platform reports back, which is the
+// only place we can get them: neither platform's own API is available to us.
+const AGGREGATE_METRICS = `query($input: AggregatedPostMetricsInput!) {
+  aggregatedPostMetrics(input: $input) {
+    metricsUpdatedAt
+    metrics { name type unit value }
+  }
+}`;
+
+const POST_METRICS = `query($id: PostId!) {
+  post(input: { id: $id }) {
+    metricsUpdatedAt
+    metrics { name type unit value }
+  }
+}`;
+
+type BufferMetric = {
+  name: string;
+  type: string;
+  unit: string;
+  value: number;
+};
 
 type BufferAsset =
   | { image: { url: string; metadata?: { altText: string } } }
@@ -142,6 +166,31 @@ export abstract class BufferRelayProvider
     return json.data as T;
   }
 
+  /**
+   * The aggregate metrics query demands an organization id, and it must be the
+   * one that actually owns this channel — NOT simply the first organization the
+   * key can see. Same reasoning as findChannel below: with two organizations,
+   * "first wins" quietly reports another account's numbers, or none.
+   */
+  private async organizationIdForChannel(
+    channelId: string
+  ): Promise<string | null> {
+    const orgs = await this.graphql<{
+      account: { organizations: { id: string }[] };
+    }>(ORGANIZATIONS);
+
+    const list = orgs?.account?.organizations || [];
+    if (list.length === 1) return list[0].id;
+
+    for (const org of list) {
+      const { channels } = await this.graphql<{
+        channels: { id: string }[];
+      }>(CHANNELS, { orgId: org.id });
+      if ((channels || []).some((c) => c.id === channelId)) return org.id;
+    }
+    return null;
+  }
+
   private async findChannel(channelId: string) {
     const orgs = await this.graphql<{
       account: { organizations: { id: string; name: string }[] };
@@ -163,6 +212,83 @@ export abstract class BufferRelayProvider
   async generateAuthUrl() {
     const state = makeId(6);
     return { url: state, codeVerifier: makeId(10), state };
+  }
+
+  /**
+   * Channel insights. Buffer reports one total per metric for a window rather
+   * than a daily series, so each metric becomes a single point — enough for the
+   * headline numbers, and honest about what is actually available. The previous
+   * window of equal length is fetched too, purely to make the percentage change
+   * real instead of the hardcoded placeholder several providers ship with.
+   */
+  async analytics(
+    id: string,
+    accessToken: string,
+    date: number
+  ): Promise<AnalyticsData[]> {
+    const orgId = await this.organizationIdForChannel(id);
+    if (!orgId) return [];
+
+    const now = dayjs();
+    const window = (from: dayjs.Dayjs, to: dayjs.Dayjs) => ({
+      organizationId: orgId,
+      channelIds: [id],
+      startDateTime: from.toISOString(),
+      endDateTime: to.toISOString(),
+    });
+
+    const [current, previous] = await Promise.all([
+      this.graphql(AGGREGATE_METRICS, {
+        input: window(now.subtract(date, 'day'), now),
+      }),
+      this.graphql(AGGREGATE_METRICS, {
+        input: window(now.subtract(date * 2, 'day'), now.subtract(date, 'day')),
+      }).catch(() => null),
+    ]);
+
+    const metrics: BufferMetric[] =
+      current?.aggregatedPostMetrics?.metrics || [];
+    const before: BufferMetric[] =
+      previous?.aggregatedPostMetrics?.metrics || [];
+
+    return metrics.map((m) => {
+      const prior = before.find((p) => p.type === m.type)?.value;
+      return {
+        label: m.name,
+        percentageChange:
+          prior && prior !== 0
+            ? Math.round(((m.value - prior) / prior) * 100)
+            : 0,
+        data: [
+          { total: String(m.value), date: now.format('YYYY-MM-DD') },
+        ],
+      };
+    });
+  }
+
+  /**
+   * Per-post insights. `postId` is the release id Postiz stored when the post
+   * published, which for a relayed post is Buffer's own post id.
+   */
+  async postAnalytics(
+    integrationId: string,
+    accessToken: string,
+    postId: string
+  ): Promise<AnalyticsData[]> {
+    if (!postId) return [];
+    const data = await this.graphql(POST_METRICS, { id: postId });
+    const metrics: BufferMetric[] = data?.post?.metrics || [];
+    const asOf = data?.post?.metricsUpdatedAt
+      ? dayjs(data.post.metricsUpdatedAt)
+      : dayjs();
+
+    return metrics.map((m) => ({
+      label: m.name,
+      // Buffer gives a single current figure per post, with nothing to compare
+      // it against, so claiming a change would be inventing one.
+      percentageChange: 0,
+      data: [{ total: String(m.value), date: asOf.format('YYYY-MM-DD') }],
+    }));
   }
 
   async refreshToken(): Promise<AuthTokenDetails> {
