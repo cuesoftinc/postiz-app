@@ -109,6 +109,30 @@ export const ContentChatComponent: FC<{
     if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
+  // The live working panel is height-capped; without pinning, narration past
+  // the cap streams below the fold and the panel looks frozen. Pin it to the
+  // newest line on every commit (only one live panel exists at a time).
+  const workingRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = workingRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
+  // transient per-message "Copied" acknowledgement for the copy affordance
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const copyMessage = useCallback((i: number, text: string) => {
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => {
+        setCopiedIdx(i);
+        window.setTimeout(
+          () => setCopiedIdx((c) => (c === i ? null : c)),
+          1500
+        );
+      })
+      .catch(() => {});
+  }, []);
+
   const newChat = useCallback(() => {
     runRef.current++;
     sessionRef.current = null;
@@ -436,7 +460,10 @@ export const ContentChatComponent: FC<{
                   just the label until Ace's first narration commits), then
                   replaced by the collapsed toggle below */}
               {!m.workingDone && streaming && i === messages.length - 1 && (
-                <div className="mb-[6px] rounded-[10px] border border-newTableBorder bg-newTableHeader/60 px-[10px] py-[8px] text-[13px] leading-[1.55] text-newTextColor/60 whitespace-pre-wrap max-h-[160px] overflow-y-auto">
+                <div
+                  ref={workingRef}
+                  className="mb-[6px] rounded-[10px] border border-newTableBorder bg-newTableHeader/60 px-[10px] py-[8px] text-[13px] leading-[1.55] text-newTextColor/60 whitespace-pre-wrap max-h-[160px] overflow-y-auto"
+                >
                   <div className="flex items-center gap-[6px] text-[12px] font-[550] text-newTextColor/50">
                     <span className="w-[6px] h-[6px] rounded-full bg-btnPrimary animate-pulse" />
                     {t('ace_working', 'Ace is working…')}
@@ -520,6 +547,30 @@ export const ContentChatComponent: FC<{
               </ReactMarkdown>
               {streaming && i === messages.length - 1 && (
                 <span className="inline-block w-[7px] h-[14px] ms-[2px] align-middle bg-newTextColor/40 animate-pulse" />
+              )}
+              {/* copy the finished reply — quiet ghost under the text; the
+                  phone padding lifts the row to a 44px tap target */}
+              {m.text && !(streaming && i === messages.length - 1) && (
+                <button
+                  type="button"
+                  onClick={() => copyMessage(i, m.text)}
+                  aria-label={t('ace_copy', 'Copy message')}
+                  className="mt-[4px] -ms-[6px] h-[28px] px-[6px] rounded-[6px] flex items-center gap-[5px] text-[12px] text-newTextColor/40 hover:text-newTextColor/80 hover:bg-boxHover transition-colors duration-150 phone:h-[44px] phone:px-[10px]"
+                >
+                  {copiedIdx === i ? (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                      {t('ace_copied', 'Copied')}
+                    </>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                    </svg>
+                  )}
+                </button>
               )}
             </div>
           ) : (
