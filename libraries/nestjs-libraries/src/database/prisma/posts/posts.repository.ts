@@ -344,6 +344,11 @@ export class PostsRepository {
           group: true,
           creationMethod: true,
           image: true,
+          // settings carries the composer's per-provider options; the list
+          // card reads post_type from it to name caption-less posts
+          // ('Instagram story') — the calendar query already selects it,
+          // this one had been left behind
+          settings: true,
           tags: {
             select: {
               tag: true,
