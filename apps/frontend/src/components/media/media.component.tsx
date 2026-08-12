@@ -241,6 +241,7 @@ export const MediaBox: FC<{
   const uploaderRef = useRef<any>(null);
   const mediaDirectory = useMediaDirectory();
   const [loading, setLoading] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const uppy = useUppyUploader({
     allowedFileTypes:
@@ -262,20 +263,34 @@ export const MediaBox: FC<{
     onEnd: () => setLoading(false),
   });
 
+  // Selection is live on BOTH surfaces now: in the picker it queues media for
+  // the post (ordinal badge), on the standalone page it queues media for bulk
+  // delete (check badge). Upstream hard-gated standalone out, which left the
+  // library with no bulk affordance at all — 38 tiles meant 38 confirms.
+  // Functional update: clicks that land in the same render batch (fast
+  // clicking, select-all-then-click) would otherwise each read the same stale
+  // array and only the last one would survive.
   const addRemoveSelected = useCallback(
     (media: any) => () => {
-      if (standalone) {
-        return;
-      }
-      const exists = selected.find((p: any) => p.id === media.id);
-      if (exists) {
-        setSelected(selected.filter((f: any) => f.id !== media.id));
-        return;
-      }
-      setSelected([...selected, media]);
+      setSelected((prev: any[]) =>
+        prev.find((p: any) => p.id === media.id)
+          ? prev.filter((f: any) => f.id !== media.id)
+          : [...prev, media]
+      );
     },
-    [selected]
+    []
   );
+
+  // Library only: a tile the user can no longer see must not stay silently
+  // queued for the bulk delete (and `allVisibleSelected` assumes a per-page
+  // selection). The picker deliberately keeps accumulating across pages and
+  // searches — a post can draw its media from anywhere in the library.
+  useEffect(() => {
+    if (!standalone) {
+      return;
+    }
+    setSelected([]);
+  }, [page, debouncedSearch, standalone]);
 
   const addMedia = useCallback(async () => {
     if (standalone) {
@@ -399,10 +414,92 @@ export const MediaBox: FC<{
       await fetch(`/media/${media.id}`, {
         method: 'DELETE',
       });
-      mutate();
+      // same out-of-range guard as the bulk path: deleting the last item on
+      // the last page must not leave the grid asking for a page that's gone
+      const fresh = await mutate();
+      setPage((p) => Math.min(p, Math.max(0, ((fresh as any)?.pages || 1) - 1)));
     },
     [mutate]
   );
+
+  const visibleMedia = useMemo(
+    () =>
+      (data?.results || []).filter((f: any) => {
+        if (type === 'video') {
+          return hasExtension(f.path, 'mp4');
+        }
+        if (type === 'image') {
+          return !hasExtension(f.path, 'mp4');
+        }
+        return true;
+      }),
+    [data?.results, type]
+  );
+
+  const allVisibleSelected =
+    visibleMedia.length > 0 && selected.length === visibleMedia.length;
+
+  const toggleSelectAll = useCallback(() => {
+    setSelected(allVisibleSelected ? [] : visibleMedia);
+  }, [allVisibleSelected, visibleMedia]);
+
+  // Bulk delete: one confirmation for the whole set, then the same per-item
+  // endpoint the single trash icon uses (there is no bulk route server-side),
+  // in small batches so the backend isn't hit with N parallel requests.
+  const deleteSelected = useCallback(async () => {
+    const count = selected.length;
+    if (!count) {
+      return;
+    }
+    if (
+      !(await deleteDialog(
+        t(
+          'delete_selected_media_confirm',
+          `Delete ${count} selected ${
+            count === 1 ? 'file' : 'files'
+          } from your media library? Posts already using them keep their copy.`
+        ),
+        t('yes_delete_them', 'Yes, delete them!')
+      ))
+    ) {
+      return;
+    }
+    setBulkDeleting(true);
+    let failed = 0;
+    const batch = 5;
+    for (let i = 0; i < selected.length; i += batch) {
+      const results = await Promise.all(
+        selected.slice(i, i + batch).map(async (media: any) => {
+          try {
+            const res = await fetch(`/media/${media.id}`, { method: 'DELETE' });
+            return res.ok;
+          } catch (e) {
+            return false;
+          }
+        })
+      );
+      failed += results.filter((r) => !r).length;
+    }
+    setBulkDeleting(false);
+    setSelected([]);
+    // Clearing a whole page shrinks the page count, and the request would
+    // otherwise keep asking for a page that no longer exists — which renders
+    // as "you don't have any media yet" with the pager, search and bulk bar
+    // all gone. Step back to the last page that still has content.
+    const fresh = await mutate();
+    setPage((p) => Math.min(p, Math.max(0, ((fresh as any)?.pages || 1) - 1)));
+    if (failed) {
+      toaster.show(
+        t('some_media_could_not_be_deleted', `${failed} of ${count} could not be deleted`),
+        'warning'
+      );
+      return;
+    }
+    toaster.show(
+      t('media_deleted', `${count} ${count === 1 ? 'file' : 'files'} deleted`),
+      'success'
+    );
+  }, [selected, mutate, t, toaster]);
 
   // Quiet upload variant — stays the picker-modal's button ('Add selected
   // media' is the primary there); the standalone page promotes Upload to the
@@ -506,6 +603,42 @@ export const MediaBox: FC<{
             <ThirdPartyMediaLibrary onImported={() => mutate()} />
           </div>
         </div>
+        {/* Contextual bulk bar — standalone library only. Upstream ships no
+            bulk delete at all (selection was hard-gated off here), so clearing
+            a week of spent media meant one hover-confirm per tile. Appears
+            only with a selection, Buffer-style. */}
+        {standalone && selected.length > 0 && (
+          <div className="flex items-center gap-[12px] mt-[12px] px-[12px] py-[8px] rounded-[8px] bg-newBgColorInner border border-newTableBorder phone:flex-wrap">
+            <div className="text-[14px] font-[500] shrink-0">
+              {t('n_selected', `${selected.length} selected`)}
+            </div>
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="cursor-pointer text-[14px] text-newTextColor/70 hover:text-newTextColor h-[32px] phone:h-[44px] px-[8px] rounded-[6px] hover:bg-boxHover transition-colors duration-150"
+            >
+              {allVisibleSelected
+                ? t('clear_selection', 'Clear selection')
+                : t('select_all_on_page', 'Select all on page')}
+            </button>
+            <div className="flex-1 phone:hidden" />
+            <button
+              type="button"
+              disabled={bulkDeleting}
+              onClick={deleteSelected}
+              className="relative cursor-pointer bg-red-500/10 text-red-400 hover:text-red-500 hover:bg-red-500/20 border border-red-500/30 flex gap-[8px] h-[32px] phone:h-[44px] phone:w-full px-[12px] text-[14px] font-[500] justify-center items-center rounded-[8px] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {bulkDeleting && (
+                <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
+                  <div className="animate-spin h-[16px] w-[16px] border-2 border-current border-t-transparent rounded-full" />
+                </div>
+              )}
+              <div className={bulkDeleting ? 'invisible' : undefined}>
+                {t('delete_selected', 'Delete selected')}
+              </div>
+            </button>
+          </div>
+        )}
         {/* Uppy progress strip only occupies space while an upload runs —
             idle it reserved ~60px of dead space between search and grid
             (Buffer parity, media §2). Kept mounted (hidden) so Uppy's
@@ -615,20 +748,10 @@ export const MediaBox: FC<{
                 ))}
               </>
             )}
-            {data?.results
-              ?.filter((f: any) => {
-                if (type === 'video') {
-                  return hasExtension(f.path, 'mp4');
-                } else if (type === 'image') {
-                  return !hasExtension(f.path, 'mp4');
-                }
-                return true;
-              })
-              .map((media: any) => (
+            {visibleMedia.map((media: any) => (
                 <div
                   className={clsx(
-                    'group p-[8px] float-left rounded-[8px] w8-max aspect-square',
-                    !standalone && 'cursor-pointer'
+                    'group p-[8px] float-left rounded-[8px] w8-max aspect-square cursor-pointer'
                   )}
                   key={media.id}
                 >
@@ -643,7 +766,24 @@ export const MediaBox: FC<{
                   >
                     {!!selected.find((p: any) => p.id === media.id) ? (
                       <div className="text-white flex z-[21] justify-center items-center text-[14px] font-[500] w-[24px] h-[24px] rounded-full bg-forth absolute -bottom-[10px] -end-[10px]">
-                        {selected.findIndex((z: any) => z.id === media.id) + 1}
+                        {/* picker: ordinal (post order matters).
+                            library: a check (deletion has no order) */}
+                        {standalone ? (
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        ) : (
+                          selected.findIndex((z: any) => z.id === media.id) + 1
+                        )}
                       </div>
                     ) : (
                       <DeleteCircleIcon
