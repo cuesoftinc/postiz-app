@@ -962,8 +962,17 @@ export const ListView = () => {
       }
       groups[dateKey].push(post);
     });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [listPosts, displayTimezone]);
+    // Sent reads backwards in time: today first, then yesterday, matching
+    // Buffer (verified in their UI — Sent runs Today, Yesterday, Monday…, and
+    // newest-first inside each day too). The API already returns published
+    // posts descending, so ascending headers here put the oldest day on top
+    // with the newest posts inside it — the worst of both. Upcoming tabs stay
+    // ascending: the next thing to go out belongs at the top.
+    const newestFirst = listState === 'published';
+    return Object.entries(groups).sort(([a], [b]) =>
+      newestFirst ? b.localeCompare(a) : a.localeCompare(b)
+    );
+  }, [listPosts, displayTimezone, listState]);
 
   // "now", projected into the display timezone when set — only used to label
   // a group Today/Tomorrow; without a display timezone it is exactly newDayjs()
