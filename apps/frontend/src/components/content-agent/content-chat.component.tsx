@@ -22,7 +22,16 @@ import '@gitroom/frontend/components/agents/agent.styles.scss';
 
 type ChatMessage = {
   role: 'user' | 'assistant' | 'system';
+  /** The message body. For a finished assistant turn this is ONLY the final
+      answer (the bridge's done.result); Ace's between-tool narration lives in
+      `working` instead of polluting the transcript. */
   text: string;
+  /** Ace's streamed working notes (between-tool narration). While the turn
+      runs they render as a live, subdued activity panel; once the turn
+      finishes they collapse behind a "Show Ace's working" toggle. */
+  working?: string;
+  /** True once the turn finished and `text` holds the clean final answer. */
+  workingDone?: boolean;
 };
 
 export type BridgeProfile = 'content' | 'assistant' | 'post';
@@ -165,6 +174,21 @@ export const ContentChatComponent: FC<{
       { role: 'user', text: message },
       { role: 'assistant', text: '' },
     ]);
+    // TEXT CLASSIFICATION — the rule that keeps the two areas pure:
+    // narration only in the working notes, the answer only in the body, and
+    // NEITHER ever rendered in the other's place, not even for a frame.
+    //
+    // Streamed text is buffered, never rendered where it lands. A tool call
+    // starting proves the buffered text was narration (Ace talks, then acts),
+    // so `tool_start` commits it to the notes. Whatever is left when the turn
+    // ends is the answer — no tool followed it — and only then does it type
+    // into the body. This is the only classification available at stream
+    // time; guessing earlier is what produced the text-hopping regressions.
+    let buffer = '';
+    let notes = '';
+    // the clean final answer, delivered separately by the bridge's done event
+    let finalResult: string | null = null;
+
     const appendAssistant = (chunk: string) =>
       setMessages((list) => {
         const next = [...list];
@@ -174,33 +198,36 @@ export const ContentChatComponent: FC<{
         }
         return next;
       });
-    // typewriter: deltas arrive as multi-word chunks; queue them and write
-    // a few characters per tick so the reply types on smoothly. Base pace is
-    // ~40 chars/s (1 char per 24ms tick — user-tuned, the faster first cut
-    // read as bursts), easing up with the backlog (~100 ticks ≈ 2.5s to
-    // drain whatever is queued) so long answers still converge. setTimeout,
-    // not rAF: background tabs clamp timers but never stop them, so the
-    // drain always completes.
-    let pending = '';
-    let draining = false;
-    const drain = () => {
-      if (runRef.current !== run) return; // pane moved on: stop writing
-      if (!pending) {
-        draining = false;
-        return;
-      }
-      const step = Math.max(1, Math.ceil(pending.length / 100));
-      appendAssistant(pending.slice(0, step));
-      pending = pending.slice(step);
-      setTimeout(drain, 24);
+    const commitNarration = () => {
+      const chunk = buffer.trim();
+      buffer = '';
+      if (!chunk) return; // a tool with no narration before it
+      notes = notes ? notes + '\n' + chunk : chunk;
+      setMessages((list) => {
+        const next = [...list];
+        const last = next[next.length - 1];
+        if (last?.role === 'assistant') {
+          next[next.length - 1] = { ...last, working: notes };
+        }
+        return next;
+      });
     };
-    const queueAssistant = (text: string) => {
-      pending += text;
-      if (!draining) {
-        draining = true;
-        drain();
-      }
-    };
+    // typewriter for the ANSWER only: a few characters per tick so it types
+    // on rather than appearing at once. The step scales with what is left, so
+    // the whole answer lands in ~2.5s regardless of length (24ms ticks —
+    // setTimeout, not rAF: background tabs clamp timers but never stop them).
+    const typeAnswer = (full: string) =>
+      new Promise<void>((resolve) => {
+        let i = 0;
+        const tick = () => {
+          if (runRef.current !== run || i >= full.length) return resolve();
+          const step = Math.max(1, Math.ceil((full.length - i) / 100));
+          appendAssistant(full.slice(i, i + step));
+          i += step;
+          setTimeout(tick, 24);
+        };
+        tick();
+      });
     const showOffline = () =>
       setMessages((list) => [
         ...list.filter(
@@ -251,7 +278,11 @@ export const ContentChatComponent: FC<{
           } catch {
             continue;
           }
-          if (evt.type === 'delta' && evt.text) queueAssistant(evt.text);
+          if (evt.type === 'delta' && evt.text) buffer += evt.text;
+          if (evt.type === 'tool_start') commitNarration();
+          if (evt.type === 'done' && typeof evt.result === 'string') {
+            finalResult = evt.result;
+          }
           if (
             (evt.type === 'session' || evt.type === 'done') &&
             evt.sessionId &&
@@ -266,12 +297,26 @@ export const ContentChatComponent: FC<{
     } catch {
       if (runRef.current === run) showOffline();
     }
-    // let the typewriter finish writing what the stream already delivered
-    // before the caret goes away and the turn is declared over
-    while ((pending || draining) && runRef.current === run) {
-      await new Promise((r) => setTimeout(r, 50));
-    }
+    // whatever text no tool followed is the answer — type it into the body
+    const answer = ((finalResult ?? '') || buffer).trim();
+    buffer = '';
+    if (runRef.current === run && answer) await typeAnswer(answer);
     if (runRef.current === run) {
+      // the notes collapse behind the toggle; a turn that never narrated has
+      // none, and renders as a plain message with no toggle at all
+      setMessages((list) => {
+        const next = [...list];
+        const last = next[next.length - 1];
+        if (last?.role === 'assistant' && !last.workingDone) {
+          next[next.length - 1] = {
+            role: 'assistant',
+            text: answer || last.text,
+            working: notes,
+            workingDone: true,
+          };
+        }
+        return next;
+      });
       setStreaming(false);
       onTurnEnd?.();
     }
@@ -371,6 +416,34 @@ export const ContentChatComponent: FC<{
               key={i}
               className="self-start max-w-[85%] min-w-0 text-[14px] text-newTextColor break-words [overflow-wrap:anywhere]"
             >
+              {/* Ace's working notes. Live: a subdued activity panel that
+                  streams the between-tool narration (with the caret). Done:
+                  the notes collapse behind a toggle and the clean final
+                  answer below stands alone (owner's pick: option C). */}
+              {/* live activity: visible for the whole working phase (with
+                  just the label until Ace's first narration commits), then
+                  replaced by the collapsed toggle below */}
+              {!m.workingDone && streaming && i === messages.length - 1 && (
+                <div className="mb-[6px] rounded-[10px] border border-newTableBorder bg-newTableHeader/60 px-[10px] py-[8px] text-[13px] leading-[1.55] text-newTextColor/60 whitespace-pre-wrap max-h-[160px] overflow-y-auto">
+                  <div className="flex items-center gap-[6px] text-[12px] font-[550] text-newTextColor/50">
+                    <span className="w-[6px] h-[6px] rounded-full bg-btnPrimary animate-pulse" />
+                    {t('ace_working', 'Ace is working…')}
+                  </div>
+                  {m.working ? <div className="mt-[4px]">{m.working}</div> : null}
+                </div>
+              )}
+              {m.workingDone && m.working ? (
+                <details className="mb-[6px]">
+                  {/* phone:py-[13px] lifts the 18px text line to a 44px tap
+                      target (measured at 393px; iOS minimum) */}
+                  <summary className="cursor-pointer select-none text-[12px] font-[550] text-newTextColor/50 hover:text-newTextColor/80 transition-colors duration-150 phone:py-[13px]">
+                    {t('ace_show_working', "Show Ace's working")}
+                  </summary>
+                  <div className="mt-[6px] rounded-[10px] border border-newTableBorder bg-newTableHeader/60 px-[10px] py-[8px] text-[13px] leading-[1.55] text-newTextColor/60 whitespace-pre-wrap">
+                    {m.working}
+                  </div>
+                </details>
+              ) : null}
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
