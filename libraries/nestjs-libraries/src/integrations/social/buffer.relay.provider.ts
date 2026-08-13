@@ -81,6 +81,11 @@ type BufferMetric = {
   value: number;
 };
 
+// How far back Buffer will serve Insights on the current plan. Free plans stop
+// at 31 days and reject longer windows outright; the frontend's range gates are
+// set to match (7 and 30 only for the relay channels).
+const BUFFER_HISTORY_DAYS = 31;
+
 type BufferAsset =
   | { image: { url: string; metadata?: { altText: string } } }
   | { video: { url: string; metadata: { thumbnailOffset: number } } }
@@ -237,13 +242,30 @@ export abstract class BufferRelayProvider
       endDateTime: to.toISOString(),
     });
 
+    // Buffer's free plan serves only the last 31 days of Insights and errors
+    // beyond it, so a comparison window is fetched only when it fits — for a
+    // 30-day view the previous 30 days are already out of reach, and asking
+    // would just burn a request to be told so.
+    const comparable = date * 2 <= BUFFER_HISTORY_DAYS;
+
     const [current, previous] = await Promise.all([
       this.graphql(AGGREGATE_METRICS, {
         input: window(now.subtract(date, 'day'), now),
+      }).catch((e) => {
+        // Out of plan range: report nothing rather than throwing, which the
+        // page would otherwise render as "this channel needs a refresh" —
+        // blaming the connection for a billing limit.
+        if (/limited to the last/i.test(e?.message || '')) return null;
+        throw e;
       }),
-      this.graphql(AGGREGATE_METRICS, {
-        input: window(now.subtract(date * 2, 'day'), now.subtract(date, 'day')),
-      }).catch(() => null),
+      comparable
+        ? this.graphql(AGGREGATE_METRICS, {
+            input: window(
+              now.subtract(date * 2, 'day'),
+              now.subtract(date, 'day')
+            ),
+          }).catch(() => null)
+        : Promise.resolve(null),
     ]);
 
     const metrics: BufferMetric[] =

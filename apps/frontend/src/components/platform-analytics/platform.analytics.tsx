@@ -40,8 +40,12 @@ const allowedIntegrations = [
   'tiktokbuffer',
 ];
 
-// Which day ranges a provider can answer for. Buffer accepts any window, so
-// the relays offer all three.
+// Which day ranges a provider can answer for. The Buffer relays get 7 and 30
+// only: Buffer's free plan serves Insights for the last 31 days and refuses
+// anything longer ("Free-plan Insights are limited to the last 31 days of
+// history"), and an unanswerable range renders as "Channel needs a refresh",
+// which blames the connection for a billing ceiling. Add 90 here if the
+// account moves to a paid plan.
 const RELAYS = ['linkedinbuffer', 'tiktokbuffer'];
 
 /** Buffer Insights bar-chart glyph — shared by the page-header chip (20px)
@@ -156,15 +160,9 @@ export const PlatformAnalytics = () => {
       });
     }
     if (
-      [
-        'facebook',
-        'linkedin-page',
-        'pinterest',
-        'youtube',
-        'x',
-        'gmb',
-        ...RELAYS,
-      ].indexOf(currentIntegration.identifier) !== -1
+      ['facebook', 'linkedin-page', 'pinterest', 'youtube', 'x', 'gmb'].indexOf(
+        currentIntegration.identifier
+      ) !== -1
     ) {
       arr.push({
         key: 90,
