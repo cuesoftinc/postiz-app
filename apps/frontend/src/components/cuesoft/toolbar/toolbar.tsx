@@ -26,10 +26,8 @@ import clsx from 'clsx';
  *    (admin-errors.component.tsx filter bar, admin-stats.component.tsx date
  *    bar - byte-identical recipes). These ARE adopted: admin-errors imports
  *    ToolbarRow/Field/Select/Input.
- *  - SegmentedControl 'segmented': Buffer's own segmented control, measured
- *    live (see the recipe below); ADOPTED by all six segmented surfaces in the
- *    fork. 'chips': admin-stats' presets row (bg-forth "applied filter" chips
- *    - a deliberate second variant, not drift).
+ *  - SegmentedControl: Buffer's own segmented control, measured live (see the
+ *    recipe below); ADOPTED by all six segmented surfaces in the fork.
  *
  * Deliberate decisions for this kit:
  *  - ONE control height (36px) and ONE border token (border-newTableBorder),
@@ -169,7 +167,7 @@ const SEGMENTED_INACTIVE =
   'text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover';
 
 /**
- * SegmentedControl — the ONE segmented control / the preset chip row.
+ * SegmentedControl — the ONE segmented control.
  *
  * ADOPTION (2026-08-13): all six hand-rolled copies now render from here —
  * launches/filters.tsx desktop List|Calendar, its phone icon-only twin and the
@@ -208,20 +206,12 @@ const SEGMENTED_INACTIVE =
  * radiogroup/tablist role: those promise arrow-key navigation, and adding the
  * role without the roving tabindex would announce a contract the control does
  * not honour — a regression on what the plain buttons did before.
- *
- * variant='chips': admin-stats presets recipe — free-standing h-[36px]
- * bordered chips (the kit's 36px control height / 6px radius), active
- * bg-forth text-white border-forth (forth = brand blue), inactive
- * hover:bg-tableBorder (the "applied filter" affordance, deliberately kept
- * distinct from the segmented). Still unadopted: admin-stats.component.tsx
- * hand-rolls it and is not this change's file to touch.
  */
 export const SegmentedControl: FC<{
   options: SegmentedOption[];
   value: string;
   onChange: (value: string) => void;
-  variant?: 'segmented' | 'chips';
-  /** Segmented only; 'touch' is for phone bottom sheets. */
+  /** 'touch' is for phone bottom sheets. */
   size?: SegmentedSize;
   /** Extra classes for every item (e.g. `shrink-0` in a scrolling strip). */
   itemClassName?: string;
@@ -230,34 +220,10 @@ export const SegmentedControl: FC<{
   options,
   value,
   onChange,
-  variant = 'segmented',
   size = 'default',
   itemClassName,
   className,
 }) => {
-  if (variant === 'chips') {
-    return (
-      <div className={clsx('flex flex-wrap gap-[8px]', className)}>
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            className={clsx(
-              'h-[36px] px-[12px] rounded-[6px] text-[13px] border cursor-pointer whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
-              value === option.value
-                ? 'bg-forth text-white border-forth'
-                : 'bg-newBgColorInner text-newTextColor border-newTableBorder hover:bg-tableBorder',
-              itemClassName
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div
       data-cs

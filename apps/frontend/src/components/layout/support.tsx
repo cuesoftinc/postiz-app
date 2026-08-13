@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ChatbaseComponent } from '@gitroom/frontend/components/layout/chatbase.component';
-import './support.scss';
 export const supportEmitter = new EventEmitter();
 
 /**
@@ -14,9 +13,20 @@ export const supportEmitter = new EventEmitter();
  * #def0ff fill, dark-blue circled-"?" glyph (the hexes are Buffer's own —
  * sanctioned hardcodes, the bubble is self-colored in both themes).
  *
- * - Chatbase deployments keep the embed (script + widget); support.scss
- *   restyles the injected launcher into the same bubble.
+ * - Chatbase deployments keep the embed (script + widget); the injected
+ *   launcher's restyle lives INSIDE chatbase.component.tsx, as a scoped
+ *   <style> that mounts only with the widget.
  * - Discord deployments get the bubble rendered here (was a 194×58 pill).
+ *
+ * KEEP THE CHATBASE RULES THERE, not in a stylesheet imported from here.
+ * This component used to import a `support.scss` that carried them; because
+ * duplicate !important rules on the same ids resolve by DOCUMENT ORDER, an
+ * unconditionally-loaded global stylesheet and the widget's own injected CSS
+ * fought each other and the winner depended on load order. Scoping the
+ * override to the component removed the race and means a deployment without
+ * Chatbase configured ships none of it. That stylesheet declared zero rules
+ * afterwards and was deleted 2026-08-13; this paragraph is the only thing it
+ * still carried, and it is a live trap, not history.
  */
 export const Support = () => {
   const [show, setShow] = useState(true);
