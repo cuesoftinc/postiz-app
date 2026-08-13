@@ -110,7 +110,16 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                   // card starts flush against the 240px sidebar region (ps-0 —
                   // the sidebar carries its own inner padding). Phone: the card
                   // is full-bleed on the canvas, so no page padding at all.
-                  'flex flex-col min-w-screen text-newTextColor pt-[8px] pe-[8px] pb-[8px] ps-0 font-sans phone:p-0',
+                  // NO min-w-screen here. It was a no-op for this shell's whole
+                  // life — Tailwind 3 has no `min-w-screen` utility, so the
+                  // class emitted nothing — but Tailwind 4 DOES define it, as
+                  // `min-width: 100vw`. On this element that is actively
+                  // harmful: 100vw counts the classic scrollbar, so the page
+                  // wrapper would end up wider than the viewport's content box,
+                  // the layout viewport would grow to match, and every
+                  // position:fixed element in the shell would anchor to the
+                  // wider box. It is already full-width as a block child.
+                  'flex flex-col text-newTextColor pt-[8px] pe-[8px] pb-[8px] ps-0 font-sans phone:p-0',
                   // /agents is an app frame, not a document: the window never
                   // scrolls — the chat transcript and the sessions rail scroll
                   // inside (header, composer box and rail stay fixed). Desktop

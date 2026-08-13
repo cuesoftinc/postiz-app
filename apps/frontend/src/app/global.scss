@@ -2,10 +2,103 @@
 @use './polonto.css';
 @use '@uppy/core/dist/style.css' as uppyCore;
 @use '@uppy/dashboard/dist/style.css' as uppyDashboard;
+/* Tailwind v4 entry — DO NOT collapse these three back into
+   `@import "tailwindcss"`.
+   (1) Sass HOISTS a plain-CSS `@import` to the very top of the compiled file,
+       which would put preflight and every utility BEFORE colors/polonto/uppy
+       above. `@use` of a plain-CSS file inlines it in declaration order, so
+       these three land exactly where `@tailwind base/components/utilities`
+       used to, and this file's ~1300 lines of fork CSS still come after them.
+   (2) Importing the parts separately keeps them OUT of native `@layer`s.
+       Tailwind's own `tailwindcss/index.css` wraps preflight in `layer(base)`
+       and utilities in `layer(utilities)`, and an unlayered rule beats a
+       layered one at ANY specificity — that would silently hand every
+       third-party rule above (uppy, polonto, blueprint) and every bare element
+       selector below (`button`, `html`, `.ProseMirror h1`) a win over the
+       utilities they currently lose to. Flat + source-ordered is what v3 did
+       and what the size ladder below was measured against. */
+@use 'tailwindcss/theme.css';
+@use 'tailwindcss/preflight.css';
+/* v3 preflight parity — MUST stay between preflight and utilities, see the
+   file's own header. */
+@use './preflight-compat.css';
+@use 'tailwindcss/utilities.css';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* The v3 JS config is kept and loaded through v4's `@config` rather than
+   re-expressed as `@theme`. This is deliberate, not laziness:
+   (1) NAME COLLISION. Every colour in the config is a passthrough to one of
+       this app's own CSS variables, and those are literally named
+       `--color-primary`, `--color-gray`, `--color-custom1`… — the exact
+       namespace v4's `@theme` writes into. `@theme { --color-primary:
+       var(--color-primary) }` is a cycle; renaming the app variables would
+       touch colors.scss and every `var(--color-*)` call site.
+   (2) SCREEN ORDER IS PRECEDENCE. `phone` must stay second-to-last so it
+       beats the `custom`/`minCustom` height queries that match at the same
+       time on a portrait phone. The JS config's declaration order is carried
+       through verbatim by the compat layer; hand-porting to `@custom-variant`
+       would put that invariant back in play for no gain. */
+@config '../../tailwind.config.cjs';
+
+/* v4 redefines `hover:` as `@media (hover: hover) { &:hover }`, so every one of
+   the ~325 `hover:` utilities in this fork would stop applying on a touch
+   device. This restores the v3 definition. It is not nostalgia: the calendar
+   card's action pill, the queue row wash and the nav rail all drive off
+   `hover:`/`group-hover:`, and the phone rules in this file were written
+   against markup where those still resolved (they force the action strip
+   visible at rest precisely BECAUSE hover also fires). Flipping both at once
+   is a design decision, not a migration step — leave it for someone measuring
+   phones. */
+@custom-variant hover (&:hover);
+
+/* v4 builds the `container` utility by walking EVERY theme breakpoint and
+   emitting `@media (width >= <value>) { max-width: <value> }`. Eight of this
+   fork's nine screens are `raw` media queries (height queries and max-width
+   queries — see tailwind.config.cjs), so that generator produced literal
+   garbage: `@media (width >= (max-height: 700px)) { max-width: (max-height:
+   700px) }`. Next's CSS parser rejects it outright ("Unexpected token
+   ParenthesisBlock") and the whole build fails.
+   The class is blocked rather than redefined: `@utility container` ADDS a
+   second rule instead of replacing the core one, so the invalid media queries
+   survive. Nothing is lost — no element in this repo carries the bare
+   `container` class (Tailwind only emitted it because the word occurs in the
+   source text), and v3's version was `width: 100%` plus max-widths at the five
+   stock breakpoints, i.e. equally dead. `@source not inline(...)` is v4's
+   replacement for v3's `blocklist`. */
+@source not inline('container');
+
+/* v4 re-authored Tailwind's DEFAULT palette in OKLCH, so every stock colour
+   utility shifts hue/chroma on migration — `bg-red-500` alone moves from
+   #ef4444 to roughly #fb2c36, across ~130 call sites. None of those are Buffer
+   parity values (they are upstream's status colours: error reds, success
+   greens, warning ambers, info blues), but a pixel replica should not repaint
+   itself as a side effect of a build-tool upgrade. Pinned back to the exact
+   Tailwind 3 hexes, read out of the v3 build rather than from memory.
+   Only entries with a real className in this repo are listed; the rest of the
+   palette is left on v4's values because nothing renders it.
+   TO ADOPT v4's PALETTE: delete this block. That is a design decision with a
+   visible diff, which is why it is not folded into the migration. */
+@theme {
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-red-800: #991b1b;
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+  --color-emerald-600: #059669;
+  --color-teal-700: #0f766e;
+  --color-blue-100: #dbeafe;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-amber-50: #fffbeb;
+  --color-amber-200: #fde68a;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-800: #92400e;
+  --color-yellow-500: #eab308;
+}
 
 /* Fustat stays registered for brand moments, but the UI default is Inter
    (Buffer's body face) with Outfit for display — see tailwind fontFamily. */
@@ -95,24 +188,24 @@ body * {
 }
 
 .swal2-modal {
-  @apply bg-primary #{!important};
+  @apply bg-primary!;
   @apply border-b-[2px] border-b-sixth;
 }
 
 .swal2-modal * {
-  @apply text-newTextColor #{!important};
+  @apply text-newTextColor!;
 }
 
 .swal2-icon {
-  @apply text-newTextColor bg-primary #{!important};
+  @apply text-newTextColor! bg-primary!;
 }
 
 .swal2-cancel {
-  @apply text-white #{!important};
+  @apply text-white!;
 }
 .swal2-confirm {
-  @apply bg-customColor50 #{!important};
-  @apply text-white #{!important};
+  @apply bg-customColor50!;
+  @apply text-white!;
 }
 
 .w-md-editor-text {
@@ -299,7 +392,7 @@ body * {
 /*    display: none;*/
 /*}*/
 .w-md-editor {
-  @apply bg-input #{!important};
+  @apply bg-input!;
   border: 0 !important;
   box-shadow: none !important;
   border-radius: 8px !important;
@@ -308,7 +401,7 @@ body * {
 }
 
 .w-md-editor-toolbar {
-  @apply bg-input border-fifth #{!important};
+  @apply bg-input! border-fifth!;
   height: 40px !important;
   min-height: 40px !important;
   padding: 0 8px !important;

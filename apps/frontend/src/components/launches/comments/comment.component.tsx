@@ -147,15 +147,15 @@ export const EditableCommentComponent: FC<{
 export const CommentComponent: FC<{
   postId: string;
   /**
-   * Optional, because `Post.publishDate` is nullable now: an undated draft is a
-   * captured idea with no slot committed yet, and comments on it are exactly as
-   * useful as comments on a scheduled post.
+   * Optional AND nullable, because `Post.publishDate` is nullable: an undated
+   * draft is a captured idea with no slot committed yet, and comments on it are
+   * exactly as useful as comments on a scheduled post.
    *
-   * While this was required, the calendar had to SUPPRESS the comments trigger
-   * for a dateless post rather than fabricate a date for the heading (see the
-   * `if (!post.publishDate) return;` guards in calendar.tsx). Undefined, null
-   * and an Invalid Date all mean the same thing here and all take the plain
-   * heading.
+   * Undefined, null and an Invalid Date all mean the same thing here — the
+   * heading drops its date suffix and reads plain 'Comments'. So callers do not
+   * guard: calendar.tsx hands over `post.publishDate ? dayjs.utc(...) : null`
+   * and opens the sheet for a dateless post exactly as it does for a scheduled
+   * one.
    */
   date?: dayjs.Dayjs | null;
 }> = (props) => {

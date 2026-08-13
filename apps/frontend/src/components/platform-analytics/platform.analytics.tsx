@@ -3,7 +3,6 @@
 import useSWR, { useSWRConfig } from 'swr';
 import { FC, useCallback, useMemo, useState } from 'react';
 import { capitalize, orderBy } from 'lodash';
-import clsx from 'clsx';
 import dayjs from 'dayjs';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import {
@@ -24,6 +23,7 @@ import { ChannelsDropdown } from '@gitroom/frontend/components/new-layout/channe
 import { DropdownPanel } from '@gitroom/frontend/components/cuesoft/dropdown/dropdown-panel';
 import { useDropdown } from '@gitroom/frontend/components/cuesoft/dropdown/use-dropdown';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
+import { SegmentedControl } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
 import {
   PageHeader,
   PageShell,
@@ -143,19 +143,6 @@ const ChevronDown: FC = () => (
     <path d="m6 9 6 6 6-6" />
   </svg>
 );
-
-/* Buffer's segmented item spec (measured, identical to the List/Calendar
-   segmented in Publish): height 24, radius 6, padding 0 8, 14px/500; inactive
-   label #5a5a59; ACTIVE label #337046 on #95cd8f at alpha 0.322. The brand
-   mapping is the fork's lime token washed to 32%, which is the same construct
-   launches/filters.tsx already uses for its segmented, so Buffer's green never
-   gets hardcoded and both themes follow the token. */
-const SEG_ACTIVE =
-  'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_32%,transparent)] text-newTableTextFocused';
-const SEG_INACTIVE =
-  'text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover';
-const SEG_ITEM =
-  'h-[24px] px-[8px] rounded-[6px] text-[14px] font-[500] whitespace-nowrap cursor-pointer transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]';
 
 const csvCell = (value: string) =>
   /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
@@ -505,12 +492,12 @@ export const PlatformAnalytics = () => {
           {/* Buffer Insights toolbar: the shared channels dropdown (single-
               select: trigger shows the current channel's avatar + name;
               replaces BOTH the phone chip strip and sidebar-only desktop
-              selection), then ONE white hairline container (32px, r8, 4px
-              padding, 4px gap) holding 24px r6 segments: active = lime-tint
-              fill, inactive borderless muted, separated from content by a
-              full-width hairline. The option list is the per-channel table at
-              the top of this file, so a channel can never be offered a range
-              its provider cannot answer. */}
+              selection), then the shared SegmentedControl, separated from the
+              content by a full-width hairline. The measured geometry and the
+              lime-tint active fill live in that primitive now; this call site
+              supplies only the options, which come from the per-channel table
+              at the top of this file, so a channel can never be offered a
+              range its provider cannot answer. */}
           <div className="flex items-center gap-[10px] border-b border-newTableBorder pb-[12px]">
             <ChannelsDropdown
               integrations={sortedIntegrations}
@@ -534,24 +521,15 @@ export const PlatformAnalytics = () => {
                 );
               }}
             />
-            <div
-              data-cs
-              className="phone:hidden inline-flex items-center h-[32px] p-[4px] gap-[4px] rounded-[8px] border border-newTableBorder bg-newBgColorInner"
-            >
-              {options.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setRangeId(option.id)}
-                  className={clsx(
-                    SEG_ITEM,
-                    activeRange?.id === option.id ? SEG_ACTIVE : SEG_INACTIVE
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              className="phone:hidden"
+              value={activeRange?.id ?? ''}
+              onChange={(id) => setRangeId(id as RangeId)}
+              options={options.map((option) => ({
+                value: option.id,
+                label: option.label,
+              }))}
+            />
             {/* Buffer 390 collapses the picker to a single bordered
                 "30 days ▾" trigger opening a bottom sheet */}
             <button

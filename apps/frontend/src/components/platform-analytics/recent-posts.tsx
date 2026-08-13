@@ -2,7 +2,6 @@
 
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
-import clsx from 'clsx';
 import dayjs from 'dayjs';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -15,6 +14,7 @@ import {
   metricTotal,
 } from '@gitroom/frontend/components/platform-analytics/render.analytics';
 import { InsightCardsSkeleton } from '@gitroom/frontend/components/platform-analytics/analytics.skeletons';
+import { SegmentedControl } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
 
 interface RecentPost {
   id: string;
@@ -432,26 +432,13 @@ export const RecentPostsSection: FC<{
         {/* Buffer's ranking toggle, top right of the section: same segmented
             anatomy as the range and metric pickers */}
         {metricLabels.length > 1 && (
-          <div
-            data-cs
-            className="shrink-0 flex items-center h-[32px] p-[4px] gap-[4px] rounded-[8px] border border-newTableBorder bg-newBgColorInner max-w-full overflow-x-auto [scrollbar-width:none]"
-          >
-            {metricLabels.map((label) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setSelected(label)}
-                className={clsx(
-                  'h-[24px] px-[8px] rounded-[6px] text-[14px] font-[500] whitespace-nowrap shrink-0 cursor-pointer transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
-                  activeMetric === label
-                    ? 'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_32%,transparent)] text-newTableTextFocused'
-                    : 'text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover'
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            className="shrink-0 max-w-full overflow-x-auto [scrollbar-width:none]"
+            itemClassName="shrink-0"
+            options={metricLabels.map((label) => ({ value: label, label }))}
+            value={activeMetric}
+            onChange={setSelected}
+          />
         )}
       </div>
       {isLoading ? (

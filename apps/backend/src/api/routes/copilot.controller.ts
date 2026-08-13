@@ -511,6 +511,73 @@ export class CopilotController {
     return { ...run, posts: withState, postiz: summary };
   }
 
+  /**
+   * One week's raw record from the bridge, or the refusal to report instead of
+   * it. Exactly one of the two is ever non-null.
+   *
+   * Shared by the read route and the approve route so the two can never drift
+   * apart on what a 404, a 422 or an offline bridge means. That matters most
+   * for the 422: a record that fails its schema is refused here, so the approve
+   * route cannot act on a record the page would refuse to render. Approving
+   * from a record nobody is allowed to look at is the one way this feature
+   * could be worse than no feature.
+   */
+  private async fetchRunRecord(
+    week: number,
+    user: User,
+    organization: Organization
+  ): Promise<{ record: any; refusal: any }> {
+    const bridgeUrl =
+      process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
+    try {
+      const upstream = await fetch(`${bridgeUrl}/runs/${week}`, {
+        headers: this.bridgeHeaders(user, organization),
+      });
+      const body = await upstream.json().catch(() => null);
+      if (!upstream.ok) {
+        if (upstream.status === 404) {
+          return {
+            record: null,
+            refusal: {
+              error: `No run record for week ${week}`,
+              code: 'no_run_record',
+            },
+          };
+        }
+        if (upstream.status === 422) {
+          return {
+            record: null,
+            refusal: {
+              error: (body as any)?.error || 'That run record is not valid',
+              code: 'invalid_run_record',
+              violations: (body as any)?.violations || [],
+            },
+          };
+        }
+        if (upstream.status === 403) {
+          return {
+            record: null,
+            refusal: {
+              error:
+                'This organization does not have access to the content pipeline',
+              code: 'run_forbidden',
+            },
+          };
+        }
+        return {
+          record: null,
+          refusal: { error: 'Content bridge is offline', code: 'bridge_offline' },
+        };
+      }
+      return { record: body, refusal: null };
+    } catch {
+      return {
+        record: null,
+        refusal: { error: 'Content bridge is offline', code: 'bridge_offline' },
+      };
+    }
+  }
+
   // One week's record. The bridge answers 422 with a list of violations for a
   // record that does not match its schema, and that is passed through as a
   // refusal rather than smoothed into an offline error: a malformed record is a
@@ -522,8 +589,6 @@ export class CopilotController {
     @GetOrgFromRequest() organization: Organization,
     @Param('week') week: string
   ) {
-    const bridgeUrl =
-      process.env.CONTENT_BRIDGE_URL || 'http://host.docker.internal:6299';
     if (!user?.id || !organization?.id) {
       return { error: 'Not signed in', code: 'not_signed_in' };
     }
@@ -534,37 +599,184 @@ export class CopilotController {
     if (!Number.isInteger(n) || n < 1 || n > 53) {
       return { error: 'That is not a week number', code: 'invalid_week' };
     }
+    const { record, refusal } = await this.fetchRunRecord(n, user, organization);
+    if (refusal) {
+      return refusal;
+    }
     try {
-      const upstream = await fetch(`${bridgeUrl}/runs/${n}`, {
-        headers: this.bridgeHeaders(user, organization),
-      });
-      const body = await upstream.json().catch(() => null);
-      if (!upstream.ok) {
-        if (upstream.status === 404) {
-          return {
-            error: `No run record for week ${n}`,
-            code: 'no_run_record',
-          };
-        }
-        if (upstream.status === 422) {
-          return {
-            error: (body as any)?.error || 'That run record is not valid',
-            code: 'invalid_run_record',
-            violations: (body as any)?.violations || [],
-          };
-        }
-        if (upstream.status === 403) {
-          return {
-            error: 'This organization does not have access to the content pipeline',
-            code: 'run_forbidden',
-          };
-        }
-        return { error: 'Content bridge is offline', code: 'bridge_offline' };
-      }
-      return await this.attachPostizState(body, organization);
+      return await this.attachPostizState(record, organization);
     } catch {
       return { error: 'Content bridge is offline', code: 'bridge_offline' };
     }
+  }
+
+  /**
+   * APPROVE THE WEEK. This is the route that turns the Week Run page from a
+   * report into a decision.
+   *
+   * The objection it answers is that a read-only review surface you have to
+   * remember to open does not survive contact with a busy week: the approval
+   * still happens one calendar card at a time somewhere else, and eventually it
+   * stops happening at all. So the page that shows what a week is also releases
+   * it, in one act, from the same screen that just showed you the evidence.
+   *
+   * WHAT IT ACTUALLY DOES is a loop over PostsService.changePostStatus, which
+   * already carries the whole rule set: the approver-role check, the
+   * has-a-publish-date check, clearing needsApproval and re-arming the publish
+   * workflow. Nothing about approval is redefined here. This route's own job is
+   * only to answer WHICH posts a week means, and to report every one of them.
+   *
+   * SCOPING, deliberately, is the sibling read routes' scoping PLUS the acting
+   * user. The org is the fence on which week may be read, because a week run
+   * belongs to the company and not to whoever's session built it — Friday's
+   * reviewer is routinely not Monday's operator. But approving is a WRITE, and
+   * the question "may you release these posts" is about a person, not an org.
+   * So user.id is passed down to changePostStatus for the role check, and it
+   * comes from req.user (re-resolved from the database by AuthMiddleware on
+   * every request), never from the body or the query. An org-scoped read gate
+   * must not become an unauthenticated write.
+   *
+   * IDEMPOTENT: the service skips anything already in QUEUE before any write,
+   * so pressing this twice approves nothing the second time and reports every
+   * post as already queued. Nothing here needs to guard against a double click
+   * beyond saying so.
+   */
+  @Post('/content-runs/:week/approve')
+  async approveContentRun(
+    @GetUserFromRequest() user: User,
+    @GetOrgFromRequest() organization: Organization,
+    @Param('week') week: string
+  ) {
+    if (!user?.id || !organization?.id) {
+      return { error: 'Not signed in', code: 'not_signed_in' };
+    }
+    const n = Number(week);
+    if (!Number.isInteger(n) || n < 1 || n > 53) {
+      return { error: 'That is not a week number', code: 'invalid_week' };
+    }
+
+    const { record, refusal } = await this.fetchRunRecord(n, user, organization);
+    if (refusal) {
+      return refusal;
+    }
+
+    const posts: any[] = Array.isArray(record?.posts) ? record.posts : [];
+    // Deduplicated because the same Postiz id appearing twice in a record is a
+    // record bug, not an instruction to approve the post twice; both rows still
+    // get the outcome back on the way out, via the id map below.
+    const ids = [
+      ...new Set(
+        posts
+          .map((p) => p?.push?.postizId)
+          .filter((id): id is string => typeof id === 'string' && !!id)
+      ),
+    ];
+    // The same cap the read route uses, for the same reason and now with teeth:
+    // a hand-written or runaway record must not turn one click into an
+    // unbounded fan-out of WRITES. Anything past it is reported as not
+    // attempted, which is the truthful answer, and is never silent.
+    const attempted = ids.slice(0, RUN_POSTIZ_LOOKUP_CAP);
+    const attemptedSet = new Set(attempted);
+
+    const { gateOn, mayApprove, results } =
+      await this._postsService.approvePosts(
+        organization.id,
+        attempted,
+        user.id
+      );
+
+    // Reported as a refusal body rather than thrown as a 403, matching every
+    // other route on this controller — the page reads `code` and says something
+    // useful, where a Nest exception filter would hand it {statusCode, error:
+    // 'Forbidden'} and the reader would learn nothing. It is safe to answer 200
+    // here because the service returns before its loop when this is false:
+    // nothing was written, and the enforcing copy of the check still sits
+    // inside changePostStatus regardless.
+    if (!mayApprove) {
+      return {
+        error:
+          'Only an organization admin can approve posts. Ask an admin to release this week.',
+        code: 'not_an_approver',
+        gateOn,
+      };
+    }
+
+    const byPostizId = new Map(results.map((r) => [r.id, r]));
+
+    const summary = {
+      posts: posts.length,
+      attempted: attempted.length,
+      approved: 0,
+      alreadyQueued: 0,
+      notAwaiting: 0,
+      refused: 0,
+      notFound: 0,
+      deleted: 0,
+      notLinked: 0,
+      notAttempted: 0,
+    };
+    const counter: Record<string, keyof typeof summary> = {
+      approved: 'approved',
+      already_queued: 'alreadyQueued',
+      not_awaiting: 'notAwaiting',
+      refused: 'refused',
+      not_found: 'notFound',
+      deleted: 'deleted',
+      not_linked: 'notLinked',
+      not_attempted: 'notAttempted',
+    };
+
+    // Kept in record order, so the list reads against the week table on the
+    // page rather than having to be searched.
+    const outcomes = posts.map((p) => {
+      const postizId: string | null = p?.push?.postizId || null;
+      // Undefined for an id past the cap, and — unreachably, while the service
+      // answers every id it is handed — for a result it failed to return. Both
+      // become `not_attempted` rather than being dropped, so a gap in that
+      // contract would surface as an unapproved post instead of a missing row.
+      const result =
+        postizId && attemptedSet.has(postizId)
+          ? byPostizId.get(postizId)
+          : null;
+      // `not_linked` is not `not_found`: the first means this week never
+      // recorded an id to act on (every week pushed before 12 Aug 2026), the
+      // second means an id was recorded and this org has no such post. Blurring
+      // them would accuse the database of losing a post it was never given.
+      const outcome = !postizId
+        ? 'not_linked'
+        : result
+        ? result.outcome
+        : 'not_attempted';
+      summary[counter[outcome]]++;
+      return {
+        // The RECORD's post id, which is what the week table above shows. Not
+        // the Postiz id, which the reviewer has never seen.
+        id: p?.id,
+        platform: p?.platform || null,
+        datetime: p?.datetime || null,
+        postizId,
+        outcome,
+        state: result?.state || null,
+        ...(result?.reason ? { reason: result.reason } : {}),
+      };
+    });
+
+    return {
+      week: n,
+      // Whether the org's approvals gate is on at all. With it off there is
+      // normally nothing to approve, and the page says exactly that instead of
+      // treating a week of zero approvals as a failure. Posts still carrying
+      // the flag from before the gate was switched off are approved anyway,
+      // because they are genuinely still held.
+      gateOn,
+      summary,
+      posts: outcomes,
+      // Scheduled posts this record does not contain. They were NOT approved —
+      // this route can only act on what the record links — and they are handed
+      // back so the page can name them. A week that is half-approved because
+      // the record is stale must not read as an approved week.
+      unmatched: Array.isArray(record?.unmatched) ? record.unmatched : [],
+    };
   }
 
   @Post('/chat')

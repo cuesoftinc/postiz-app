@@ -7,6 +7,9 @@ import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Skeleton } from '@gitroom/frontend/components/layout/skeleton';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
+import { Button } from '@gitroom/react/form/button';
+import { areYouSure } from '@gitroom/frontend/components/layout/new-modal';
 
 /**
  * THE WEEK RUN — a weekly agent run rendered as a reviewable object.
@@ -307,10 +310,75 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
     }
   }, [fetch, activeWeek]);
 
-  const { data: run, isLoading } = useSWR(
+  const { data: run, isLoading, mutate: reloadRun } = useSWR(
     activeWeek ? `content-run-${activeWeek}` : null,
     loadRun
   );
+
+  const [approving, setApproving] = useState(false);
+  const [approval, setApproval] = useState<null | {
+    summary: Record<string, number>;
+    posts: { id: string; platform: string | null; outcome: string; reason?: string }[];
+    unmatched: { id: string }[];
+    error?: string;
+  }>(null);
+
+  /** How many posts this click would actually release. Counted from the live
+   *  Postiz state the page already fetched, NOT from the record, because the
+   *  record cannot know that someone approved three of them by hand an hour ago.
+   *  It is the number the confirm names, so it has to be the truth. */
+  const awaitingCount = run?.postiz?.awaitingApproval || 0;
+
+  const approveWeek = useCallback(async () => {
+    if (!activeWeek || approving) return;
+    // Naming the count is the whole point of the confirm: "approve the week" is
+    // not a reviewable sentence, "release 14 posts" is. The verification state
+    // rides along because approving a week whose record does not match the
+    // schedule releases only the part they agree on, and that is exactly the
+    // case where a reader should stop.
+    const confirmed = await areYouSure({
+      title: `${t('release_posts', 'Release')} ${awaitingCount} ${
+        awaitingCount === 1 ? t('post', 'post') : t('posts', 'posts')
+      }?`,
+      description:
+        run?.verification?.complete === false
+          ? t(
+              'approve_week_incomplete_confirm',
+              'The record and the schedule disagree, so scheduled posts missing from this record will NOT be released. Rebuild the week if you need all of it.'
+            )
+          : t(
+              'approve_week_confirm',
+              'This clears needs-approval and queues them for publishing at their scheduled times.'
+            ),
+      approveLabel: t('release', 'Release'),
+      cancelLabel: t('cancel', 'Cancel'),
+    });
+    if (!confirmed) {
+      return;
+    }
+    setApproving(true);
+    setApproval(null);
+    try {
+      const res = await (
+        await fetch(`/copilot/content-runs/${activeWeek}/approve`, {
+          method: 'POST',
+        })
+      ).json();
+      setApproval(res);
+    } catch {
+      setApproval({
+        summary: {},
+        posts: [],
+        unmatched: [],
+        error: t('content_bridge_offline', 'Content bridge is offline'),
+      });
+    } finally {
+      setApproving(false);
+      // Refetch either way. A partial success still moved posts, and the page
+      // must not keep showing them as awaiting approval.
+      reloadRun();
+    }
+  }, [activeWeek, approving, awaitingCount, fetch, reloadRun, run, t]);
 
   const byDay = useMemo(() => {
     const groups = new Map<string, RunPost[]>();
@@ -358,35 +426,41 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
   }
 
   if (!activeWeek || !run) {
+    // The shared kit, not a hand-rolled column. The hand-rolled version sat
+    // hard against the left edge of the card: this slot's parent is a flex ROW
+    // (the list and detail panes), so a plain `flex flex-col items-center`
+    // child is sized to its content and centres only within its own 542px box
+    // rather than the 1190px card. `hero` carries `flex flex-1 items-center
+    // justify-center`, which is what makes it fill the row and centre on both
+    // axes, and it is the same empty state the rest of the app renders.
     return (
-      <div className="flex flex-col items-center text-center gap-[4px] px-[12px] mt-[80px]">
-        <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60 mb-[8px]">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M8 2v4" />
-            <path d="M16 2v4" />
-            <rect width="18" height="18" x="3" y="4" rx="2" />
-            <path d="M3 10h18" />
-          </svg>
-        </div>
-        <div className="text-[16px] font-[600] text-newTextColor">
-          {t('no_week_runs_yet', 'No week runs yet')}
-        </div>
-        <div className="text-[14px] text-newTextColor/60">
-          {t(
-            'no_week_runs_yet_description',
-            'A run record is written when a week is built. Build one and it will show up here.'
-          )}
-        </div>
-      </div>
+      <EmptyState
+        variant="hero"
+        icon={
+          <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M8 2v4" />
+              <path d="M16 2v4" />
+              <rect width="18" height="18" x="3" y="4" rx="2" />
+              <path d="M3 10h18" />
+            </svg>
+          </div>
+        }
+        title={t('no_week_runs_yet', 'No week runs yet')}
+        description={t(
+          'no_week_runs_yet_description',
+          'A run record is written when a week is built. Build one and it will show up here.'
+        )}
+      />
     );
   }
 
@@ -520,6 +594,76 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
             {t(
               'week_run_incomplete_warning',
               'This is NOT a complete picture of the week. The record and the schedule disagree, so anything below is only the part they have in common — do not approve the week from this page until it is rebuilt.'
+            )}
+          </div>
+        )}
+
+        {/* RELEASING the week lives on the page that just showed the evidence,
+            which is the entire argument for this surface: a read-only report you
+            have to remember to open loses to a busy week, and the approving goes
+            back to happening one calendar card at a time somewhere else.
+            Shown only when the gate is on AND something is actually held, so it
+            is never a control that does nothing. The count comes from live
+            Postiz state rather than the record, because the record cannot know
+            that someone released three of them by hand an hour ago. */}
+        {run.postiz?.gateOn && awaitingCount > 0 && (
+          <div className="flex items-center gap-[12px] flex-wrap">
+            <Button onClick={approveWeek} disabled={approving}>
+              {approving
+                ? t('releasing', 'Releasing…')
+                : `${t('release_posts', 'Release')} ${awaitingCount} ${
+                    awaitingCount === 1 ? t('post', 'post') : t('posts', 'posts')
+                  }`}
+            </Button>
+            <span className="text-[13px] text-newTextColor/50">
+              {t(
+                'release_posts_hint',
+                'Clears needs-approval and queues them for publishing. Already-queued posts are untouched.'
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Per-post outcomes, never a bare count: a week where three posts
+            quietly failed to approve is worse than an error, so every refusal
+            is named with its reason. */}
+        {approval && (
+          <div className="rounded-[10px] border border-newTableBorder bg-newBgColorInner px-[12px] py-[10px] text-[13px] leading-[1.6]">
+            {approval.error ? (
+              <div className="text-red-400">{approval.error}</div>
+            ) : (
+              <>
+                <div className="font-[550] mb-[6px]">
+                  {t('released', 'Released')} {approval.summary?.approved ?? 0}
+                  {(approval.summary?.alreadyQueued ?? 0) > 0 &&
+                    `, ${approval.summary.alreadyQueued} ${t(
+                      'already_queued',
+                      'already queued'
+                    )}`}
+                  {(approval.summary?.refused ?? 0) > 0 &&
+                    `, ${approval.summary.refused} ${t('refused', 'refused')}`}
+                </div>
+                {approval.posts
+                  ?.filter(
+                    (o) => o.outcome !== 'approved' && o.outcome !== 'already_queued'
+                  )
+                  .map((o) => (
+                    <div key={o.id} className="text-newTextColor/60">
+                      {o.id}
+                      {o.platform ? ` · ${o.platform}` : ''} — {o.outcome}
+                      {o.reason ? `: ${o.reason}` : ''}
+                    </div>
+                  ))}
+                {approval.unmatched?.length > 0 && (
+                  <div className="text-red-400 mt-[6px]">
+                    {approval.unmatched.length}{' '}
+                    {t(
+                      'scheduled_posts_not_in_record',
+                      'scheduled posts are not in this record and were NOT released'
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

@@ -34,6 +34,7 @@ import {
   PageHeader,
   PageShell,
 } from '@gitroom/frontend/components/new-layout/page-header';
+import { SegmentedControl } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
 
 export const MediaPortal: FC<{
   media: { path: string; id: string }[];
@@ -323,50 +324,25 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
           title={t('agent', 'Ace')}
           actions={
             <>
-              {/* [Assistant | Content] segmented — launches List|Calendar
-                  anatomy, Buffer geometry measured live 2026-08-10:
-                  container 32px r8, 4px inset, white, hairline; options
-                  24px r6 at 14/500 (active = boxFocused/textItemFocused
-                  fill, ours; inactive transparent). Gated on `isAdmin`
-                  (= user resolved, see the note above): during the
-                  unresolved window there is no Content pane to switch to.
-
-                  NOTE for the parity catalog: this is one of SIX hand-rolled
-                  segmented controls, and it uses the boxFocused active fill
-                  rather than filters.tsx's measured 32% green tint
-                  (`segActive`). cuesoft/toolbar/toolbar.tsx exports an
-                  unadopted `SegmentedControl` that consolidates neither
-                  variant yet. */}
+              {/* [Assistant | Content] — the shared SegmentedControl, which
+                  owns the measured Buffer geometry and the ONE active fill.
+                  This surface previously hand-rolled the same anatomy with the
+                  boxFocused fill; it now shows the measured lime tint, which
+                  is the point of the consolidation. Gated on `isAdmin`
+                  (= user resolved, see the note above): during the unresolved
+                  window there is no Content pane to switch to. */}
               {isAdmin && (
-                <div
-                  data-cs
-                  className="flex items-center h-[32px] p-[4px] bg-newBgColorInner border border-newTableBorder rounded-[8px] text-[14px] font-[500] shrink-0"
-                >
-                  <button
-                    type="button"
-                    onClick={() => switchMode('assistant')}
-                    className={clsx(
-                      'flex items-center h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
-                      !contentMode
-                        ? 'bg-boxFocused text-textItemFocused'
-                        : 'text-newTextColor/60 hover:text-newTextColor'
-                    )}
-                  >
-                    {t('assistant', 'Assistant')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => switchMode('content')}
-                    className={clsx(
-                      'flex items-center h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
-                      contentMode
-                        ? 'bg-boxFocused text-textItemFocused'
-                        : 'text-newTextColor/60 hover:text-newTextColor'
-                    )}
-                  >
-                    {t('content', 'Content')}
-                  </button>
-                </div>
+                <SegmentedControl
+                  className="shrink-0"
+                  value={contentMode ? 'content' : 'assistant'}
+                  onChange={(next) =>
+                    switchMode(next as 'assistant' | 'content')
+                  }
+                  options={[
+                    { value: 'assistant', label: t('assistant', 'Assistant') },
+                    { value: 'content', label: t('content', 'Content') },
+                  ]}
+                />
               )}
               {/* New chat lives HERE in both modes — quiet 32px hairline (S4:
                   the segmented is the page focal point, so the old lime

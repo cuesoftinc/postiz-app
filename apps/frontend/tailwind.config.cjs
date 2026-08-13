@@ -317,8 +317,22 @@ module.exports = {
     },
   },
   plugins: [
+    // tailwind-scrollbar 4.x is the Tailwind 4 line of the same plugin; the 3.x
+    // release reached into `tailwindcss/lib/util/toColorValue`, which v4 does
+    // not export, so it could not load at all. Class names are unchanged
+    // (`scrollbar`, `scrollbar-none`, `scrollbar-thumb-*`, `scrollbar-track-*`).
     require('tailwind-scrollbar'),
-    require('tailwindcss-rtl'),
+    // tailwindcss-rtl is REMOVED, not replaced. It is a Tailwind 1-era plugin
+    // (calls the `variants()` helper that v3 deprecated and v4 deleted) and
+    // everything the fork actually used from it — start-*/end-*, rounded-s-*/
+    // rounded-e-*, border-s/e, text-start/end — has been in Tailwind core as
+    // real logical properties since v3.3. Under v3 the plugin was emitting a
+    // higher-specificity `[dir="ltr"]/[dir="rtl"]` physical-property copy on
+    // top of core's logical one; both resolve to the same side in both
+    // directions, so dropping it changes no rendering. The one class that was
+    // plugin-only, `rounded-bs-[0]` in new-launch/editor.tsx, was ALREADY dead
+    // under v3 (the plugin only generated fixed borderRadius scale steps, never
+    // arbitrary values, so `.rounded-bs-\[0\]` appears nowhere in the v3 CSS).
     function ({ addVariant }) {
       addVariant('child', '& > *');
       addVariant('child-hover', '& > *:hover');

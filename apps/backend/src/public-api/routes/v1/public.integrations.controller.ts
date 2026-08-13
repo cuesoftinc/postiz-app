@@ -190,10 +190,28 @@ export class PublicIntegrationsController {
     @Body() rawBody: any
   ) {
     Sentry.metrics.count('public_api-request', 1);
+    // mapTypeToPost's third argument rewrites the payload to `type: 'schedule'`
+    // BEFORE validation, and that rewrite is the only reason CreatePostDto
+    // demands a date — its ValidateIf exempts `type === 'draft'` alone. Written
+    // `rawBody?.type === 'draft' || true` the argument was unconditionally true,
+    // so a genuine draft was always validated as a schedule and an undated draft
+    // could be created from the composer but never through the public API, which
+    // is the path every agent tool takes.
+    //
+    // Keyed off "a draft that sent no date" rather than off 'draft' alone,
+    // because `dayjs(undefined)` is NOW: a rule any wider would accept a dateless
+    // 'schedule' and publish it immediately instead of at the slot it asked for.
+    // A draft that DOES send a date is still coerced, so its date must still
+    // parse and its settings are still validated — the only payload whose
+    // treatment changes is one that is rejected outright today.
+    const isUndatedDraft =
+      rawBody?.type === 'draft' &&
+      (rawBody?.date === undefined || rawBody?.date === null);
+
     const body = await this._postsService.mapTypeToPost(
       rawBody,
       org.id,
-      rawBody?.type === 'draft' || true
+      !isUndatedDraft
     );
     body.type = rawBody.type;
 

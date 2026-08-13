@@ -27,7 +27,10 @@ import { expandPostsList } from '@gitroom/helpers/utils/posts.list.minify';
 import useCookie from 'react-use-cookie';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
+import { SegmentedControl } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
+import { useModals } from '@gitroom/frontend/components/layout/new-modal';
+import { CommentComponent } from '@gitroom/frontend/components/launches/comments/comment.component';
 
 // Helper function to get start and end dates based on display type.
 // `displayTimezone` only matters when there is no referenceDate: "the range
@@ -471,13 +474,6 @@ const TimezoneFilter: FC = () => {
     </div>
   );
 };
-
-// Buffer segmented control (spec §Page header): active = green-tint fill.
-// The fill is the lime var washed to 15% so it mirrors per theme; the ink
-// token is #bfff72 in dark / #3f6c0e in light. Presentation only.
-const segActive =
-  'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_32%,transparent)] text-newTableTextFocused';
-const segInactive = 'text-newTextColor/60 hover:text-newTextColor';
 
 /** Buffer's phone filter surface: the funnel button opens a BOTTOM SHEET
  *  (white, rounded top, drag handle, scrim) listing the filters as drill-in
@@ -934,26 +930,22 @@ const PhoneCalendarSheet: FC<{
           {/* own key — the 'calendar' key is locale-mapped to the nav label */}
           {t('calendar_view', 'Calendar')}
         </div>
-        {/* [3 Days | Week | Month] segmented — lime active segment.
-            data-cs: phone-only surface that owns its geometry — the size
-            ladder must not squeeze it under the 40px tap floor */}
-        <div data-cs className="flex w-full h-[44px] p-[4px] border border-newTableBorder rounded-[12px] text-[15px] font-[500] mb-[16px]">
-          {viewOptions.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              onClick={() => applyView(option.key)}
-              className={clsx(
-                'flex-1 rounded-[8px] flex items-center justify-center transition-colors duration-150',
-                activeView === option.key
-                  ? 'bg-boxFocused text-textItemFocused'
-                  : 'text-newTextColor/60'
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        {/* [3 Days | Week | Month] — the shared SegmentedControl at its
+            `touch` size, which is the one deviation from the measured desktop
+            geometry and exists for exactly this surface: a 24px segment in a
+            bottom sheet is under the tap floor the rest of the sheet is built
+            to. Everything else (the lime-tint active fill it did NOT have
+            before, hairline, ink) comes from the primitive. */}
+        <SegmentedControl
+          size="touch"
+          className="mb-[16px]"
+          value={activeView}
+          onChange={(view) => applyView(view as '3days' | 'week' | 'month')}
+          options={viewOptions.map((option) => ({
+            value: option.key,
+            label: option.label,
+          }))}
+        />
         {/* mini month picker */}
         <div className="flex items-center mb-[8px]">
           <div className="flex-1 text-[16px] font-[550] text-newTextColor text-start">
@@ -1200,6 +1192,11 @@ type UndatedDraft = {
   content: string;
   createdAt?: string | null;
   needsApproval?: boolean;
+  // Always null on this endpoint — `undated=only` is what "no publishDate"
+  // means — but the row carries the field (minified as `d`), and the comments
+  // sheet is handed it rather than a hardcoded null so this card reads the post
+  // the same way the list cards do instead of asserting what it will find.
+  publishDate?: string | null;
   integration?: {
     id: string;
     name?: string;
@@ -1334,6 +1331,7 @@ export const UndatedDraftsPanel: FC = () => {
   const fetch = useFetch();
   const toaster = useToaster();
   const calendar = useCalendar();
+  const modal = useModals();
   const searchParams = useSearchParams();
   const open = searchParams.get('undated') === '1';
 
@@ -1342,6 +1340,46 @@ export const UndatedDraftsPanel: FC = () => {
     url.searchParams.delete('undated');
     window.history.replaceState(null, '', url.pathname + url.search);
   }, []);
+
+  // The same Notes sheet the list cards open (calendar.tsx openComments), with
+  // the same Buffer geometry: a 446px full-height right rail, not a centered
+  // modal. Duplicated rather than shared because the two call sites are the
+  // whole of it and lifting a five-line modal config into a helper would cost
+  // more indirection than it saves.
+  //
+  // This panel is the ONLY surface an undated draft has — every list tab sends
+  // the repository's `undated=exclude` default — so without this trigger there
+  // is nowhere in the product to discuss one, which is also what left
+  // comment.component.tsx's nullable `date` with no caller that could exercise
+  // it.
+  //
+  // Passing the post's own publishDate rather than a literal null: the sheet
+  // takes `date?: dayjs.Dayjs | null` and drops its heading suffix when there is
+  // none, so a dateless draft opens under a plain 'Comments'. `dayjs.utc(null)`
+  // would be a truthy Invalid Date that formats as the literal words 'Invalid
+  // Date', which is why the guard is on the value and not on the format call.
+  const openComments = useCallback(
+    (draft: UndatedDraft) => () => {
+      modal.openModal({
+        title: '',
+        closeOnClickOutside: true,
+        closeOnEscape: true,
+        withCloseButton: false,
+        fullScreen: true,
+        size: '446px',
+        classNames: {
+          modal: '!rounded-none !me-0 overflow-y-auto',
+        },
+        children: (
+          <CommentComponent
+            postId={draft.id}
+            date={draft.publishDate ? dayjs.utc(draft.publishDate) : null}
+          />
+        ),
+      });
+    },
+    [modal]
+  );
 
   // How many pages deep the rail is showing. A rail has no room for a pager, so
   // "more" grows this and every page is refetched together below.
@@ -1547,6 +1585,29 @@ export const UndatedDraftsPanel: FC = () => {
                     {t('needs_approval', 'Needs approval')}
                   </span>
                 )}
+                {/* Notes trigger, same control as the list cards': 32px square,
+                    r8, kit border/surface, 40px on phone where this panel goes
+                    full width and the tap floor applies.
+
+                    In the header rather than beside 'Add a date' because that
+                    row is REPLACED by SchedulePicker while a date is being
+                    picked, and a comments button that disappears mid-task is a
+                    worse affordance than one that never moves. The list cards
+                    do the same thing whenever their time rail is unavailable —
+                    on phone the trigger moves into the card header, right of
+                    the channel name — and this 300px rail card is that layout
+                    permanently. */}
+                <button
+                  type="button"
+                  onClick={openComments(draft)}
+                  aria-label={t('comments', 'Comments')}
+                  aria-haspopup="dialog"
+                  className="shrink-0 w-[32px] h-[32px] min-w-[32px] phone:w-[40px] phone:h-[40px] rounded-[8px] border border-newTableBorder bg-newBgColorInner flex items-center justify-center text-newTextColor hover:bg-boxHover transition-colors duration-150"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                  </svg>
+                </button>
               </div>
               <div className="text-[13px] leading-[18px] text-newTextColor/80 line-clamp-3 break-words text-start">
                 {stripHtmlValidation('none', draft.content || '', false)}
@@ -1667,46 +1728,46 @@ export const PageHeader: FC = () => {
           this fork does not have yet), not before. */}
       <div className="flex-1" />
       {/* phone puts the segmented in the toolbar row (Buffer) — hidden here.
-          Buffer segmented geometry (measured live 2026-08-10): container 32px
-          r8, 4px inset, white, hairline; options 24px r6 at 14/500, active
-          filled, inactive transparent */}
-      <div className="phone:hidden flex items-center h-[32px] p-[4px] bg-newBgColorInner border border-newTableBorder rounded-[8px] text-[14px] font-[500]" data-cs>
-        <button
-          type="button"
-          onClick={() => toView('list')}
-          className={clsx(
-            'flex items-center gap-[6px] h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
-            isListView ? segActive : segInactive
-          )}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 5h.01" />
-            <path d="M3 12h.01" />
-            <path d="M3 19h.01" />
-            <path d="M8 5h13" />
-            <path d="M8 12h13" />
-            <path d="M8 19h13" />
-          </svg>
-          {t('list', 'List')}
-        </button>
-        <button
-          type="button"
-          onClick={() => toView('calendar')}
-          className={clsx(
-            'flex items-center gap-[6px] h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
-            !isListView ? segActive : segInactive
-          )}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M8 2v4" />
-            <path d="M16 2v4" />
-            <rect width="18" height="18" x="3" y="4" rx="2" />
-            <path d="M3 10h18" />
-          </svg>
-          {/* own key — the 'calendar' key is locale-mapped to the nav label */}
-          {t('calendar_view', 'Calendar')}
-        </button>
-      </div>
+          Geometry and fill are the shared SegmentedControl's; this site only
+          says which segments exist and what they carry. */}
+      <SegmentedControl
+        className="phone:hidden"
+        value={isListView ? 'list' : 'calendar'}
+        onChange={(target) => toView(target as 'calendar' | 'list')}
+        options={[
+          {
+            value: 'list',
+            label: (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 5h.01" />
+                  <path d="M3 12h.01" />
+                  <path d="M3 19h.01" />
+                  <path d="M8 5h13" />
+                  <path d="M8 12h13" />
+                  <path d="M8 19h13" />
+                </svg>
+                {t('list', 'List')}
+              </>
+            ),
+          },
+          {
+            value: 'calendar',
+            label: (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 2v4" />
+                  <path d="M16 2v4" />
+                  <rect width="18" height="18" x="3" y="4" rx="2" />
+                  <path d="M3 10h18" />
+                </svg>
+                {/* own key — the 'calendar' key is locale-mapped to the nav label */}
+                {t('calendar_view', 'Calendar')}
+              </>
+            ),
+          },
+        ]}
+      />
       <button
         type="button"
         onClick={newPost}
@@ -2283,45 +2344,41 @@ export const Filters = () => {
             <path d="M9 19h6" />
           </svg>
         </button>
-        {/* icon-only List|Calendar segmented (Buffer phone toolbar), same
-            measured geometry as the PageHeader segmented: 32px r8 4px-inset
-            white hairline container, 24px r6 options */}
-        <div className="flex items-center h-[32px] p-[4px] bg-newBgColorInner border border-newTableBorder rounded-[8px]" data-cs>
-          <button
-            type="button"
-            aria-label={t('list', 'List')}
-            onClick={() => toView('list')}
-            className={clsx(
-              'flex items-center h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
-              isListView ? segActive : segInactive
-            )}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 5h.01" />
-              <path d="M3 12h.01" />
-              <path d="M3 19h.01" />
-              <path d="M8 5h13" />
-              <path d="M8 12h13" />
-              <path d="M8 19h13" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            aria-label={t('calendar_view', 'Calendar')}
-            onClick={() => toView('calendar')}
-            className={clsx(
-              'flex items-center h-[24px] px-[8px] rounded-[6px] transition-colors duration-150',
-              !isListView ? segActive : segInactive
-            )}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 2v4" />
-              <path d="M16 2v4" />
-              <rect width="18" height="18" x="3" y="4" rx="2" />
-              <path d="M3 10h18" />
-            </svg>
-          </button>
-        </div>
+        {/* icon-only List|Calendar segmented (Buffer phone toolbar): the same
+            shared control as the PageHeader one, with icon labels and the
+            accessible name the icons cannot give */}
+        <SegmentedControl
+          value={isListView ? 'list' : 'calendar'}
+          onChange={(target) => toView(target as 'calendar' | 'list')}
+          options={[
+            {
+              value: 'list',
+              ariaLabel: t('list', 'List'),
+              label: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 5h.01" />
+                  <path d="M3 12h.01" />
+                  <path d="M3 19h.01" />
+                  <path d="M8 5h13" />
+                  <path d="M8 12h13" />
+                  <path d="M8 19h13" />
+                </svg>
+              ),
+            },
+            {
+              value: 'calendar',
+              ariaLabel: t('calendar_view', 'Calendar'),
+              label: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 2v4" />
+                  <path d="M16 2v4" />
+                  <rect width="18" height="18" x="3" y="4" rx="2" />
+                  <path d="M3 10h18" />
+                </svg>
+              ),
+            },
+          ]}
+        />
       </div>
       <PhoneFilterSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
       {!isListView && (

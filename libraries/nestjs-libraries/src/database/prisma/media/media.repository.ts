@@ -1,5 +1,6 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 
 @Injectable()
@@ -84,13 +85,19 @@ export class MediaRepository {
         }
       : {};
     const query = {
+      // The cast is what types the bare `null`. This literal is a standalone
+      // const rather than an inline argument, so it gets no contextual type
+      // from `count()` and the null widens to an implicit any that
+      // noImplicitAny rejects. The same filter written inline in the findMany
+      // below needs nothing. Naming the filter type only restores what the
+      // inline form already has; the query is unchanged.
       where: {
         organization: {
           id: org,
         },
         deletedAt: null,
         ...searchFilter,
-      },
+      } as Prisma.MediaWhereInput,
     };
     const pages = Math.ceil((await this._media.model.media.count(query)) / 18);
     const results = await this._media.model.media.findMany({

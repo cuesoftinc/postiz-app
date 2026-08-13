@@ -1,0 +1,73 @@
+/* ---------------------------------------------------------------------------
+   Tailwind 3 -> 4 preflight parity.
+
+   Loaded from global.scss BETWEEN `tailwindcss/preflight.css` and
+   `tailwindcss/utilities.css`, i.e. exactly where v3's `@tailwind base` output
+   sat. Position is the point: these rules are element selectors, so a
+   component's utility class still outranks them the same way it outranked
+   preflight under v3. Moving this file after the utilities would invert that.
+
+   Only the differences that are VISIBLE in this app are restored. The rest of
+   the v3/v4 preflight diff was checked and is inert here:
+     - default border colour: v4 changed it to currentColor, but v3 already
+       resolved to currentColor in this project (the config replaces the whole
+       `gray` palette with a `var()` string, so `theme('colors.gray.200')` was
+       undefined and preflight took its `currentColor` fallback).
+     - `button, [role="button"] { cursor: pointer }` and `:disabled { cursor:
+       default }`: dropped by v4, already re-stated by the Affordance block at
+       the bottom of global.scss.
+     - `[hidden]` gained `!important`: no JSX in this repo uses the `hidden`
+       ATTRIBUTE (every hit is the `hidden` utility CLASS).
+     - `* { margin: 0; padding: 0 }` is broader than v3's element list; the only
+       real casualty would be the UA's 1px on `th`/`td`, and every table cell in
+       this repo authors its own padding.
+     - `--tw-content` on ::before/::after: no `content-[…]` utility is used.
+     - `[type="search"]` appearance reset: no search inputs exist.
+     - `body { line-height: inherit }`: body now inherits the same 1.5 from
+       `html`.
+   --------------------------------------------------------------------------- */
+
+/* v3: `input::placeholder, textarea::placeholder { color: #9ca3af }` — a fixed
+   grey, because the config replaces `colors.gray` with a var() string so
+   `theme('colors.gray.400')` was undefined and preflight fell back to the
+   literal. v4 switched to `color-mix(in oklab, currentcolor 50%, transparent)`,
+   which tints every unstyled placeholder with the surrounding ink instead. */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* v3 made only BUTTONS transparent; `input`, `select` and `textarea` kept the
+   user-agent field background, radius and disabled opacity. v4 flattens all
+   form controls to `background-color: transparent; border-radius: 0;
+   opacity: 1`, which silently repaints any control that does not author a
+   `bg-*` of its own — and in dark mode a transparent field reads very
+   differently from a white one. `revert` puts them back on the UA value, which
+   is what v3 left them at. Element specificity, so `bg-transparent`,
+   `bg-newBgColorInner` and `disabled:opacity-80` all still win. */
+input,
+select,
+textarea,
+optgroup {
+  background-color: revert;
+  border-radius: revert;
+  opacity: revert;
+}
+/* …but keep the button family transparent exactly as v3 did. `:where()` adds
+   no specificity, so this stays at element level and loses to any utility. */
+button,
+input:where([type='button'], [type='reset'], [type='submit']) {
+  background-color: transparent;
+  background-image: none;
+}
+
+/* tailwind-scrollbar 3.x shipped this global reset and 4.x does not.
+   `scrollbar-color` / `scrollbar-width` are INHERITED properties, so without it
+   a `.scrollbar scrollbar-thumb-*` container hands its thumb and track colours
+   down to every nested scrollable descendant. `initial` is also their default,
+   so this only blocks inheritance — it cannot change a scrollbar that sets its
+   own colours, and `.scrollbar*` classes outrank it. */
+* {
+  scrollbar-color: initial;
+  scrollbar-width: initial;
+}

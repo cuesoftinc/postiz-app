@@ -84,6 +84,31 @@ export const isApproverRole = (role?: Role | null): boolean =>
   !!role && APPROVER_ROLES.includes(role);
 
 /**
+ * What happened to ONE post in a batch approval.
+ *
+ * The whole point of the shape is that there is no such thing as a partial
+ * success reported as a number. Every id handed in comes back with a verdict,
+ * and the four that are not `approved` are as much of the answer as the one
+ * that is: a week where three posts quietly did not get approved is worse than
+ * a week that errored, because nobody goes looking.
+ */
+export type PostApprovalOutcome = {
+  /** the Postiz post id, i.e. what was asked about */
+  id: string;
+  outcome:
+    | 'approved'
+    | 'already_queued'
+    | 'not_awaiting'
+    | 'not_found'
+    | 'deleted'
+    | 'refused';
+  /** the state as it stands now: after the change when approved, before it otherwise */
+  state: State | null;
+  /** why it was refused, in the refusing guard's own words. Only on `refused`. */
+  reason?: string;
+};
+
+/**
  * How far ahead the next-free-slot search may walk before it gives up.
  *
  * The search advances one day per DATABASE QUERY, so this is a cost ceiling as
@@ -1154,6 +1179,132 @@ export class PostsService {
     } catch (err) {}
 
     return { id, state };
+  }
+
+  /**
+   * Releases a SET of gated posts in one act, with a verdict per post.
+   *
+   * This exists because of the Week Run page. A week is 40-60 posts, and
+   * approving them one calendar card at a time is the step that does not get
+   * done — so the surface that shows the week has to be the surface that
+   * approves it, or the review is a report you must remember to open.
+   *
+   * NOTHING HERE RE-IMPLEMENTS THE GATE. Every post that actually moves goes
+   * through changePostStatus above, which runs assertHasPublishDate and
+   * assertMayEnterQueue exactly as the single-post route does. So an undated
+   * draft is refused per post and reported, not dropped; and the actor's id is
+   * carried through, so a machine caller with no approver role can no more
+   * approve sixty posts than it can approve one. Approving in bulk must not be
+   * a way to be trusted more than approving singly.
+   *
+   * IDEMPOTENT BY CONSTRUCTION. A post already in QUEUE is skipped BEFORE any
+   * write and reported as `already_queued`, so a second run writes nothing and
+   * re-arms no workflow. That check deliberately comes first, ahead of the
+   * needsApproval one: it is the state, not the flag, that decides whether the
+   * post is going out, so a stale flag can never make this route re-queue and
+   * re-arm something that is already queued.
+   *
+   * Anything that is neither QUEUE nor a flagged DRAFT is left alone and named:
+   * a PUBLISHED or ERROR post reaching changePostStatus would be re-queued for
+   * publishing, which is a different decision from "release this week" and is
+   * not one a batch button gets to make.
+   *
+   * Sequential rather than Promise.all. Each approval re-arms a Temporal
+   * workflow, and firing sixty of those at once for a button pressed once a
+   * week buys latency nobody asked for at a cost somebody would notice. It also
+   * keeps the returned order the order that was asked for.
+   */
+  async approvePosts(
+    orgId: string,
+    ids: string[],
+    actorUserId?: string | null
+  ): Promise<{
+    gateOn: boolean;
+    mayApprove: boolean;
+    results: PostApprovalOutcome[];
+  }> {
+    const gateOn = await this._organizationRepository.getRequireApproval(orgId);
+
+    // Asked ONCE, up front, purely so a caller who is not an approver gets one
+    // clear refusal instead of sixty identical ones. It is not the fence —
+    // changePostStatus re-checks per post, which is the copy that enforces —
+    // and it mirrors assertMayEnterQueue exactly, including that with the gate
+    // off there is no role to have: scheduling is open to the org, so batching
+    // it cannot be more restricted than doing it one post at a time.
+    const mayApprove =
+      !gateOn ||
+      isApproverRole(
+        actorUserId
+          ? await this._organizationRepository.getUserRoleInOrg(
+              orgId,
+              actorUserId
+            )
+          : null
+      );
+
+    if (!mayApprove) {
+      return { gateOn, mayApprove, results: [] };
+    }
+
+    const results: PostApprovalOutcome[] = [];
+
+    for (const id of ids) {
+      // Read first rather than calling changePostStatus blind: telling the
+      // reviewer WHICH posts were already queued is half the value of the
+      // report, and it cannot be recovered afterwards — changePostStatus
+      // answers the same {id, state} whether it moved the post or not.
+      const post = await this._postRepository.getPostById(id, orgId);
+
+      if (!post) {
+        results.push({ id, outcome: 'not_found', state: null });
+        continue;
+      }
+
+      // getPostById is a findUnique with no deletedAt filter, so a post deleted
+      // since the run comes back as a row. Queueing it would arm a workflow for
+      // something nobody can see any more.
+      if (post.deletedAt) {
+        results.push({ id, outcome: 'deleted', state: post.state });
+        continue;
+      }
+
+      if (post.state === State.QUEUE) {
+        results.push({ id, outcome: 'already_queued', state: post.state });
+        continue;
+      }
+
+      if (post.state !== State.DRAFT || !post.needsApproval) {
+        results.push({ id, outcome: 'not_awaiting', state: post.state });
+        continue;
+      }
+
+      try {
+        const changed = await this.changePostStatus(
+          orgId,
+          id,
+          'schedule',
+          actorUserId
+        );
+        results.push({ id, outcome: 'approved', state: changed.state });
+      } catch (err: any) {
+        // The guard's own sentence, not a rewrite of it. "This draft has no
+        // date yet. Give it a date before scheduling it." is the line that
+        // tells the reviewer what to do next; a generic "could not be approved"
+        // would send them back to the calendar to work out why. NestJS puts a
+        // string constructor argument on .message, so this is the same text the
+        // single-post route returns in its 400 body.
+        results.push({
+          id,
+          outcome: 'refused',
+          state: post.state,
+          reason:
+            (typeof err?.message === 'string' && err.message) ||
+            'This post could not be approved',
+        });
+      }
+    }
+
+    return { gateOn, mayApprove, results };
   }
 
   async changeDate(

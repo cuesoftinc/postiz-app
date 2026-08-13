@@ -610,7 +610,7 @@ const PublicApiContent = () => {
                 user.publicApi
               ) : (
                 <span className="flex items-center">
-                  <span className="blur-sm select-none">
+                  <span className="blur-xs select-none">
                     {user.publicApi.slice(0, -5)}
                   </span>
                   <span>{user.publicApi.slice(-5)}</span>

@@ -26,9 +26,10 @@ import clsx from 'clsx';
  *    (admin-errors.component.tsx filter bar, admin-stats.component.tsx date
  *    bar - byte-identical recipes). These ARE adopted: admin-errors imports
  *    ToolbarRow/Field/Select/Input.
- *  - SegmentedControl 'pills': the launches/filters.tsx view-switcher pill
- *    group; 'chips': admin-stats' presets row (bg-forth "applied filter"
- *    chips - a deliberate second variant, not drift).
+ *  - SegmentedControl 'segmented': Buffer's own segmented control, measured
+ *    live (see the recipe below); ADOPTED by all six segmented surfaces in the
+ *    fork. 'chips': admin-stats' presets row (bg-forth "applied filter" chips
+ *    - a deliberate second variant, not drift).
  *
  * Deliberate decisions for this kit:
  *  - ONE control height (36px) and ONE border token (border-newTableBorder),
@@ -46,7 +47,10 @@ import clsx from 'clsx';
  * (its control rungs are h-[40px]→32, h-[44px]/h-[48px]→36, h-[52px]→40; its
  * type rungs start at text-[18px]; its box rungs are p-[20px]/p-[24px]→16,
  * px-[20px]→16, gap-[20px]/gap-[24px]→16) - so everything here renders
- * exactly as written, same as the hand-rolled originals. Note the shared
+ * exactly as written, same as the hand-rolled originals. The segmented's own
+ * values are off the ladder too (min-h-[32px], h-[24px], rounded-[8px]/[6px],
+ * text-[14px]/[15px]); its ONE laddered value is the touch size's h-[44px],
+ * which is why that wrapper carries data-cs. Note the shared
  * `form/button.tsx` Button authors h-[40px] with NO data-cs, so it IS
  * laddered to 32px: a Button sitting in a ToolbarRow next to 36px controls is
  * the pre-existing mismatch, not something this kit introduces.
@@ -118,72 +122,116 @@ export const ToolbarInput: FC<
 
 export interface SegmentedOption {
   value: string;
-  /** Text or an icon node (for icon items pass itemClassName="flex justify-center items-center"). */
+  /** Text, an icon node, or both — items lay out as a 6px-gapped flex row. */
   label: ReactNode;
+  /** Accessible name for icon-only items, whose label reads as nothing. */
+  ariaLabel?: string;
 }
 
+/** 'default' is the measured Buffer control. 'touch' exists only for the phone
+ *  bottom sheets — see the size note on SegmentedControl. */
+type SegmentedSize = 'default' | 'touch';
+
+/* THE MEASURED RECIPE (Buffer, read back through a canvas pixel because Buffer
+   serves lab()): wrapper 32px tall, white, radius 8, 1px #dedcd9 hairline, 4px
+   padding, 4px gap; items 24px tall, radius 6, padding 0 8, 14px/500; inactive
+   label #5a5a59; ACTIVE label #337046 on a #95cd8f fill at alpha 0.322. Two
+   independent Buffer surfaces render exactly this — the List/Calendar toggle
+   in Publish and the date range in Insights — so it is the system, not one
+   instance.
+
+   BRAND MAPPING: only Buffer's GREEN is substituted, by the fork's lime
+   primary washed to that same 32% with its paired ink token. Every neutral is
+   Buffer's own measured value, reached through the fork's existing tokens
+   (bg-newBgColorInner = the white surface, border-newTableBorder = the
+   hairline, newTextColor/60 = the muted label). Buffer's hexes are never
+   hardcoded: color-mix over --new-btn-primary is what makes the active fill
+   follow the theme instead of pinning one theme's pixels. */
+const SEGMENTED_CONTAINER =
+  'flex items-center p-[4px] gap-[4px] bg-newBgColorInner border border-newTableBorder';
+const SEGMENTED_CONTAINER_SIZE: Record<SegmentedSize, string> = {
+  /* min-h, not h: 24px items inside 4px padding ARE 32px, so a single row is
+     pixel-identical to the measured wrapper, but Insights' metric picker is
+     the same control with enough segments to wrap onto a second row, and a
+     hard height would have spilled them out of the box. */
+  default: 'min-h-[32px] rounded-[8px]',
+  touch: 'w-full h-[44px] rounded-[12px]',
+};
+const SEGMENTED_ITEM =
+  'flex items-center justify-center gap-[6px] font-[500] whitespace-nowrap cursor-pointer transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]';
+const SEGMENTED_ITEM_SIZE: Record<SegmentedSize, string> = {
+  default: 'h-[24px] px-[8px] rounded-[6px] text-[14px]',
+  touch: 'flex-1 h-[36px] rounded-[8px] text-[15px]',
+};
+const SEGMENTED_ACTIVE =
+  'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_32%,transparent)] text-newTableTextFocused';
+const SEGMENTED_INACTIVE =
+  'text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover';
+
 /**
- * SegmentedControl — the view-switcher pill group / preset chip row.
+ * SegmentedControl — the ONE segmented control / the preset chip row.
  *
- * ADOPTION: ZERO consumers as of 2026-08-13 (`grep -rn SegmentedControl`
- * matches only this file). KEPT anyway - its consolidation target is very
- * much alive, and this is the primitive that target needs. Deleting it would
- * leave the duplication below with nothing to converge on.
+ * ADOPTION (2026-08-13): all six hand-rolled copies now render from here —
+ * launches/filters.tsx desktop List|Calendar, its phone icon-only twin and the
+ * PhoneCalendarSheet 3 Days|Week|Month, platform-analytics' date range and its
+ * metric picker, and agents' Assistant|Content.
  *
- * WHAT IT HAS NOT YET CONSOLIDATED - six hand-rolled segmented controls,
- * splitting into TWO different active fills:
- *   `segActive` = 32% green tint + text-newTableTextFocused (the live Buffer
- *   measurement, filters.tsx:452):
- *     1. launches/filters.tsx:1207   desktop List | Calendar
- *     2. launches/filters.tsx:1810   phone icon-only List | Calendar
- *     3. platform-analytics/analytics-chart.tsx:275  metric chooser
- *   `bg-boxFocused text-textItemFocused`:
- *     4. agents/agent.tsx:291        Assistant | Content
- *     5. platform-analytics/platform.analytics.tsx:287  date range
- *     6. launches/filters.tsx:880    PhoneCalendarSheet 3 Days | Week | Month
+ * WHAT THE MIGRATION FIXED: the six copies had drifted onto TWO active fills —
+ * the measured 32% lime tint on three of them, `bg-boxFocused
+ * text-textItemFocused` on the other three. Only the tint is measured, so it
+ * won; the boxFocused surfaces changed appearance deliberately. The earlier
+ * 'pills' geometry this component used to carry (p-[4px] at rounded-[6px],
+ * items pt-[6px] pb-[5px] min-w-[80px] px-[12px], active bg-boxFocused)
+ * PREDATED the Buffer measurement and has been replaced rather than preserved:
+ * adopting it as written would have regressed five surfaces.
  *
- * STALE RECIPE WARNING: the 'pills' geometry below (p-[4px] container at
- * rounded-[6px], items pt-[6px] pb-[5px], min-w-[80px] px-[12px], active
- * bg-boxFocused) is the PRE-MEASUREMENT filters.tsx recipe. All five of the
- * six live copies that are not the phone sheet have since moved to the Buffer
- * anatomy measured 2026-08-10 and re-confirmed 2026-08-13: container h-[32px]
- * p-[4px] rounded-[8px] on bg-newBgColorInner + hairline, items h-[24px]
- * px-[8px] rounded-[6px] at 14/500. ANY migration onto this primitive must
- * first bring 'pills' up to that anatomy and pick ONE active fill - the 32%
- * green tint, which is the measured one. Do not migrate call sites onto the
- * geometry as written; it would regress five surfaces.
+ * SIZE, and the one deviation: 'default' is the measured control. 'touch' is
+ * for the phone BOTTOM SHEETS only, where a 24px segment is under the 40px tap
+ * floor those sheets are built to (the sheet is a touch-only surface, so the
+ * measured desktop geometry is not the right answer there): 44px wrapper /
+ * 36px equal-width segments at 15px, everything else — fill, hairline,
+ * radius family, ink — identical. It is a size, not a second control.
  *
- * variant='pills' (default): container + item recipe described above. Item
- * sizing defaults to the list-state pills (min-w-[80px] px-[12px]); pass
- * itemWidth for fixed-width groups (74 = Day/Week/Month, 34 = calendar/list
- * icon toggle).
+ * data-cs is on the wrapper unconditionally: the global.scss size ladder
+ * rescales `h-[44px]`→36px for elements without it, which would drop the touch
+ * size back under the tap floor. The 32/24 default is off the ladder either
+ * way, and the attribute is what the hand-rolled copies already carried.
+ *
+ * Two details are unified UP rather than to the lowest common denominator,
+ * because the measurement is silent on both and half the copies already had
+ * them: inactive segments take `hover:bg-boxHover` (three of six had it), and
+ * every segment takes the kit's focus-visible ring (two of six had it). Both
+ * are invisible at rest, so no surface loses its measured appearance.
+ *
+ * Items are real <button type="button"> elements carrying aria-pressed, which
+ * is the toggle-button contract Tab + Enter/Space already satisfies. No
+ * radiogroup/tablist role: those promise arrow-key navigation, and adding the
+ * role without the roving tabindex would announce a contract the control does
+ * not honour — a regression on what the plain buttons did before.
  *
  * variant='chips': admin-stats presets recipe — free-standing h-[36px]
  * bordered chips (the kit's 36px control height / 6px radius), active
  * bg-forth text-white border-forth (forth = brand blue), inactive
  * hover:bg-tableBorder (the "applied filter" affordance, deliberately kept
- * distinct from the boxFocused pills).
- *
- * Items are real <button type="button"> elements (chips already are in the
- * source; pills were divs — same pixels under Tailwind preflight, better
- * keyboard semantics).
+ * distinct from the segmented). Still unadopted: admin-stats.component.tsx
+ * hand-rolls it and is not this change's file to touch.
  */
 export const SegmentedControl: FC<{
   options: SegmentedOption[];
   value: string;
   onChange: (value: string) => void;
-  variant?: 'pills' | 'chips';
-  /** Fixed item width in px; pills only. Omit for min-w-[80px] px-[12px]. */
-  itemWidth?: number;
-  /** Extra classes for every item (e.g. icon centering). */
+  variant?: 'segmented' | 'chips';
+  /** Segmented only; 'touch' is for phone bottom sheets. */
+  size?: SegmentedSize;
+  /** Extra classes for every item (e.g. `shrink-0` in a scrolling strip). */
   itemClassName?: string;
   className?: string;
 }> = ({
   options,
   value,
   onChange,
-  variant = 'pills',
-  itemWidth,
+  variant = 'segmented',
+  size = 'default',
   itemClassName,
   className,
 }) => {
@@ -212,29 +260,33 @@ export const SegmentedControl: FC<{
 
   return (
     <div
+      data-cs
       className={clsx(
-        'flex flex-row p-[4px] border border-newTableBorder rounded-[6px] text-[14px] font-[500]',
+        SEGMENTED_CONTAINER,
+        SEGMENTED_CONTAINER_SIZE[size],
         className
       )}
     >
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={clsx(
-            'pt-[6px] pb-[5px] cursor-pointer text-center rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
-            typeof itemWidth === 'undefined' && 'min-w-[80px] px-[12px]',
-            value === option.value && 'text-textItemFocused bg-boxFocused',
-            itemClassName
-          )}
-          style={
-            typeof itemWidth === 'undefined' ? undefined : { width: itemWidth }
-          }
-        >
-          {option.label}
-        </button>
-      ))}
+      {options.map((option) => {
+        const active = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-label={option.ariaLabel}
+            aria-pressed={active}
+            onClick={() => onChange(option.value)}
+            className={clsx(
+              SEGMENTED_ITEM,
+              SEGMENTED_ITEM_SIZE[size],
+              active ? SEGMENTED_ACTIVE : SEGMENTED_INACTIVE,
+              itemClassName
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 };

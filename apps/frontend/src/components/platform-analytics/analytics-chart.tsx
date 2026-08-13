@@ -2,7 +2,6 @@
 
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DrawChart from 'chart.js/auto';
-import clsx from 'clsx';
 import dayjs from 'dayjs';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -12,6 +11,7 @@ import {
   formatMetricValue,
 } from '@gitroom/frontend/components/platform-analytics/render.analytics';
 import { ChartSkeleton } from '@gitroom/frontend/components/platform-analytics/analytics.skeletons';
+import { SegmentedControl } from '@gitroom/frontend/components/cuesoft/toolbar/toolbar';
 import { modeEmitter } from '@gitroom/frontend/components/layout/mode.component';
 
 /* Single flat accent for the one plotted series, per theme: the page's
@@ -252,7 +252,11 @@ export const AnalyticsChartSection: FC<{
     );
   }, [data]);
 
-  const current = chartable[Math.min(selected, chartable.length - 1)];
+  // Clamped here rather than only at read time: the segmented control is
+  // driven by this index, so a stale `selected` left over from a channel with
+  // more metrics has to resolve to the segment that is actually plotted.
+  const selectedIndex = Math.min(selected, chartable.length - 1);
+  const current = chartable[selectedIndex];
   const pointCount = (current?.data || []).filter((p) => p && p.date).length;
 
   if (!isLoading && !chartable.length) {
@@ -272,31 +276,24 @@ export const AnalyticsChartSection: FC<{
           <ChartSkeleton />
         ) : (
           <>
-            {/* Metric picker: same segmented anatomy as the range picker
-                (24px r6 segments, active = lime-tint fill), wrapping when a
-                platform ships many metrics. Phone: a single-row sideways
-                scroll strip: wrapping produced a ragged 2x2 cluster that
-                read as a broken segmented control. */}
-            <div
-              data-cs
-              className="flex flex-wrap items-center p-[4px] gap-[4px] rounded-[8px] border border-newTableBorder bg-newBgColorInner self-start max-w-full phone:flex-nowrap phone:overflow-x-auto phone:[scrollbar-width:none]"
-            >
-              {chartable.map((item, index) => (
-                <button
-                  key={`metric-${item.label}`}
-                  type="button"
-                  onClick={() => setSelected(index)}
-                  className={clsx(
-                    'h-[24px] px-[8px] rounded-[6px] text-[14px] font-[500] whitespace-nowrap shrink-0 cursor-pointer transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#325ea6]',
-                    current === item
-                      ? 'bg-[color:color-mix(in_srgb,var(--new-btn-primary)_32%,transparent)] text-newTableTextFocused'
-                      : 'text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover'
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            {/* Metric picker: the shared SegmentedControl, same as the range
+                picker on the page above. It only sizes itself here — wrapping
+                when a platform ships many metrics, and on phone becoming a
+                single-row sideways scroll strip, because wrapping produced a
+                ragged 2x2 cluster that read as a broken segmented control.
+                The selection is carried as the metric's INDEX because that is
+                what the chart is keyed on; labels are display strings and two
+                providers could repeat one. */}
+            <SegmentedControl
+              className="flex-wrap self-start max-w-full phone:flex-nowrap phone:overflow-x-auto phone:[scrollbar-width:none]"
+              itemClassName="shrink-0"
+              value={String(selectedIndex)}
+              onChange={(index) => setSelected(Number(index))}
+              options={chartable.map((item, index) => ({
+                value: String(index),
+                label: item.label,
+              }))}
+            />
             <div style={{ height: PLOT_HEIGHT }} className="w-full">
               {current && (
                 <MetricBars

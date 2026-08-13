@@ -472,7 +472,7 @@ export const TagsComponentA: FC<{
             );
             return (
               <div
-                className={`min-w-[50px] float-left ms-[4px] p-[3px] rounded-sm relative`}
+                className={`min-w-[50px] float-left ms-[4px] p-[3px] rounded-xs relative`}
                 style={{
                   backgroundColor: findTag?.color,
                 }}

@@ -30,46 +30,61 @@ export const Slider: FC<{
       onClick={change}
     >
       <div className="w-full h-full relative rounded-[100px]">
-        <div
-          className={clsx(
-            // knob sits INSET in the pill (track height minus the 2px padding
-            // either side); at full track height it read as bulging past the
-            // pill edges
-            'absolute top-1/2 -translate-y-1/2 w-[20px] h-[20px] rounded-full transition-all cursor-pointer flex items-center justify-center',
-            // knob goes WHITE in the on state (Buffer's pairing: green track,
-            // white knob); the old black knob left the new glyph nowhere
-            // legible to sit inside a lime track
-            isToggle ? 'bg-white' : 'bg-customColor5',
-            value === 'on' ? 'left-[100%] -translate-x-[100%]' : 'left-0'
-          )}
-        >
-          {/* Glyph follows `fill`, not `value`, because `fill` is what marks a
-              real on/off switch: the one fill-less consumer (billing
-              monthly/yearly) is a two-way selector where a confirmation check
-              would misread.
-              stroke is an explicit hex, NOT currentColor: this svg is a
-              descendant of the lime track, and global.scss's
-              `[class*="bg-btnPrimary"] svg { color: #000 !important }` outranks
-              any class we could put here, so currentColor would be forced
-              black regardless. Black is what we want on the white knob anyway
-              (same "lime is a light field, so it takes black ink" rule), and
-              setting stroke directly makes that deterministic instead of
-              dependent on a global rule. Path matches the fork's other check. */}
-          {isToggle && (
+        {/* The glyph sits on the TRACK, opposite the knob, which is Buffer's
+            actual arrangement (measured 2026-08-13: 43x24 track, 12x12 glyph,
+            plain knob). It was previously nested inside the knob, which is not
+            what Buffer does and left the 20px knob carrying a 12px mark.
+            COLOUR IS BRAND-MAPPED, NOT COPIED. Buffer's on-track is a dark
+            green (#4e975b) so its glyph is WHITE; ours is lime (#bfff72), a
+            light field, where white would be invisible. The fork's own rule
+            covers this: anything painted with lime takes black ink. Here that
+            happens for free rather than by an explicit hex, because the track
+            carries bg-btnPrimary and global.scss's
+            `[class*="bg-btnPrimary"] svg { color: #000 !important }` forces
+            currentColor black on any svg inside it.
+            Buffer also marks the OFF state, with an x where the check would be.
+            We rendered nothing at all there, so an off switch and a disabled
+            one looked identical. */}
+        {fill && (
+          <div
+            className={clsx(
+              'absolute top-1/2 -translate-y-1/2 w-[12px] h-[12px] flex items-center justify-center pointer-events-none transition-all',
+              // opposite the knob: check on the left when on, x on the right
+              // when off, so the mark always occupies the vacated half
+              value === 'on'
+                ? 'left-[4px] text-black'
+                : 'right-[4px] text-newTextColor/40'
+            )}
+          >
             <svg
               width="12"
               height="12"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#000"
+              stroke="currentColor"
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M20 6 9 17l-5-5" />
+              {value === 'on' ? (
+                <path d="M20 6 9 17l-5-5" />
+              ) : (
+                <path d="M18 6 6 18M6 6l12 12" />
+              )}
             </svg>
+          </div>
+        )}
+        <div
+          className={clsx(
+            // knob sits INSET in the pill (track height minus the 2px padding
+            // either side); at full track height it read as bulging past the
+            // pill edges
+            'absolute top-1/2 -translate-y-1/2 w-[20px] h-[20px] rounded-full transition-all cursor-pointer',
+            // white knob against the lime track, matching Buffer's pairing
+            isToggle ? 'bg-white' : 'bg-customColor5',
+            value === 'on' ? 'left-[100%] -translate-x-[100%]' : 'left-0'
           )}
-        </div>
+        />
       </div>
     </div>
   );
