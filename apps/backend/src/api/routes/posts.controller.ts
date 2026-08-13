@@ -24,6 +24,9 @@ import { Response } from 'express';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
 import { ShortLinkService } from '@gitroom/nestjs-libraries/short-linking/short.link.service';
 import { CreateTagDto } from '@gitroom/nestjs-libraries/dtos/posts/create.tag.dto';
+import { ChangePostStatusDto } from '@gitroom/nestjs-libraries/dtos/posts/change.post.status.dto';
+import { ScheduleUndatedPostDto } from '@gitroom/nestjs-libraries/dtos/posts/schedule.undated.post.dto';
+import { ApprovalsSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/approvals.settings.dto';
 import {
   AuthorizationActions,
   Sections,
@@ -89,15 +92,52 @@ export class PostsController {
     };
   }
 
-  // Approvals/drafts: same semantics as the public API's status change —
-  // draft <-> queue, re-arming the publish workflow when queued
+  // Approvals/drafts: same semantics as the public API's status change,
+  // draft <-> queue, re-arming the publish workflow when queued. Shares that
+  // route's DTO too: the status decides whether a post goes live, so an
+  // unrecognised value must fail at the edge rather than reach the repository.
   @Put('/:id/status')
   async changePostStatus(
     @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
     @Param('id') id: string,
-    @Body() body: { status: 'draft' | 'schedule' }
+    @Body() body: ChangePostStatusDto
   ) {
-    return this._postsService.changePostStatus(org.id, id, body.status);
+    // The user id, not a role: the service only pays for the role lookup when
+    // the org's approvals gate is actually on.
+    return this._postsService.changePostStatus(org.id, id, body.status, user.id);
+  }
+
+  // Undated drafts: captured with no slot committed yet. A separate route rather
+  // than a flag on /list because it is a distinct view with its own ordering
+  // (newest created first — there is no date to sort by), and because it must
+  // sit ABOVE @Get('/:id') to avoid being swallowed by that wildcard.
+  @Get('/undated')
+  async getUndatedDrafts(
+    @GetOrgFromRequest() org: Organization,
+    @Query() query: GetPostsListDto
+  ) {
+    return this._postsService.getUndatedDrafts(org.id, query);
+  }
+
+  // Reads the org's approvals gate. Two path segments, so @Get('/:id') below
+  // cannot match it.
+  @Get('/approvals/settings')
+  async getApprovalsSettings(@GetOrgFromRequest() org: Organization) {
+    return this._postsService.getApprovalsSettings(org.id);
+  }
+
+  @Put('/approvals/settings')
+  async updateApprovalsSettings(
+    @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
+    @Body() body: ApprovalsSettingsDto
+  ) {
+    return this._postsService.updateApprovalsSettings(
+      org.id,
+      body.requireApproval,
+      user.id
+    );
   }
 
   @Get('/tags')
@@ -290,13 +330,33 @@ export class PostsController {
   }
 
   @Put('/:id/date')
-  changeDate(
+  async changeDate(
     @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
     @Param('id') id: string,
     @Body('date') date: string,
     @Body('action') action: 'schedule' | 'update' = 'schedule'
   ) {
-    return this._postsService.changeDate(org.id, id, date, action);
+    return this._postsService.changeDate(org.id, id, date, action, user.id);
+  }
+
+  // Promotes an undated draft into a slot. Distinct from /:id/date because that
+  // route preserves the current state (a draft stays a draft), which is exactly
+  // what this operation must not do.
+  @Put('/:id/schedule')
+  async scheduleUndatedPost(
+    @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
+    @Param('id') id: string,
+    @Body() body: ScheduleUndatedPostDto
+  ) {
+    return this._postsService.scheduleUndatedPost(
+      org.id,
+      id,
+      body.date,
+      body.target,
+      user.id
+    );
   }
 
   @Post('/separate-posts')

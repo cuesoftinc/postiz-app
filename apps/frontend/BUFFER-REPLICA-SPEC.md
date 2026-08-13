@@ -209,3 +209,125 @@ Month/week/list media thumbnails render only when the backend ships the
 `image` field (added in aa2ce4bc, live :4007 predates it — appears after the
 next deploy). URL aliases: /schedule, /schedule/list,
 /schedule/calendar/{month,week,day,three-day} → /launches.
+
+---
+
+## Addendum - LIGHT-THEME TOKEN MEASUREMENTS (2026-08-13, authenticated)
+
+Source: `publish.buffer.com`, logged in (Cuesoft Inc., Free Plan, 3 channels),
+viewport 1440×807 DPR 2. **Buffer serves colours as `lab()`**, so every value
+below was read back through a canvas pixel - naive string parsing of those
+declarations yields garbage. These supersede the dark-theme guesses at the top
+of this file for light mode, and they are the authority for the token slots.
+
+### Measured palette
+
+| Slot | Hex | Observed on |
+|---|---|---|
+| Ink (body, titles, tab labels, menu items) | `#292928` | body, h1, tabs, menuitems |
+| Hairline border | `#dedcd9` | New Post, Publish Now, Go to post, cards, segmented |
+| Lighter card border (Insights stat tiles only) | `#eae8e5` | stat tile |
+| Muted ink | `#5a5a59` | ghost labels, placeholders, tile labels, subtitles |
+| Green pill fill | `#b0ec9c` | sidebar "New", 40px primary CTAs |
+| Active-ghost green wash | `#d9f1d1` | Preview toggled on |
+| Green link / active label ink | `#337046` | "select a file", segmented active label |
+| Green drag-over outline | `#4e975b` | editor column while dragging |
+| Dashed drop-zone border | `#8c8b88` | idle media tile |
+| Segmented ACTIVE fill | `#95cd8f` @ alpha `0.322` | List (active) |
+| Tab count pill fill | `#eae8e5` | Queue "7" pill |
+| Surface white | `#ffffff` | body, cards, menu panels |
+| **Previews-pane tint** | `#f7f6f3` | composer previews pane |
+| Top-5 card tint | `rgba(51,34,0,0.059)` | Top 5 Posts card |
+| Destructive ink | `#94120e` | Queue kebab Delete |
+
+Two tokens are new to this spec: **muted ink `#5a5a59`** and **active-ghost
+green wash `#d9f1d1`**. Note the drop-zone link green is **`#337046`**, not the
+`#2f7d44` recorded in the r1 composer pass.
+
+### Button hierarchy - the whole system, four levels
+
+| Level | Spec | Seen on |
+|---|---|---|
+| **Primary** | h **40**, radius **12**, fill `#b0ec9c`, label `#292928` (dark, NOT white), 14/500, padding `0 16px`, gap 8 | "Customize for each network" |
+| **Secondary** | h **32**, radius **8**, **transparent fill**, `1px #dedcd9`, label `#292928`, 14/500, padding `0 12px`, gap 4 | + New Post, Publish Now, Go to post, Tags chip, Export |
+| **Ghost** | h 32, radius 8, no border, no fill, label `#5a5a59` | Templates, AI Assistant |
+| **Ghost active** | ghost + fill `#d9f1d1`, label `#337046` | Preview (on) |
+| **Sidebar pill** | h 40, radius **1440** (full), fill `#b0ec9c`, 208×40, padding `0 16px`, gap 8 | sidebar "New" |
+
+**The rule that falls out: 40px controls take radius 12, 32px controls take
+radius 8.** And **green is reserved** for the sidebar pill and 40px primary
+CTAs - the header `+ New Post` is the transparent secondary, measured 110×32.
+The secondary shape is byte-identical across `+ New Post` (110×32),
+`Publish Now` (129×32) and `Go to post` (115×32).
+
+### Type
+
+Page title "All Channels" `20px / 400 / 25px` - **regular weight, not
+semibold**. Composer title "Create Post" `18px / 500 / 22.5px`. Section and
+day-group headings `16px / 550 / 20px`. Body and menu items `14px / 400`,
+line-height 21px. Post time and control labels `14px / 500`. Tile labels,
+schedule-type labels and date subtitles `12px / 400`.
+
+### Geometry quick reference
+
+- **Segmented control** (identical in Publish and Insights): wrapper h32,
+  radius 8, white, `1px #dedcd9`, padding 4, gap 4; item h **24**, radius 6,
+  padding `0 8px`, 14/500. Publish wrapper 174 wide, Insights 360.
+- **Tab row**: height **45**, gap 16, tab padding `12px 8px`, 14/500; count
+  pill 18×18 radius full on `#eae8e5`, 12/500, padding `0 4px`.
+- **Post card**: 701×270, radius 6, `1px #dedcd9`, white; channel avatar 32
+  radius 8; footer bar h **56**, padding `0 16px`, gap 16, 1px top border;
+  footer order `Publish Now` (129×32) → `Edit` pencil (32×32) → kebab (32×32);
+  comment bubble rendered OUTSIDE the card, top-right.
+- **List column** padding `0 48px 16px`, group gap 16.
+- **Menu / dropdown panel**: white, radius **12**, **NO border**, padding
+  `12px 8px`, shadow `0 0 1px 1px rgba(55,33,0,.09), 0 4px 8px -4px
+  rgba(49,25,0,.122), 0 16px 24px -8px rgba(49,25,0,.122)`; rows h32, 14/500,
+  padding `8px 12px 8px 8px`, gap 8, icon 16.
+- **Composer dialog**: 1100×759 at (170,24), white, radius **16**, no border,
+  shadow `0 0 0 1px rgba(0,0,0,.08), 0 1px 1px 0 rgba(0,0,0,.02), 0 4px 8px
+  -4px rgba(0,0,0,.04), 0 16px 24px -8px rgba(0,0,0,.06)`. Editor column 654,
+  previews pane **379** on `#f7f6f3`. Channel avatars **40 radius 12**, row
+  gap 16. Footer bar 1036×40. Schedule control = one joined split button
+  410×40 (left 165, radius `12px 0 0 12px`; right 245, radius `0 12px 12px 0`).
+- **Media drop zone**: 120×120, radius 8, `1px dashed #8c8b88`, padding 8,
+  gap 8; drag-over puts `1px dashed #4e975b` on the editor COLUMN.
+- **Insights**: stat tile 216×77 radius 8 `1px #eae8e5` padding `12px 16px`;
+  trends charts 1060×160, **Recharts BARS**, gridlines **vertical only** 1px
+  solid `#dedcd9`, no yAxis labels, no dots, no legend, tooltip present, no
+  sparklines anywhere; Top 5 card 212×179 radius 12, thumb 44×44 radius 6,
+  actions 24×24; channels table width 1108, header row 49 (`th` padding
+  `12px 16px`, 14/500, first cell radius `12px 0 0 0`), body row 64.
+
+### BACKDROP - corrected and confirmed
+
+The overlay element is **fully transparent**; the dim is on its **`::after`**,
+which carries `content:""` + `background: rgba(0,0,0,0.8)` and
+**`backdrop-filter: none`**. No blur anywhere. This confirms the 2026-08-10
+finding and extends it to the composer, so any surviving
+`backdrop-filter: blur()` on our modal layers is a divergence.
+
+### Ranges and features Buffer does NOT have / we do not have
+
+- **Buffer has no 90-day Insights range.** Options are `7 days`, `30 days`,
+  `Month to date`, `Custom` (paid, "Upgrade" marker). Our 7/30/90 is our own
+  invention; `Month to date` is the real gap. The relay channels' 7+30 matches
+  Buffer's free surface exactly.
+- Buffer states its comparison window in a subtitle ("Jul 15 - Aug 13, 2026 ·
+  Compared to Jun 15 - Jul 14, 2026", `12px/400 #5a5a59`); we show a bare delta.
+- Buffer-only, no counterpart here: `Create` and `Community` top-level nav,
+  composer `Templates`, header `AI Assistant`, `Create Another`, Insights
+  `Export`, the channels-table column chooser, and "Share as Post" on an
+  insight.
+- Sent cards carry a horizontally scrollable **per-platform** metrics strip
+  (X: Reactions/Comments/Eng. Rate/Reposts/Impressions/Clicks; TikTok:
+  …/Views/Shares/Reach; LinkedIn: …/Impressions/Reach/Shares), with absent
+  metrics rendered as `no data available` and a `-` value rather than `0`.
+- Sent list is newest-first **at both levels** (day groups descend AND posts
+  descend within a day); Queue stays ascending.
+
+### Measurement blocked by the plan
+
+The legacy **`analyze.buffer.com` is paywalled** on this account (redirects to
+`/paywall`), and the `Custom` range is a paid feature. Anything needing either
+cannot be measured without an upgrade - record it as blocked, not as pending.

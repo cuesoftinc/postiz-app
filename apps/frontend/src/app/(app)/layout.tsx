@@ -103,6 +103,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           }
         >
           <SentryComponent>
+            {/* SetTimezone stays DISABLED — do not uncomment it. It is the only
+                thing that would mount set.timezone.tsx, and mounting it installs
+                a global monkey patch over dayjs `.local()` plus a
+                `dayjs.tz.setDefault`. Because it never mounts, that patch is
+                dead code and every date in the app reads as written. The
+                calendar was deliberately re-clocked onto native `Intl`, so it
+                does not need the patch; its display-timezone handling lives in
+                calendar.context.tsx (`displayWall` / `displayInstant`).
+                Enabling this now would silently change date behaviour app-wide.
+                The module itself stays: `getTimezone()` is still imported and
+                used by date.picker.tsx and works standalone. */}
             {/*<SetTimezone />*/}
             <HtmlComponent />
             <DubAnalytics />

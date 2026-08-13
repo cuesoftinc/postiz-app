@@ -11,7 +11,7 @@ import { KickDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings
 import { TwitchDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/twitch.dto';
 import { InstagramDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/instagram.dto';
 import { LinkedinDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/linkedin.dto';
-import { IsIn } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { MediumSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/medium.settings.dto';
 import { DevToSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/dev.to.settings.dto';
 import { HashnodeSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/hashnode.settings.dto';
@@ -62,10 +62,31 @@ export type AllProvidersSettings =
   | ProviderExtension<'mewe', MeweDto>
   | ProviderExtension<'tumblr', TumblrDto>
   | ProviderExtension<'whop', WhopDto>
-  | ProviderExtension<'linkedinbuffer', None>
-  | ProviderExtension<'tiktokbuffer', None>;
+  | ProviderExtension<'linkedinbuffer', BufferRelayDto>
+  | ProviderExtension<'tiktokbuffer', BufferRelayDto>;
 
 type None = NonNullable<unknown>;
+
+/**
+ * The Buffer relay channels (LinkedIn and TikTok via Buffer). Declared here
+ * rather than in its own dto file because it is the only per-post setting the
+ * relay providers can act on, and it has to be reachable before `allProviders`
+ * is evaluated below.
+ *
+ * `firstComment` is the ONLY thing Buffer's API accepts alongside a post
+ * (`metadata.linkedin.firstComment`), and it has to arrive in `settings`: a
+ * follow-up sent as a second `value` entry becomes a child post, and the post
+ * workflow discards every segment after the first for a provider that cannot
+ * post comments. Optional, because most relayed posts have none.
+ */
+export class BufferRelayDto {
+  @IsOptional()
+  @IsString()
+  // LinkedIn's own comment ceiling. Buffer rejects longer ones at publish time,
+  // which is after the post has already gone out.
+  @MaxLength(1250)
+  firstComment?: string;
+}
 
 export const allProviders = (setEmpty?: any) => {
   return [
@@ -103,11 +124,12 @@ export const allProviders = (setEmpty?: any) => {
     { value: WhopDto, name: 'whop' },
     { value: MeweDto, name: 'mewe' },
     { value: TumblrDto, name: 'tumblr' },
-    // Buffer relays: no per-post settings of their own. They MUST be listed
-    // here even so — __type is validated against this list, so an unlisted
-    // identifier connects fine and then 400s on every post creation.
-    { value: setEmpty, name: 'linkedinbuffer' },
-    { value: setEmpty, name: 'tiktokbuffer' },
+    // Buffer relays. They MUST be listed here: __type is validated against this
+    // list, so an unlisted identifier connects fine and then 400s on every post
+    // creation. They carry one setting of their own, the first comment Buffer
+    // attaches at publish time.
+    { value: BufferRelayDto, name: 'linkedinbuffer' },
+    { value: BufferRelayDto, name: 'tiktokbuffer' },
   ].filter((f) => f.value);
 };
 

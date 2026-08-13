@@ -86,6 +86,21 @@ export async function postWorkflowV102({
     return;
   }
 
+  // Undated drafts (publishDate is nullable now) must never reach the sleep
+  // below: dayjs(null) is an Invalid Date, so `.isBefore()` is false, `.diff()`
+  // is NaN, and sleep(NaN) resolves IMMEDIATELY — a dateless post would publish
+  // the instant its workflow was armed, the opposite of what a missing date
+  // means. Unreachable today, because only v1.0.6 is ever started and nothing
+  // can enter QUEUE without a date, but that is one pinned workflow type away
+  // from being live, so this legacy version carries the same guard v1.0.6 got.
+  // Gated on !postNow like the sleep it guards: the postNow path skips the
+  // sleep and operates on an already-published post, so failing it here would
+  // mark a live post ERROR.
+  if (!postNow && !post.publishDate) {
+    await changeState(post.id, 'ERROR', 'Missing publish date', postsListBefore);
+    return;
+  }
+
   // if it's a repeatable post, we should ignore this.
   if (!postNow) {
     await sleep(

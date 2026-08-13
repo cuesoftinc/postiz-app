@@ -27,7 +27,11 @@ export const ModalFooter: FC<{
   return (
     <div
       className={clsx(
-        'flex gap-[10px] mt-[16px]',
+        // items-center is load-bearing since Button carries Buffer's two
+        // heights: a primary is 40px and a secondary 32px, and every footer
+        // here mixes them, so without it the pair top-aligns with an 8px
+        // shortfall. One line covers all 11 consumers of this kit footer.
+        'flex items-center gap-[10px] mt-[16px]',
         align === 'start' && 'justify-start',
         align === 'end' && 'justify-end',
         align === 'between' && 'justify-between',

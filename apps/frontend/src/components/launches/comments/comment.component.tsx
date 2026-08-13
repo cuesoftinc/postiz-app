@@ -146,7 +146,18 @@ export const EditableCommentComponent: FC<{
 };
 export const CommentComponent: FC<{
   postId: string;
-  date: dayjs.Dayjs;
+  /**
+   * Optional, because `Post.publishDate` is nullable now: an undated draft is a
+   * captured idea with no slot committed yet, and comments on it are exactly as
+   * useful as comments on a scheduled post.
+   *
+   * While this was required, the calendar had to SUPPRESS the comments trigger
+   * for a dateless post rather than fabricate a date for the heading (see the
+   * `if (!post.publishDate) return;` guards in calendar.tsx). Undefined, null
+   * and an Invalid Date all mean the same thing here and all take the plain
+   * heading.
+   */
+  date?: dayjs.Dayjs | null;
 }> = (props) => {
   const { postId, date } = props;
   const { closeAll } = useModals();
@@ -198,7 +209,17 @@ export const CommentComponent: FC<{
   }, []);
   return (
     <div className="relative flex gap-[20px] flex-col flex-1 rounded-[8px] border border-newTableBorder bg-newBgColorInner p-[16px] pt-0">
-      <TopTitle title={`Comments · ${date.format('MMM D, h:mm A')}`} />
+      {/* The date is a SUFFIX, so it simply falls away when there is none —
+          the heading still names what the sheet is. `isValid()` is part of the
+          test because dayjs.utc(null) is an Invalid Date object, which is truthy
+          and would format as the literal 'Invalid Date'. */}
+      <TopTitle
+        title={
+          date?.isValid()
+            ? `Comments · ${date.format('MMM D, h:mm A')}`
+            : 'Comments'
+        }
+      />
       <ModalCloseButton onClick={closeAll} offset={{ top: 15 }} />
 
       <div className="flex flex-col gap-[16px]">

@@ -13,6 +13,25 @@ import {
  * panel padding, a ChannelAvatar, the ellipsized channel name, and an optional
  * trailing control (launches' settings Menu, third-party's delete kebab).
  *
+ * ADOPTION: 1 of the 5 target call sites, as of 2026-08-13. The only importer
+ * is `third-parties/third-party.component.tsx:206`. Of the other four the
+ * agents copy is gone (7ce47dff replaced that panel with the avatar toggle
+ * bar in agents/agent.tsx `AgentList`), and launches, analytics and plugs
+ * never migrated - launches.component.tsx:297 still hand-rolls the row as a
+ * card, and analytics/plugs moved to the shared channels dropdown instead.
+ * So this is a real primitive with one adopter, not the converged row.
+ *
+ * NAME COLLISION - `new-layout/sidebar.tsx:313` declares its OWN local
+ * `const ChannelRow`, a different component (sidebar channel link with
+ * scheduled counts and hover actions), used at sidebar.tsx:607 and :697, in
+ * THIS SAME DIRECTORY. Nothing breaks today because the sidebar's is
+ * module-local and never imported, but the two are trivially confusable in
+ * review and in grep output - `grep -rn ChannelRow` returns both and neither
+ * name says which. Renaming this export to `ChannelPanelRow` (or the
+ * sidebar's to `SidebarChannelRow`) is the fix; it was NOT done here because
+ * the consumer, third-party.component.tsx, is outside this change's file
+ * ownership. Recorded as a handoff, not a defect to work around.
+ *
  * The same ~50-line block was copy-pasted into launches, agents, analytics,
  * plugs and third-party and drifted five ways. Where this component and a
  * copy disagree, the difference is a sanctioned normalization:
@@ -90,8 +109,14 @@ export interface ChannelRowProps {
   /**
    * Cuesoft mobile patch (fork): inside a phone:flex-row scroll container the
    * row becomes a bordered horizontal chip instead of a full-width line —
-   * a vertical channel list eats the whole screen on a phone. Used by the
-   * agents panel; the container keeps its phone:flex-row/overflow classes.
+   * a vertical channel list eats the whole screen on a phone. The container
+   * keeps its phone:flex-row/overflow classes.
+   *
+   * NO CALLER as of 2026-08-13. This prop was written for the agents channel
+   * panel, and that panel no longer exists (7ce47dff swapped it for the
+   * avatar toggle bar), so the "Used by the agents panel" it used to claim is
+   * false. Kept because the phone-chip treatment is still the right answer for
+   * any future horizontal channel strip and costs one clsx branch.
    */
   phoneChip?: boolean;
   /** data-tooltip content applied to BOTH the avatar cluster and the name

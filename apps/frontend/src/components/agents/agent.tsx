@@ -170,8 +170,32 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
   const user = useUser();
   // Owner's decision (2026-08-11): this is an internal tool, so EVERY org
   // user gets the bridge experience (Assistant + Content tabs); the old
-  // CopilotKit chat (children) is no longer reachable but kept as the
-  // fallback while user context loads. Backend gates were opened to match.
+  // CopilotKit chat (children) is no longer reachable in normal use but is
+  // kept as the fallback while user context loads. Backend gates were opened
+  // to match.
+  //
+  // READ THIS BEFORE "CLEANING UP" THE `!isAdmin` ARMS. They are DELIBERATE,
+  // not stale - two separate audits have now proposed deleting them:
+  //  - The NAME IS A MISNOMER. This is `!!user`, not the `admin` column, so it
+  //    is TRUE FOR EVERY AUTHENTICATED USER. (agent.chat.tsx has its own,
+  //    different `isAdmin = !!(user as any)?.admin`.) An audit that reads this
+  //    gate as "superadmin only" concludes the arms are dead. They are not.
+  //  - The `children` / `!isAdmin` path exists SOLELY for the window before
+  //    user context resolves, which is why it never shows up in a
+  //    steady-state screenshot or a click-through.
+  //  - It is also the ONLY render path for `AgentChat` (`children`) and for
+  //    `Threads` below, and therefore the only caller of three LIVE backend
+  //    endpoints: `/copilot/agent` (agent.chat.tsx:60), `/copilot/list`
+  //    (`Threads` below) and `/copilot/:thread/list` (agent.chat.tsx:226).
+  //    Deleting these arms strands all three plus the whole
+  //    agent.chat / agent.input / agent.textarea cluster and this file's
+  //    `.agent` skin in agent.styles.scss.
+  //  - Caveat recorded for the next reader rather than acted on: in the
+  //    current route tree `(site)/layout.tsx` renders `LayoutComponent`,
+  //    which returns null while `user` is unresolved, so `Agent` is not
+  //    mounted during that window and the fallback is not expected to paint.
+  //    The arms stay regardless - owner's decision above, plus capability
+  //    preservation. Do not simplify them without the owner.
   const isAdmin = !!user;
   const searchParams = useSearchParams();
   // /content redirects here with ?mode=content so old links preselect the
@@ -186,11 +210,11 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
   }, [searchParams]);
   const contentMode = isAdmin && mode === 'content';
 
-  // Admins: BOTH tabs are bridge panes now (Assistant runs the bridge's
-  // 'assistant' profile, Content its 'content' profile), kept mounted so a
-  // stream survives a tab flip; the segmented just swaps which one shows.
-  // Non-admins keep the CopilotKit chat (children) untouched — the bridge
-  // runs on the operator's Claude account.
+  // Resolved user: BOTH tabs are bridge panes now (Assistant runs the
+  // bridge's 'assistant' profile, Content its 'content' profile), kept
+  // mounted so a stream survives a tab flip; the segmented just swaps which
+  // one shows. The unresolved-user window keeps the CopilotKit chat
+  // (children) untouched - the bridge runs on the operator's Claude account.
 
   // each pane registers its session-reset here so the header's (and rail's)
   // New chat can drive the ACTIVE profile's pane
@@ -232,6 +256,26 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
   const selectSession = useCallback(
     (id: string) => setBridgeSessions((s) => ({ ...s, [mode]: id })),
     [mode]
+  );
+  // A removed rail entry takes the SESSION with it: the entry is the bridge's
+  // record of who owns the id, so a pane still pointing at it gets refused on
+  // its next turn (403) and the user has no way back but a reload. Clearing the
+  // id here flows down as activeSessionId=null, which is the pane's own signal
+  // to start a fresh chat, so the delete leaves a working chat behind.
+  // Matched on the ID rather than on the active tab: ids are unique, both panes
+  // stay mounted, and this rail is shared, so whichever pane holds it is the
+  // one that must let go, including the tab that is currently hidden.
+  const onSessionRemoved = useCallback(
+    (id: string) =>
+      setBridgeSessions((s) =>
+        s.assistant === id || s.content === id
+          ? {
+              assistant: s.assistant === id ? null : s.assistant,
+              content: s.content === id ? null : s.content,
+            }
+          : s
+      ),
+    []
   );
 
   // bumped when a turn finishes so the rail refetches (new sessions appear,
@@ -283,8 +327,16 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
                   anatomy, Buffer geometry measured live 2026-08-10:
                   container 32px r8, 4px inset, white, hairline; options
                   24px r6 at 14/500 (active = boxFocused/textItemFocused
-                  fill, ours; inactive transparent). Admin-only: without
-                  the Content segment there is nothing to switch. */}
+                  fill, ours; inactive transparent). Gated on `isAdmin`
+                  (= user resolved, see the note above): during the
+                  unresolved window there is no Content pane to switch to.
+
+                  NOTE for the parity catalog: this is one of SIX hand-rolled
+                  segmented controls, and it uses the boxFocused active fill
+                  rather than filters.tsx's measured 32% green tint
+                  (`segActive`). cuesoft/toolbar/toolbar.tsx exports an
+                  unadopted `SegmentedControl` that consolidates neither
+                  variant yet. */}
               {isAdmin && (
                 <div
                   data-cs
@@ -318,8 +370,9 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
               )}
               {/* New chat lives HERE in both modes — quiet 32px hairline (S4:
                   the segmented is the page focal point, so the old lime
-                  primary demotes). Admins: clears the ACTIVE profile's bridge
-                  pane to a fresh session; non-admins: a new copilot thread. */}
+                  primary demotes). Resolved user: clears the ACTIVE profile's
+                  bridge pane to a fresh session; unresolved window: a link to
+                  a new copilot thread. */}
               {isAdmin ? (
                 <button
                   type="button"
@@ -376,8 +429,10 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
           }
         />
         {/* channel toggles feed PropertiesContext → the copilot chat only;
-            they mean nothing to the bridge chat, so admins (both tabs are
-            bridge panes) drop them */}
+            they mean nothing to the bridge chat, so the resolved-user view
+            (both tabs are bridge panes) drops them. RETAINED: `AgentList`
+            below is the only producer of `properties`, which agent.chat.tsx
+            reads in three places. */}
         {!isAdmin && <AgentList onChange={setProperties} />}
         {/* phone: rail + chat stack (rail first); min-w-0 keeps the chat
             pane from being crushed by the rail's intrinsic width. The row's
@@ -422,9 +477,10 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
               children
             )}
           </div>
-          {/* admins: ONE sessions rail shared by both tabs, listing the
-              active profile's bridge sessions; non-admins keep the copilot
-              Threads rail */}
+          {/* resolved user: ONE sessions rail shared by both tabs, listing
+              the active profile's bridge sessions; the unresolved window
+              keeps the copilot Threads rail (the only `/copilot/list`
+              caller - see the note on `isAdmin`) */}
           {isAdmin ? (
             <SessionsRail
               profile={mode}
@@ -432,6 +488,7 @@ export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
               version={sessionsVersion}
               onSelect={selectSession}
               onNewChat={newBridgeChat}
+              onRemoved={onSessionRemoved}
             />
           ) : (
             <Threads />

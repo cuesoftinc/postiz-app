@@ -109,7 +109,12 @@ const EmailNotificationsComponent = () => {
               <Skeleton className="h-[14px] w-[130px]" />
               <Skeleton className="h-[12px] w-[320px] max-w-full" />
             </div>
-            <Skeleton className="h-[24px] w-[44px] !rounded-full shrink-0" />
+            {/* 43x24, not 44x24: the real control is Buffer's measured
+                43x24 toggle (form/slider.tsx). A skeleton that reserves
+                geometry the component does not use shifts the row by a pixel
+                on load, and it is how the 57x34 slider went unnoticed for so
+                long: the measurement had reached the placeholder only. */}
+            <Skeleton className="h-[24px] w-[43px] !rounded-full shrink-0" />
           </div>
         ))}
       </div>

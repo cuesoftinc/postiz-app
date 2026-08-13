@@ -28,6 +28,10 @@ const POST_ITEM_KEYS: Record<string, string> = {
   creationMethod: 'cm',
   image: 'im',
   createdAt: 'ca',
+  // The approvals gate's own field. It was already riding along unmapped, which
+  // was correct but paid 13 bytes a post for the longest key in the payload,
+  // and both list queries now select it, so it is on every row of every tab.
+  needsApproval: 'na',
 };
 
 const INTEGRATION_KEYS: Record<string, string> = {

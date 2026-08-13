@@ -20,16 +20,29 @@ type BridgeSession = {
   id: string;
   profile: BridgeProfile;
   title: string;
-  createdAt: number;
-  updatedAt: number;
+  /** ISO 8601 strings, NOT epoch numbers: the bridge's session index writes
+      `new Date().toISOString()` (postiz/bridge/server.mjs, upsertSession) and
+      the proxy passes that JSON through untouched. */
+  createdAt: string;
+  updatedAt: string;
+  /** Session ids this conversation has already forked through, oldest first, with
+      the live one in `id`. Listed here because the proxy passes the index record
+      through untouched, so it is genuinely on the wire; nothing in this rail uses
+      it. It is read by the bridge's history endpoint, which follows the chain so a
+      conversation that changed id still replays whole. Absent on records written
+      before the field existed. */
+  chain?: string[];
 };
 
 /** compact relative timestamp for the rail rows ("now", "5m", "3h", "2d",
- *  "1w"); tolerates second-epoch values from the bridge index */
-const relTime = (ts: number) => {
-  const ms = ts < 1e12 ? ts * 1000 : ts;
+ *  "1w"). Typed as a number, the age arithmetic ran on an ISO string, so every
+ *  row came out NaN and rendered as "now" whatever its real age. A value that
+ *  will not parse now renders nothing at all, rather than looking fresh. */
+const relTime = (ts: string) => {
+  const ms = Date.parse(ts || '');
+  if (!Number.isFinite(ms)) return '';
   const minutes = Math.floor((Date.now() - ms) / 60000);
-  if (!Number.isFinite(minutes) || minutes < 1) return 'now';
+  if (minutes < 1) return 'now';
   if (minutes < 60) return `${minutes}m`;
   const h = Math.floor(minutes / 60);
   if (h < 24) return `${h}h`;
@@ -38,13 +51,26 @@ const relTime = (ts: number) => {
   return `${Math.floor(d / 7)}w`;
 };
 
-/** The bridge sessions rail (every org user, shared by both segmented tabs):
- *  the same visual shell as the copilot Chats rail in agent.tsx — 224px
- *  Buffer-calibrated side panel, SidePanelHeader + collapse cookie, 32px r8
- *  rows — listing the bridge's per-profile session index via the
- *  /copilot/content-sessions proxies. Tapping a row resumes that session in
- *  the chat pane (the page owns which session is open); the hover x prunes
- *  the entry from the index (the underlying Claude Code session survives). */
+/** The bridge sessions rail (available to every org user, and shared by both
+ *  segmented tabs, never between users): the same visual shell as the copilot
+ *  Chats rail in agent.tsx, i.e. a 224px Buffer-calibrated side panel,
+ *  SidePanelHeader + collapse cookie and 32px r8 rows, listing the bridge's
+ *  per-profile session index via the /copilot/content-sessions proxies. Tapping
+ *  a row resumes that session in the chat pane (the page owns which session is
+ *  open); the hover x prunes the entry from the index.
+ *
+ *  OWNERSHIP IS ENFORCED SERVER-SIDE, so this component does none of it: the
+ *  proxy sends the signed-in user's id to the bridge and the bridge returns only
+ *  that user's sessions. Do not add a client-side owner filter: a filter here
+ *  would imply the payload can contain other people's rows, which is precisely
+ *  the leak that was fixed (it could, until 2026-08-13, and the rail dutifully
+ *  rendered them). Two consequences worth keeping in mind while editing:
+ *  - ZERO ROWS IS A NORMAL STATE now, not a failure. A new user legitimately
+ *    sees none, and the empty list renders the S2 empty state below; only a
+ *    null (the proxy's offline shape) means something is wrong.
+ *  - the SWR key carries the profile but no user, which is safe because both
+ *    signing in and switching impersonation reload the page (impersonate.tsx),
+ *    discarding this in-memory cache with everything else. */
 export const SessionsRail: FC<{
   profile: BridgeProfile;
   activeId: string | null;
@@ -53,7 +79,15 @@ export const SessionsRail: FC<{
   version: number;
   onSelect: (id: string) => void;
   onNewChat: () => void;
-}> = ({ profile, activeId, version, onSelect, onNewChat }) => {
+  /** Fired after the x removes a row, with the id that went. THE ENTRY IS THE
+      OWNERSHIP RECORD, so a removed session is not merely absent from this
+      list: the bridge resumes only what its index says the caller owns, so the
+      id is now refused on every path. A parent holding it as the open session
+      must stop pointing at it, or the next turn in that pane comes back 403
+      with no way out but a reload. Required, not optional, for exactly that
+      reason: a mount that ignores this can brick its own pane. */
+  onRemoved: (id: string) => void;
+}> = ({ profile, activeId, version, onSelect, onNewChat, onRemoved }) => {
   const fetch = useFetch();
   const t = useT();
   const { collapsed, toggle } = useSidePanelCollapse();
@@ -87,9 +121,18 @@ export const SessionsRail: FC<{
       await fetch(`/copilot/content-sessions/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
+      // Reported whatever came back, deliberately. The proxy collapses every
+      // non-2xx into one { error } shape, and each of them means this id is
+      // unusable to this caller from here on: it was deleted, or the bridge
+      // answered "not found" (already gone, or never this caller's: the same
+      // answer on purpose, so the route cannot be walked for ids), or the
+      // bridge is unreachable and no session resumes anyway. Waiting for a
+      // clean 200 would leave the pane pointed at a dead id in the two cases
+      // that need the reset most.
+      onRemoved(id);
       mutate();
     },
-    [fetch, mutate]
+    [fetch, mutate, onRemoved]
   );
 
   return (
@@ -204,8 +247,11 @@ export const SessionsRail: FC<{
                 <span className="shrink-0 text-[12px] text-newTextColor/50 group-hover/session:hidden">
                   {relTime(s.updatedAt)}
                 </span>
-                {/* hover-revealed 16px x: prunes the rail entry via the
-                    DELETE proxy (the session itself stays resumable) */}
+                {/* hover-revealed 16px x: prunes the rail entry via the DELETE
+                    proxy. The transcript file on the host survives, but the
+                    entry was the record of who owns the session, so removing it
+                    also ends resuming it from the web chat, since the bridge
+                    resumes only what its index says the caller owns. */}
                 <button
                   type="button"
                   onClick={remove(s.id)}

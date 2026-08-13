@@ -105,6 +105,13 @@ const resolveModalWidth = (size?: string | number) => {
 // there would leave those modals floating card-less over the 30%-alpha
 // backdrop. Remove the guard once those call sites regain self-chrome or
 // drop the stale token.
+//
+// SCOPE: there is no shell div on the `removeLayout` path, so this applies to
+// LAYOUT modals only. Every composer-family caller passes `removeLayout: true`
+// (new.post, calendar x2, generator, menu, agent.chat, sets), so the
+// `max-w-[1400px]` those seven hand us has never taken effect; the composer's
+// real cap is the 1100px on `#cs-composer` in manage.modal.tsx. Hence the
+// computation lives inside the branch that consumes it, not above both.
 const resolveShellClassNames = (classNames?: { modal?: string }) =>
   classNames?.modal
     ?.split(' ')
@@ -173,7 +180,6 @@ export const Component: FC<{
   );
 
   const sizeWidth = resolveModalWidth(modal.size);
-  const shellClassNames = resolveShellClassNames(modal.classNames);
 
   if (modal.removeLayout) {
     return (
@@ -216,6 +222,9 @@ export const Component: FC<{
     );
   }
 
+  // layout modals only (see resolveShellClassNames)
+  const shellClassNames = resolveShellClassNames(modal.classNames);
+
   return (
     <CurrentModalContext.Provider value={{ id: modal.id }}>
       <div
@@ -248,8 +257,9 @@ export const Component: FC<{
           >
             <div
               className={clsx(
-                !modal.removeLayout &&
-                  'gap-[40px] p-[32px] phone:gap-[20px] phone:p-[16px]',
+                // `removeLayout` returned above, so it is always false here:
+                // the guard it used to carry was dead
+                'gap-[40px] p-[32px] phone:gap-[20px] phone:p-[16px]',
                 'bg-newBgColorInner mx-auto flex flex-col w-fit max-w-[100vw] rounded-[24px] phone:rounded-[16px] relative',
                 // min-w-[600px] is wider than a phone, so on mobile the modal
                 // body overran the viewport and pushed its own close button

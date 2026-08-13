@@ -409,6 +409,72 @@ export class OrganizationRepository {
     });
   }
 
+  /**
+   * The approvals gate switch. Returns false for an org that somehow cannot be
+   * loaded: a gate that fails open is the safe direction here, because failing
+   * closed would silently turn every post in the instance into a draft on a
+   * transient database blip, and stranded posts are the failure mode the owner
+   * explicitly does not want.
+   */
+  async getRequireApproval(orgId: string): Promise<boolean> {
+    const org = await this._organization.model.organization.findUnique({
+      where: {
+        id: orgId,
+      },
+      select: {
+        requireApproval: true,
+      },
+    });
+
+    return !!org?.requireApproval;
+  }
+
+  updateRequireApproval(orgId: string, requireApproval: boolean) {
+    return this._organization.model.organization.update({
+      where: {
+        id: orgId,
+      },
+      data: {
+        requireApproval,
+      },
+      select: {
+        id: true,
+        requireApproval: true,
+      },
+    });
+  }
+
+  /**
+   * The caller's role in this org, or null when they have none. Used by the
+   * approvals gate to decide who may move a post into QUEUE.
+   *
+   * This reads the join row directly rather than trusting `req.org.users[0]`,
+   * because that array is shaped differently depending on which middleware
+   * populated it: auth.middleware.ts:88-108 puts the current user's
+   * UserOrganization there ({ role }), while public.auth.middleware.ts:39,57
+   * fabricates `[{ users: { role: 'SUPERADMIN' } }]` — a nested shape where
+   * `users[0].role` reads undefined. Deciding an authorization question off a
+   * shape that varies by entry point is how a gate ends up open by accident.
+   */
+  async getUserRoleInOrg(orgId: string, userId: string): Promise<Role | null> {
+    if (!orgId || !userId) {
+      return null;
+    }
+
+    const membership = await this._userOrg.model.userOrganization.findFirst({
+      where: {
+        organizationId: orgId,
+        userId,
+        disabled: false,
+      },
+      select: {
+        role: true,
+      },
+    });
+
+    return membership?.role ?? null;
+  }
+
   getShortlinkPreference(orgId: string) {
     return this._organization.model.organization.findUnique({
       where: {

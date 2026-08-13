@@ -1,11 +1,14 @@
-import { FC, useCallback, useState } from 'react';
+import { FC, useCallback, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { Calendar, TimeInput } from '@mantine/dates';
 import { useClickOutside } from '@mantine/hooks';
 import { Button } from '@gitroom/react/form/button';
 import { isUSCitizen } from './isuscitizen.utils';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  getTimezone,
+  newDayjs,
+} from '@gitroom/frontend/components/layout/set.timezone';
 import { CalendarIcon } from '@gitroom/frontend/components/ui/icons';
 export const DatePicker: FC<{
   date: dayjs.Dayjs;
@@ -21,6 +24,19 @@ export const DatePicker: FC<{
   const ref = useClickOutside<HTMLDivElement>(() => {
     setOpen(false);
   });
+  // A time with no stated zone is how an offset bug got shipped here once: the
+  // picker edits a wall-clock time that is committed in the DISPLAY timezone
+  // (set.timezone), which is not necessarily the machine's. Label it in Buffer's
+  // own format for the same value, "City (GMT+1:00)", so the zone the time
+  // will be read in is on screen at the moment it is chosen.
+  // Only ever rendered inside the `open` branch (a click, so client-side), so
+  // the SSR/CSR difference in getTimezone() cannot become a hydration mismatch.
+  const timezoneLabel = useMemo(() => {
+    const zone = getTimezone();
+    const city = (zone.split('/').pop() || zone).replace(/_/g, ' ');
+    return `${city} (GMT${dayjs().tz(zone).format('Z')})`;
+  }, []);
+
   const changeDate = useCallback(
     (type: 'date' | 'time') => (day: Date) => {
       onChange(
@@ -80,7 +96,7 @@ export const DatePicker: FC<{
           />
           <TimeInput
             onChange={changeDate('time')}
-            label="Pick time"
+            label={t('pick_time', 'Pick time')}
             classNames={{
               label: 'text-[13px] text-newTextColor/60 py-[12px]',
               input:
@@ -88,6 +104,11 @@ export const DatePicker: FC<{
             }}
             defaultValue={date.toDate()}
           />
+          {/* the zone this time is committed in: 12px muted, Buffer's
+              timezone-row format */}
+          <div className="pt-[6px] text-[12px] text-newTextColor/60">
+            {timezoneLabel}
+          </div>
           <Button className="mt-[12px]" onClick={changeShow}>
             {t('close', 'Close')}
           </Button>

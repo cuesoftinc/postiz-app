@@ -7,6 +7,12 @@ name: cuesoft-build-image
 on:
   push:
     branches: [cuesoft/customizations]
+    # Every path that can change the image MUST be listed. A commit that
+    # touches only an omitted path publishes nothing, and `cuesoft-latest` +
+    # the version tag keep pointing at the previous build - a stale image that
+    # looks current. Dockerfile.dev does `COPY . /app` then `pnpm install` and
+    # `pnpm run build`, so the blast radius is wide; anything below is either
+    # copied into the context or consumed by one of those two commands.
     paths:
       - 'apps/**'
       - 'libraries/**'
@@ -16,6 +22,17 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
+      # added 2026-08-13 - all three were missing and all three change the build:
+      #   tsconfig.base.json  both apps/frontend and apps/backend extend it,
+      #                       and it owns the @gitroom/* path aliases; root
+      #                       tsconfig.json just re-extends it (glob covers both)
+      #   .npmrc              pnpm resolution itself (node-linker=hoisted,
+      #                       inject-workspace-packages) - changes what
+      #                       `pnpm install` produces
+      #   .dockerignore       decides what `COPY . /app` actually copies
+      - 'tsconfig*.json'
+      - '.npmrc'
+      - '.dockerignore'
       - '.github/workflows/cuesoft-build-image.yml'
   workflow_dispatch:
 

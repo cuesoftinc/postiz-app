@@ -481,7 +481,18 @@ export class PublicIntegrationsController {
     @Body() body: ChangePostStatusDto
   ) {
     Sentry.metrics.count('public_api-request', 1);
-    return this._postsService.changePostStatus(org.id, id, body.status);
+    // An API key is not a person, so it is not an approver: null is passed
+    // explicitly rather than left to default. When the org's approvals gate is
+    // OFF (the default) this changes nothing at all. When it is ON, a key can
+    // still move a post back to DRAFT but cannot release one into the queue —
+    // which is the entire point of turning the gate on, since the callers here
+    // are pipelines and agent tools.
+    //
+    // Stated rather than inherited on purpose: public.auth.middleware.ts:39,57
+    // fabricates `users: [{ users: { role: 'SUPERADMIN' } }]`, so any code that
+    // read the role off req.org the way the rest of the app does would get
+    // undefined here and be relying on an accident of that shape.
+    return this._postsService.changePostStatus(org.id, id, body.status, null);
   }
 
   @Put('/posts/:id/release-id')

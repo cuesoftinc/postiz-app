@@ -15,7 +15,18 @@ import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.m
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 
-const SaveSetModal: FC<{
+/**
+ * NAMING. These rows are called TEMPLATES everywhere a user can see them — the
+ * composer's header control, its picker and its save dialog all say Template
+ * (editor.tsx), and this settings surface used to be the one place calling the
+ * same rows Sets. The user-facing copy below is therefore Template.
+ *
+ * Nothing underneath is renamed: the API route stays `/sets`, the SWR cache key
+ * stays `'sets'` (the composer picker shares it, so one save has to land in both
+ * views), the Prisma model stays `Sets`, the settings tab id stays `sets`, and
+ * the modal ids stay as they were. This is a label change, not a migration.
+ */
+const SaveTemplateModal: FC<{
   postData: any;
   initialValue?: string;
   onSave: (name: string) => void;
@@ -35,13 +46,13 @@ const SaveSetModal: FC<{
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
         <Input
-          label="Set Name"
-          translationKey="label_set_name"
+          label="Template Name"
+          translationKey="label_template_name"
           name="setName"
           value={name}
           disableForm={true}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Enter a name for this set"
+          placeholder="Enter a name for this template"
           autoFocus
         />
       </div>
@@ -111,9 +122,9 @@ export const Sets: FC = () => {
             {...(params?.id ? { set: JSON.parse(params.content) } : {})}
             addEditSets={(data) => {
               modal.openModal({
-                title: 'Save as Set',
+                title: 'Save as template',
                 children: (
-                  <SaveSetModal
+                  <SaveTemplateModal
                     initialValue={params?.name || ''}
                     postData={data}
                     onSave={async (name: string) => {
@@ -128,9 +139,9 @@ export const Sets: FC = () => {
                         });
                         modal.closeAll();
                         mutate();
-                        toaster.show('Set saved successfully', 'success');
+                        toaster.show('Template saved', 'success');
                       } catch (error) {
-                        toaster.show('Failed to save set', 'warning');
+                        toaster.show('Failed to save template', 'warning');
                       }
                     }}
                     onCancel={() => modal.closeAll()}
@@ -157,7 +168,7 @@ export const Sets: FC = () => {
           method: 'DELETE',
         });
         mutate();
-        toaster.show('Set deleted successfully', 'success');
+        toaster.show('Template deleted', 'success');
       }
     },
     []
@@ -170,13 +181,18 @@ export const Sets: FC = () => {
       {/* settings pattern (same as Signatures): display-face title, muted 14
           helper, hairline-separated field group. data-cs keeps the desktop
           ladder off the title size. */}
+      {/* `templates` is an existing translation key resolving to 'Templates',
+          the same one the composer header control uses. The old `sets` key is
+          left in place rather than re-pointed: it still resolves to 'Sets' for
+          the settings TAB label, which lives in a file this change does not
+          own. */}
       <h3 data-cs className="text-[20px] font-[400] font-display">
-        {t('sets', 'Sets')} ({data?.length || 0})
+        {t('templates', 'Templates')} ({data?.length || 0})
       </h3>
       <div className="text-[14px] text-textItemBlur mt-[4px]">
         {t(
-          'manage_your_content_sets_for_easy_reuse_across_posts',
-          'Manage your content sets for easy reuse across posts.'
+          'manage_your_content_templates_for_easy_reuse_across_posts',
+          'Manage your content templates for easy reuse across posts.'
         )}
       </div>
       <div className="my-[16px] pt-[16px] border-t border-newTableBorder items-center flex gap-[16px]">
@@ -213,7 +229,7 @@ export const Sets: FC = () => {
               onClick={addSet()}
               className={clsx((data?.length || 0) > 0 && 'my-[16px]')}
             >
-              {t('add_a_set', 'Add a set')}
+              {t('add_a_template', 'Add a template')}
             </Button>
           </div>
         </div>

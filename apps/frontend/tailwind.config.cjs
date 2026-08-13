@@ -277,6 +277,20 @@ module.exports = {
         // at 915x412 the width says "desktop" so the rail applies, but the rail
         // needs ~7x54px plus the logo and simply does not fit — Settings fell
         // 4px below the fold.
+        //
+        // DEAD: `short:` has ZERO utility usages in apps/ or libraries/
+        // (checked 2026-08-13). The fix it was added for now rides the
+        // `custom:` height query (max-height: 800px) instead, which the nav
+        // rail and menu-item.tsx do use. Declaring an unused screen costs
+        // nothing at build time (Tailwind emits utilities on demand), so it is
+        // left in place as the documented hook for the next short-viewport
+        // fix rather than removed and rediscovered.
+        //
+        // STALE COMMENT ELSEWHERE, handoff: app/global.scss:1222-1225 asserts
+        // that short viewports "are handled by the `short:` breakpoint in
+        // layout.component.tsx". They are not - layout.component.tsx contains
+        // no `short:` utility. That note needs correcting by whoever owns
+        // global.scss.
         short: {
           raw: '(max-height: 700px)',
         },

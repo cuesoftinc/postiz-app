@@ -164,7 +164,10 @@ export const SettingsPopup: FC<{
       arr.push({ tab: 'autopost', label: t('auto_post', 'Autopost') });
     }
     if (user?.tier.current !== 'FREE') {
-      arr.push({ tab: 'sets', label: t('sets', 'Sets') });
+      // The feature is called "Templates" to the user; `tab: 'sets'` stays the
+      // machine name, shared with the settings route, the SWR key and the
+      // Prisma model, so renaming it here would break the lookup, not the copy.
+      arr.push({ tab: 'sets', label: t('templates', 'Templates') });
     }
     if (user?.tier.current !== 'FREE') {
       arr.push({ tab: 'signatures', label: t('signatures', 'Signatures') });

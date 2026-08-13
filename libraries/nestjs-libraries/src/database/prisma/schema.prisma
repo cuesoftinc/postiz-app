@@ -19,6 +19,11 @@ model Organization {
   updatedAt           DateTime             @updatedAt
   allowTrial          Boolean              @default(false)
   isTrailing          Boolean              @default(false)
+  // Approvals gate. OFF by default so an existing single-operator install keeps
+  // publishing exactly as it did; turning it on forces every newly created post
+  // to DRAFT + needsApproval, whatever the caller asked for, and only an
+  // ADMIN/SUPERADMIN of the org can then move it into QUEUE.
+  requireApproval     Boolean              @default(false)
   shortlink           ShortLinkPreference  @default(ASK)
   autoPost            AutoPost[]
   Comments            Comments[]
@@ -393,7 +398,13 @@ model Comments {
 model Post {
   id                         String                    @id @default(cuid())
   state                      State                     @default(QUEUE)
-  publishDate                DateTime
+  // Nullable so an "undated draft" can exist: a captured idea with no slot
+  // committed yet (Buffer has the same concept). A null date is only ever legal
+  // on a DRAFT — nothing may enter QUEUE without a date, because the publish
+  // workflow sleeps until publishDate and has nothing to sleep until. The
+  // invariant is enforced in PostsService.assertHasPublishDate and, on the write
+  // itself, in PostsRepository.createOrUpdatePost (stateFor).
+  publishDate                DateTime?
   organizationId             String
   integrationId              String
   content                    String
@@ -410,6 +421,11 @@ model Post {
   submittedForOrganizationId String?
   approvedSubmitForOrder     APPROVED_SUBMIT_FOR_ORDER @default(NO)
   creationMethod             CreationMethod            @default(UNKNOWN)
+  // Set by the org-level approvals gate (Organization.requireApproval). This is
+  // the RULE; the org tag named 'needs-approval' is only the UI's label for it.
+  // A tag name can be renamed or deleted by any user, which would silently
+  // disarm the gate, so the server never decides anything from the tag.
+  needsApproval              Boolean                   @default(false)
   lastMessageId              String?
   intervalInDays             Int?
   error                      String?
@@ -432,6 +448,7 @@ model Post {
   @@index([deletedAt])
   @@index([publishDate])
   @@index([state])
+  @@index([needsApproval])
   @@index([organizationId])
   @@index([parentPostId])
   @@index([submittedForOrderId])

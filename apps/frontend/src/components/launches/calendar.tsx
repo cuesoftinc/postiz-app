@@ -14,6 +14,11 @@ import {
   CalendarContext,
   Integrations,
   useCalendar,
+  displayTodayKey,
+  displayInstant,
+  displayWall,
+  resolveDisplayTimezone,
+  toValidTimezone,
 } from '@gitroom/frontend/components/launches/calendar.context';
 import dayjs from 'dayjs';
 import useSWR from 'swr';
@@ -103,60 +108,108 @@ const useIsPhone = () => {
 };
 
 // ---------------------------------------------------------------------------
-// Display timezone — RENDER ONLY. When the calendar context carries a
-// displayTimezone (or the app's timezone setting is explicitly set), displayed
-// times are formatted in that zone via dayjs.tz. When nothing is set, the
-// exact pre-existing format chains run so default rendering is unchanged.
-// Scheduling, drag/drop and date-mutation math never go through these helpers.
+// RE-CLOCKING THE RENDER LAYER TO THE DISPLAY TIMEZONE
+//
+// Every grid cell has TWO properties, and keeping them apart is the whole fix:
+//
+//   cellKey  the cell's IDENTITY: a wall clock on the display clock. A date
+//            for a month cell ('YYYY-MM-DD'), a date+hour for a week cell
+//            ('YYYY-MM-DD HH'), a date+hour+minute for a day-view slot. A post
+//            belongs to the cell when its stored date, formatted on the display
+//            clock, equals this string. Formatted-key comparison (the same
+//            mechanism ListView's groups already used), never an instant range:
+//            it cannot be shifted by some other zone truncating a boundary, and
+//            it is what makes month, week, day, the phone sheet and the list
+//            agree on which day a post sits under.
+//
+//   getDate  the INSTANT that identity names, built with displayInstant().
+//            This is the only thing scheduling ever sees: the drop handler
+//            writes it as the new publish date and the composer opens on it.
+//
+// Deriving the key from the instant instead would reintroduce the bug in a new
+// place: on a spring-forward day the nonexistent 02:00 cell resolves forward to
+// the 03:00 instant, so an instant-derived key would make both cells claim the
+// 3 AM posts. Deriving the instant from the key is safe and is what we do.
+//
+// SCHEDULING DOES NOT MOVE WHEN THE VIEWER CHANGES ZONE. Picking a new display
+// timezone re-labels and re-buckets cells; it never rewrites a stored date. The
+// three places that cross between wall clock and stored instant are each marked
+// "SCHEDULE-WHAT-YOU-SEE BOUNDARY".
 // ---------------------------------------------------------------------------
-// The value is cookie/localStorage-backed, so validate it (cached) before any
-// .tz() call — a corrupt identifier must never crash a view.
-const timezoneValidity = new Map<string, boolean>();
-const toValidTimezone = (tz: string | null | undefined): string | undefined => {
-  if (!tz) {
-    return undefined;
-  }
-  let valid = timezoneValidity.get(tz);
-  if (valid === undefined) {
-    try {
-      Intl.DateTimeFormat(undefined, { timeZone: tz });
-      valid = true;
-    } catch {
-      valid = false;
-    }
-    timezoneValidity.set(tz, valid);
-  }
-  return valid ? tz : undefined;
-};
 
-const useDisplayTimezone = (): string | undefined => {
+const useDisplayTimezone = (): string => {
   const calendar = useCalendar() as ReturnType<typeof useCalendar> & {
     displayTimezone?: string | null;
   };
-  return (
-    toValidTimezone(calendar.displayTimezone) ||
-    (typeof window === 'undefined'
-      ? undefined
-      : toValidTimezone(localStorage.getItem('timezone')))
-  );
+  return resolveDisplayTimezone(calendar.displayTimezone);
 };
 
-// Format a UTC-based post date for display: in the display timezone when set,
-// otherwise via the exact legacy chain (plain parse + .local()).
+// Format a stored (UTC) post date on the display clock. Render-only, and the
+// single funnel every displayed time and every bucketing key goes through, so
+// a card's time and the cell it lands in can never be computed differently.
+//
+// UNDATED DRAFTS. Post.publishDate is nullable now, so this funnel returns null
+// for a post with no date, and that one decision covers both of its jobs at
+// once. As a KEY, null equals no cellKey and is in no Set of day keys, so an
+// undated post is bucketed into no cell rather than into the wrong one, which
+// is what a formatted sentinel could not promise, since any string it returned
+// would be a string some cellKey could equal. As a TIME, null renders as
+// nothing in JSX, where dayjs(null).format() renders the literal 'Invalid Date'
+// and dayjs(undefined).format() renders NOW, i.e. a real-looking date the post
+// does not have. Call sites that need a visible label supply their own (see
+// `?? t('no_date', ...)` below); nothing here invents one.
 const formatPostTime = (
-  value: string | Date,
-  displayTimezone: string | undefined,
+  value: string | Date | null | undefined,
+  displayTimezone: string,
   format: string
-) => {
-  if (displayTimezone) {
-    try {
-      return dayjs.utc(value).tz(displayTimezone).format(format);
-    } catch {
-      // invalid timezone identifier — fall back to legacy rendering
-    }
+): string | null => {
+  if (!value) {
+    return null;
   }
-  return newDayjs(value).local().format(format);
+  try {
+    return displayWall(value, displayTimezone).format(format);
+  } catch {
+    // Two things throw out of displayWall. A corrupt zone identifier, which
+    // resolveDisplayTimezone makes unreachable but which must blank nothing, so
+    // the legacy machine chain stays as the fallback. And an unparseable stored
+    // value, which reaches Intl as `new Date(NaN)` and throws RangeError there.
+    // for that one the fallback must NOT answer, because `newDayjs(<garbage>)
+    // .format()` returns the literal string 'Invalid Date' and printing those
+    // two words as a post's time is the exact failure this file is guarding
+    // against. isValid() separates the two cases; null is the same "no time" the
+    // short-circuit above returns.
+    const fallback = newDayjs(value).local();
+    return fallback.isValid() ? fallback.format(format) : null;
+  }
 };
+
+// The bucketing key format per view: what `cellKey` is, and what a post's
+// stored date is formatted to when deciding which cell it belongs to.
+const CELL_KEY_FORMAT: Record<string, string> = {
+  day: 'YYYY-MM-DD HH:mm',
+  week: 'YYYY-MM-DD HH',
+  month: 'YYYY-MM-DD',
+};
+const cellKeyFormat = (display: string) =>
+  CELL_KEY_FORMAT[display] || CELL_KEY_FORMAT.month;
+
+/** SCHEDULE-WHAT-YOU-SEE BOUNDARY (composer).
+ *
+ *  The composer stores `date.utc()` (new-launch/manage.modal.tsx), so the
+ *  INSTANT is what is written and any dayjs flavour carrying that instant would
+ *  store it correctly. Its DatePicker (launches/helpers/date.picker.tsx) is the
+ *  catch: it edits by reformatting the wall clock and re-parsing it with a
+ *  plain `dayjs()`, i.e. it computes in the MACHINE zone. Hand it a
+ *  display-zone-flavoured object and the moment the user touches the picker it
+ *  recombines a display-zone DATE with a machine-zone TIME and silently moves
+ *  the post.
+ *
+ *  So the cell's instant is re-flavoured onto the machine clock here, at the
+ *  boundary, on the way out. Same instant, different frame: what gets scheduled
+ *  is exactly the moment the user clicked, in any display zone. Going through
+ *  .valueOf() is deliberate: newDayjs(dayjsObject) would clone the object's
+ *  timezone flavour along with it. */
+const toComposerDate = (instant: dayjs.Dayjs) => newDayjs(instant.valueOf());
 
 // The post's media field ("image" on the Post model) is a JSON string of
 // uploaded items ({ name, path, ... }). Tolerate raw strings, arrays, single
@@ -220,9 +273,18 @@ const usePostActions = (onMutate?: () => void) => {
       const date = !isDuplicate
         ? null
         : (await (await fetch('/posts/find-slot')).json()).date;
-      const publishDate = dayjs
-        .utc(date || data.posts[0].publishDate)
-        .local();
+      // An UNDATED DRAFT has no date to reopen on, and the composer's DatePicker
+      // requires a real one: `dayjs.utc(null)` is an Invalid Date, which the
+      // picker would render as an empty control that cannot be repaired. Opening
+      // on now is the honest default (it is the same slot a brand new post gets)
+      // and it changes nothing on its own: the draft is edited through the
+      // 'update' path, which leaves state alone, so it stays a draft either way.
+      // Giving a draft a real slot deliberately remains the Undated Drafts
+      // panel's Schedule action, not a side effect of opening the composer.
+      const storedDate = date || data?.posts?.[0]?.publishDate;
+      const publishDate = storedDate
+        ? dayjs.utc(storedDate).local()
+        : newDayjs();
       const ExistingData = !isDuplicate
         ? ExistingDataContextProvider
         : Fragment;
@@ -368,62 +430,132 @@ export const DayView = () => {
   const currentLanguage = i18next.resolvedLanguage || 'en';
   dayjs.locale(currentLanguage);
 
-  const currentDay = dayjs.utc(startDate);
+  // The viewed day is a DISPLAY-zone day now (it used to be the UTC day, which
+  // is why a post near midnight showed on the wrong one), so its midnight is a
+  // real instant in that zone and every slot below is measured from it.
+  const dayStart = useMemo(
+    () => displayInstant(`${startDate} 00:00:00`, displayTimezone),
+    [startDate, displayTimezone]
+  );
+
+  // Channel PREFERRED POSTING TIMES are stored as minutes from UTC midnight.
+  // posts.service.findFreeDateTimeRecursive rebuilds a slot as
+  // dayjs.utc().startOf('day').add(time,'minute'), and time.table.tsx subtracts
+  // the scheduling zone's offset when authoring one. They are absolute times of
+  // day, not wall clocks in anybody's zone.
+  //
+  // DECISION: convert them, and name the zone once above the rail. This rail
+  // groups preferred slots TOGETHER WITH real posts that share their instant
+  // (a slot and a card in the same row are the same moment), so printing the
+  // slot on its authoring clock and the card on the display clock would make
+  // one row show two different times for one instant. That is the reading that
+  // cannot be defended. Converting keeps the row honest about the instant; the
+  // only thing it loses is that the queue was set up somewhere else, and the
+  // note below restores exactly that, without inventing a second clock inside
+  // a single row.
+  const schedulingZone = toValidTimezone(
+    typeof window === 'undefined' ? null : localStorage.getItem('timezone')
+  );
+  const railZoneNote =
+    schedulingZone && schedulingZone !== displayTimezone
+      ? (displayTimezone.split('/').pop() || displayTimezone).replace(/_/g, ' ')
+      : null;
 
   const options = useMemo(() => {
-    const createdPosts = posts.map((post) => ({
-      integration: [integrations.find((i) => i.id === post.integration.id)!],
-      image: post?.integration?.picture || '',
-      identifier: post?.integration?.providerIdentifier || '',
-      id: post?.integration?.id || '',
-      name: post?.integration?.name || '',
-      time: dayjs
-        .utc(post.publishDate)
-        .diff(dayjs.utc(post.publishDate).startOf('day'), 'minute'),
-    }));
+    // A preferred slot is "the one instant inside the viewed display day whose
+    // UTC time of day is `time`", and it is resolved in EPOCH space: absolute
+    // milliseconds off a known instant, with no calendar unit and no zone
+    // involved. That matters because these slots are UTC-anchored while the day
+    // they are being placed into can be 23 or 25 hours long, so any wall-clock
+    // arithmetic here would have to pick a side and would drift by an hour on a
+    // transition date. Epoch arithmetic has no such failure mode: the slot lands
+    // on the exact moment it names, and the display clock is applied afterwards,
+    // once, when the row is keyed and labelled.
+    const dayStartMs = dayStart.valueOf();
+    const utcDayStartMs = dayjs.utc(dayStartMs).startOf('day').valueOf();
+    const slotInstant = (minuteOfUtcDay: number) => {
+      let ms = utcDayStartMs + minuteOfUtcDay * 60000;
+      // the slot on the FOLLOWING UTC day is the one that falls inside this
+      // display day for any zone east of the date line's UTC day boundary
+      if (ms < dayStartMs) {
+        ms += 86400000;
+      }
+      return dayjs(ms);
+    };
+    const slots = integrations.flatMap((p) =>
+      (p.time || []).map((t) => ({
+        integration: p,
+        identifier: p?.identifier,
+        name: p?.name,
+        id: p?.id,
+        image: p?.picture,
+        isPost: false,
+        instant: slotInstant(t?.time || 0),
+      }))
+    );
+    const createdPosts = posts
+      .filter(
+        (post) =>
+          // `!!post.publishDate` is redundant against the key compare that
+          // follows (formatPostTime returns null for an undated post, and null
+          // never equals a date string) and is stated anyway, because the .map()
+          // below reads the date a SECOND time as an instant. Reading it twice is
+          // what makes the redundancy worth its line: the filter is the only
+          // thing keeping `dayjs.utc(null)` out of `instant`, and an Invalid Date
+          // there groups under the key 'Invalid Date' and sorts as NaN, which
+          // compares false against every other row and lands unpredictably.
+          !!post.publishDate &&
+          formatPostTime(post.publishDate, displayTimezone, 'YYYY-MM-DD') ===
+            startDate
+      )
+      .map((post) => ({
+        integration: [integrations.find((i) => i.id === post.integration.id)!],
+        image: post?.integration?.picture || '',
+        identifier: post?.integration?.providerIdentifier || '',
+        id: post?.integration?.id || '',
+        name: post?.integration?.name || '',
+        isPost: true,
+        instant: dayjs.utc(post.publishDate),
+      }));
+    // grouped by DISPLAY-clock wall clock, not by minute-of-UTC-day: both kinds
+    // of entry are real instants formatted the same way, so a slot and a post
+    // at one moment always land in one row (a raw minute count disagreed by an
+    // hour across a DST boundary because the day is not 1440 minutes long)
     return sortBy(
       Object.values(
-        groupBy(
-          [
-            ...createdPosts,
-            ...integrations.flatMap((p) =>
-              p.time.flatMap((t) => ({
-                integration: p,
-                identifier: p?.identifier,
-                name: p?.name,
-                id: p?.id,
-                image: p?.picture,
-                time: t?.time,
-              }))
-            ),
-          ],
-          (p: any) => p.time
+        groupBy([...createdPosts, ...slots], (p: any) =>
+          displayWall(p.instant.valueOf(), displayTimezone).format(
+            'YYYY-MM-DD HH:mm'
+          )
         )
       ),
-      (p) => p[0].time
+      (p) => p[0].instant.valueOf()
     );
-  }, [integrations, posts]);
+  }, [integrations, posts, dayStart, startDate, displayTimezone]);
 
   return (
     <div className="flex flex-col gap-[10px] flex-1 relative">
       <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+        {railZoneNote && (
+          // the queue's slots are authored in the scheduling zone; say which
+          // clock they are being read on so "9:00 AM" is never mistaken for
+          // "9:00 AM where this queue was set up"
+          <div className="shrink-0 text-center text-[12px] text-newTextColor/60 pb-[8px]">
+            {t('times_shown_in', 'Times shown in')} {railZoneNote}
+          </div>
+        )}
         {options.map((option) => {
           // options mixes real posts' times with every channel's PREFERRED
           // posting slots. Future empty slots invite scheduling (grayed
           // avatar cluster); a PAST empty slot has nothing to say and used
           // to render a bare band under its time label (looked like a
           // dropped card, user report + pixel critic x3). Skip it.
-          const hasPost = posts.some(
-            (p) =>
-              dayjs
-                .utc(p.publishDate)
-                .diff(dayjs.utc(p.publishDate).startOf('day'), 'minute') ===
-              option[0].time
-          );
-          const slotPast = currentDay
-            .startOf('day')
-            .add(option[0].time, 'minute')
-            .isBefore(newDayjs().utc());
+          const cellKey = displayWall(
+            option[0].instant.valueOf(),
+            displayTimezone
+          ).format('YYYY-MM-DD HH:mm');
+          const hasPost = option.some((entry: any) => entry.isPost);
+          const slotPast = option[0].instant.isBefore(dayjs());
           if (!hasPost && slotPast) return null;
           return (
           // shrink-0 on BOTH row kinds: this column is a definite-height
@@ -432,27 +564,17 @@ export const DayView = () => {
           // override min-height:auto and let every slot squeeze to the
           // floor, painting card/avatar content over the rows that follow.
           // shrink-0 keeps each row at natural height and the column scrolls.
-          <Fragment key={option[0].time}>
+          <Fragment key={cellKey}>
             <div className="shrink-0 text-center text-[14px] min-h-[21px]">
-              {/* display-only: the queue gutter label; the slot's drop-target
-                  date below keeps the exact legacy chain */}
-              {(displayTimezone
-                ? newDayjs()
-                    .utc()
-                    .startOf('day')
-                    .add(option[0].time, 'minute')
-                    .tz(displayTimezone)
-                : newDayjs()
-                    .utc()
-                    .startOf('day')
-                    .add(option[0].time, 'minute')
-                    .local()
+              {/* the group's own instant, on the display clock: the same
+                  instant the cards inside it print, so the row can never
+                  contradict itself */}
+              {displayWall(
+                option[0].instant.valueOf(),
+                displayTimezone
               ).format(isUSCitizen() ? 'h:mm A' : 'LT')}
             </div>
-            <div
-              key={option[0].time}
-              className="shrink-0 min-h-[60px] rounded-[10px] flex justify-center items-center gap-[10px] mb-[20px]"
-            >
+            <div className="shrink-0 min-h-[60px] rounded-[10px] flex justify-center items-center gap-[10px] mb-[20px]">
               <CalendarContext.Provider
                 value={{
                   ...calendar,
@@ -460,10 +582,8 @@ export const DayView = () => {
                 }}
               >
                 <CalendarColumn
-                  getDate={currentDay
-                    .startOf('day')
-                    .add(option[0].time, 'minute')
-                    .local()}
+                  getDate={option[0].instant}
+                  cellKey={cellKey}
                 />
               </CalendarContext.Provider>
             </div>
@@ -473,8 +593,12 @@ export const DayView = () => {
       </div>
       {/* Same guarantee as the week grid: a day with ZERO posts shows a
           lightweight centered notice instead of reading as broken. The queue
-          slots underneath stay clickable (pointer-events-none). */}
-      {!loading && posts.length === 0 && (
+          slots underneath stay clickable (pointer-events-none).
+          Counted off `options`, not `posts.length`: the fetch window is padded
+          a day either side now, so `posts` legitimately holds neighbours of the
+          viewed day and would suppress this notice on a genuinely empty day. */}
+      {!loading &&
+        !options.some((option) => option.some((entry: any) => entry.isPost)) && (
         <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
           <div className="text-[14px] text-newTextColor/60">
             {t('nothing_scheduled_day', 'Nothing scheduled this day')}
@@ -488,10 +612,14 @@ export const WeekView = () => {
   const { startDate, endDate, posts, loading } = useCalendar();
   const t = useT();
   const isPhone = useIsPhone();
+  const displayTimezone = useDisplayTimezone();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Every day of the fetched week range (the phone rolling 3-day view
-  // slices its window out of this below).
+  // slices its window out of this below). `date` is a CALENDAR date carrier
+  // only. Its own zone is irrelevant because nothing downstream reads an
+  // instant off it: labels come from its date fields and `key` is what the
+  // display-zone cell keys/instants below are built from.
   const localizedDays = useMemo(() => {
     const currentLanguage = i18next.resolvedLanguage || 'en';
     dayjs.locale(currentLanguage);
@@ -501,7 +629,8 @@ export const WeekView = () => {
     const rangeEnd = newDayjs(endDate).startOf('day');
     const total = Math.max(1, rangeEnd.diff(rangeStart, 'day') + 1);
     for (let i = 0; i < total; i++) {
-      days.push({ date: rangeStart.add(i, 'day') });
+      const date = rangeStart.add(i, 'day');
+      days.push({ date, key: date.format('YYYY-MM-DD') });
     }
     return days;
   }, [i18next.resolvedLanguage, startDate, endDate]);
@@ -528,24 +657,34 @@ export const WeekView = () => {
   const sevenSpan = isPhone && phoneWeekSpan === '7';
   // ONE today for the whole view — the 3-day slice anchor, the header
   // underline and the day-cell wash all derive from this key, so they can
-  // never disagree. Compare by formatted date — isSame(_, 'day') on
-  // tz-aware instances truncates in the machine-local zone (it let the
-  // 3-day window slip to yesterday, and would let the wash/underline land
-  // on a different column when the org display timezone differs from the
-  // device zone).
-  const todayKey = newDayjs().format('YYYY-MM-DD');
+  // never disagree. On the DISPLAY clock: the columns are display-zone days
+  // now, so a machine-zone "today" would underline a different column than the
+  // one the cards land in whenever the two zones straddle midnight. Compare by
+  // formatted date — isSame(_, 'day') on tz-aware instances truncates in the
+  // machine-local zone.
+  const todayKey = displayTodayKey(displayTimezone);
   const visibleDays = useMemo(() => {
     if (!isPhone || phoneWeekSpan === '7') {
       return localizedDays.slice(0, 7);
     }
     // Buffer anchors today as the FIRST column.
-    const idx = localizedDays.findIndex(
-      (d) => d.date.format('YYYY-MM-DD') === todayKey
-    );
+    const idx = localizedDays.findIndex((d) => d.key === todayKey);
     const start =
       idx === -1 ? 0 : Math.max(0, Math.min(idx, localizedDays.length - 3));
     return localizedDays.slice(start, start + 3);
   }, [localizedDays, isPhone, phoneWeekSpan, todayKey]);
+
+  // Does any post actually land in a column on screen? Bucketed the same way
+  // the cells are (display-zone date key), so the notice and the chips can
+  // never disagree about emptiness. An undated post keys to null, which is in no
+  // Set of day keys, so it neither shows a chip nor suppresses the notice:
+  // the same answer the cells themselves give it.
+  const hasVisiblePosts = useMemo(() => {
+    const keys = new Set(visibleDays.map((day) => day.key));
+    return posts.some((post) =>
+      keys.has(formatPostTime(post.publishDate, displayTimezone, 'YYYY-MM-DD'))
+    );
+  }, [posts, visibleDays, displayTimezone]);
 
   // Buffer opens the hour grid scrolled to "now" (one row of context above).
   // Guard: only from the untouched top position — the force-dynamic page
@@ -556,9 +695,12 @@ export const WeekView = () => {
     if (!el) {
       return;
     }
-    const now = newDayjs();
-    const rangeStart = newDayjs(startDate).startOf('day');
-    const rangeEnd = newDayjs(endDate).endOf('day');
+    // "now" and the range on the SAME (display) clock as the rows being
+    // scrolled to. The grid's hour rows are display-zone hours, so a
+    // machine-zone hour would open the view an offset away from now
+    const now = dayjs();
+    const rangeStart = displayInstant(`${startDate} 00:00:00`, displayTimezone);
+    const rangeEnd = displayInstant(`${endDate} 23:59:59`, displayTimezone);
     if (now.isBefore(rangeStart) || now.isAfter(rangeEnd)) {
       return;
     }
@@ -575,7 +717,8 @@ export const WeekView = () => {
       if (el.clientHeight > 0 && el.scrollHeight > el.clientHeight) {
         el.scrollTop = Math.max(
           0,
-          (newDayjs().hour() - 1) * (isPhone ? 80 : 106)
+          (displayWall(Date.now(), displayTimezone).hour() - 1) *
+            (isPhone ? 80 : 106)
         );
         return;
       }
@@ -585,7 +728,7 @@ export const WeekView = () => {
     };
     jump();
     return () => cancelAnimationFrame(raf);
-  }, [startDate, endDate, isPhone]);
+  }, [startDate, endDate, isPhone, displayTimezone]);
 
   return (
     <div className="flex flex-col text-newTextColor flex-1">
@@ -634,17 +777,17 @@ export const WeekView = () => {
             />
           )}
           {visibleDays.map((day) => {
-            const isToday = day.date.format('YYYY-MM-DD') === todayKey;
+            const isToday = day.key === todayKey;
             // Buffer (re-verified live): fully past DAY columns carry the
             // warm wash (header and cells) while today and future columns
             // stay white on EVERY breakpoint. Date granularity only:
             // today's elapsed hours never wash. The old phone today-column
             // gray is gone: it collided with the past wash (the whole 3-day
             // window read beige); the green underline marks today alone.
-            const isPast = day.date.format('YYYY-MM-DD') < todayKey;
+            const isPast = day.key < todayKey;
             return (
               <div
-                key={day.date.format('YYYY-MM-DD')}
+                key={day.key}
                 className={clsx(
                   'text-center flex justify-center items-center gap-[8px] h-[36px] sticky top-0 z-[50] text-[14px] border-b border-newGridLine',
                   isPast
@@ -673,7 +816,10 @@ export const WeekView = () => {
                   )}
                 >
                   {/* hour 0 skipped: half-translated up, its label clipped
-                      mid-glyph against the sticky header border */}
+                      mid-glyph against the sticky header border.
+                      formatHourLabel needs no re-clocking: the rail IS the
+                      grid's axis, and the axis is display-zone hours 0-23
+                      because that is what the cells below are keyed on. */}
                   {hour % 2 === 0 && hour !== 0 && (
                     // Buffer masks the grid line behind the label with the
                     // cell background
@@ -689,12 +835,12 @@ export const WeekView = () => {
                 // paint over the rows below (same bug as the month grid);
                 // the hour floor lives on the day view inside
                 <div
-                  key={`${day.date.format('YYYY-MM-DD')}-${hour}`}
+                  key={`${day.key}-${hour}`}
                   className={clsx(
                     'relative flex flex-col',
                     // Buffer (re-verified live): past DAY columns wash at
                     // date level, matching the CalendarColumn inside
-                    day.date.format('YYYY-MM-DD') < todayKey
+                    day.key < todayKey
                       ? 'repeated-strip bg-newTableHeader'
                       : 'bg-newBgColorInner'
                   )}
@@ -705,8 +851,22 @@ export const WeekView = () => {
                       {formatHourLabel(hour)}
                     </div>
                   )}
+                  {/* SCHEDULE-WHAT-YOU-SEE BOUNDARY (week cell). The cell OWNS
+                      the wall clock `<day> <hour>` on the display clock,
+                      cellKey, and that is what buckets posts into it. The
+                      instant handed to the drop handler and the composer is
+                      derived FROM that wall clock (never `.hour(hour)` on the
+                      day object, which reuses midnight's offset and lands an
+                      hour out after a spring-forward transition). Keeping the
+                      key independent of the instant is what stops the
+                      nonexistent-hour cell, whose instant resolves forward onto
+                      the next hour, from also claiming that hour's posts. */}
                   <CalendarColumn
-                    getDate={day.date.hour(hour).startOf('hour')}
+                    getDate={displayInstant(
+                      `${day.key} ${String(hour).padStart(2, '0')}:00:00`,
+                      displayTimezone
+                    )}
+                    cellKey={`${day.key} ${String(hour).padStart(2, '0')}`}
                   />
                 </div>
               ))}
@@ -714,12 +874,16 @@ export const WeekView = () => {
           ))}
         </div>
         {/* A legitimately empty week/3-day range must never read as a
-            rendering failure: when the fetched range holds ZERO posts (and
+            rendering failure: when the VISIBLE days hold ZERO posts (and
             the fetch is done), a lightweight centered notice floats over the
             hour grid. pointer-events-none keeps the hour cells' add-post
-            targets clickable; z-[10] keeps it under the sticky day headers
-            (z-50) but over the cell layer. */}
-        {!loading && posts.length === 0 && (
+            targets clickable; z-[10] keyed under the sticky day headers
+            (z-50) but over the cell layer.
+            Counted against the visible day keys, not `posts.length`: the fetch
+            window is padded a day either side, and the phone 3-day span shows
+            only part of the week, so a raw count would hide this notice over a
+            genuinely empty grid. */}
+        {!loading && !hasVisiblePosts && (
           <div className="absolute inset-0 z-[10] flex items-center justify-center pointer-events-none">
             <div className="text-[14px] text-newTextColor/60">
               {t('nothing_scheduled_week', 'Nothing scheduled this week')}
@@ -732,6 +896,7 @@ export const WeekView = () => {
 };
 export const MonthView = () => {
   const { startDate } = useCalendar();
+  const displayTimezone = useDisplayTimezone();
 
   // Use dayjs to get localized day names — Buffer is Sunday-first
   const localizedDays = useMemo(() => {
@@ -752,6 +917,10 @@ export const MonthView = () => {
     // The fetch range is either the exact month or the grid-extended
     // Sunday→Saturday range (calendar.context getDateRange); the middle of
     // either shape lands inside the displayed month.
+    // Everything here is CALENDAR arithmetic on `startDate`, a plain
+    // YYYY-MM-DD with no zone of its own, so the cells are date keys and carry
+    // no instant. The display clock enters below, where each cell's key is
+    // turned into the instant a drop/click on it schedules.
     const monthAnchor = newDayjs(startDate).add(15, 'day');
     const currentMonth = monthAnchor.month();
     const currentYear = monthAnchor.year();
@@ -780,6 +949,7 @@ export const MonthView = () => {
       }
       calendarDays.push({
         day: currentDay,
+        key: currentDay.format('YYYY-MM-DD'),
         label,
       });
 
@@ -796,9 +966,10 @@ export const MonthView = () => {
   useEffect(() => {
     const el = gridRef.current;
     if (!el || el.scrollTop !== 0 || !calendarDays.length) return;
-    const idx = calendarDays.findIndex(({ day }) =>
-      day.isSame(newDayjs(), 'day')
-    );
+    // display-clock today, keyed like every other today test in the grid, so
+    // the row scrolled to is the row that carries the today circle
+    const todayKey = displayTodayKey(displayTimezone);
+    const idx = calendarDays.findIndex(({ key }) => key === todayKey);
     if (idx < 7) return; // today absent or already in the first row
     const row = Math.floor(idx / 7);
     const cell = el.children[7 + row * 7] as HTMLElement | undefined;
@@ -849,8 +1020,19 @@ export const MonthView = () => {
               key={index}
               className="flex flex-col min-w-0 bg-newBgColorInner"
             >
+              {/* SCHEDULE-WHAT-YOU-SEE BOUNDARY (month cell). cellKey is the
+                  cell's display-zone DATE and is what buckets posts into it.
+                  The instant is that date's end of day IN THE DISPLAY ZONE, so
+                  a drop lands on the day the user dropped on rather than on the
+                  machine zone's version of it. endOf('day') is safe to chain
+                  here: the dayjs timezone plugin overrides it (unlike .hour()),
+                  so it re-resolves the offset and stays correct on a DST day. */}
               <CalendarColumn
-                getDate={newDayjs(date.day).endOf('day')}
+                getDate={displayInstant(
+                  `${date.key} 23:59:59`,
+                  displayTimezone
+                )}
+                cellKey={date.key}
                 randomHour={true}
                 monthLabel={date.label}
               />
@@ -924,6 +1106,11 @@ export const ListView = () => {
   // thread for the post's time slot (read/annotate only — the existing
   // comments component owns its own data). Buffer Notes geometry: a 446px
   // full-height RIGHT sheet, not a centered modal.
+  // The comments sheet titles itself `Comments · <date>`, but the date is only a
+  // SUFFIX: comment.component.tsx now takes `date?: dayjs.Dayjs | null` and drops
+  // the suffix when there is none, so an undated draft opens the same sheet under
+  // the plain heading. Pass null rather than dayjs.utc(null) — the latter is a
+  // truthy Invalid Date that would format as the literal 'Invalid Date'.
   const openComments = useCallback(
     (post: any) => () => {
       modal.openModal({
@@ -940,7 +1127,10 @@ export const ListView = () => {
           modal: '!rounded-none !me-0 overflow-y-auto',
         },
         children: (
-          <CommentComponent postId={post.id} date={dayjs.utc(post.publishDate)} />
+          <CommentComponent
+            postId={post.id}
+            date={post.publishDate ? dayjs.utc(post.publishDate) : null}
+          />
         ),
       });
     },
@@ -957,6 +1147,16 @@ export const ListView = () => {
         displayTimezone,
         'YYYY-MM-DD'
       );
+      // Every tab of this list sends `undated=exclude` (the repository's default),
+      // so a dateless post cannot arrive here, and if one did, an object key is
+      // exactly the wrong place to find out: `groups[null]` becomes the STRING
+      // 'null', which then renders a day header through newDayjs('null'), i.e.
+      // the words 'Invalid Date' sitting above the card as if they were a day.
+      // Undated drafts have their own surface (the Undated Drafts panel), which
+      // is why skipping them here hides nothing from anyone.
+      if (!dateKey) {
+        return;
+      }
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
@@ -974,11 +1174,12 @@ export const ListView = () => {
     );
   }, [listPosts, displayTimezone, listState]);
 
-  // "now", projected into the display timezone when set — only used to label
-  // a group Today/Tomorrow; without a display timezone it is exactly newDayjs()
-  const displayNow = displayTimezone
-    ? newDayjs(dayjs().tz(displayTimezone).format('YYYY-MM-DD'))
-    : newDayjs();
+  // "today" on the display clock, as a bare date carrier so it compares
+  // date-on-date with the group keys above (which are display-clock dates too).
+  // Only used to label a group Today/Tomorrow. The old "when a zone is set"
+  // ternary is gone: useDisplayTimezone always resolves to a zone now, so the
+  // list and the grids are guaranteed to be reading the same clock.
+  const displayNow = newDayjs(displayTodayKey(displayTimezone));
 
   if (loading) {
     return (
@@ -1090,7 +1291,11 @@ export const ListView = () => {
                     Notes, left of the card) */}
                 <div className="w-[100px] min-w-[100px] pt-[20px] flex flex-col gap-[2px] phone:w-[64px] phone:min-w-[64px]">
                   <div className="text-[14px] font-[500] text-newTextColor whitespace-nowrap text-start">
-                    {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
+                    {formatPostTime(
+                      post.publishDate,
+                      displayTimezone,
+                      'h:mm A'
+                    ) ?? t('no_date', 'No date')}
                   </div>
                   <div className="flex items-center gap-[4px] text-[12px] text-newTextColor/60">
                     <svg
@@ -1112,7 +1317,11 @@ export const ListView = () => {
                       phone overlays it INSIDE the card header, right of the
                       channel name — 40x40 there (tap floor; the glyph stays
                       16px), anchored by the row's phone:relative and cleared
-                      by the header's phone:pe-[56px] */}
+                      by the header's phone:pe-[56px].
+                      Unconditional: the sheet's date is only a heading suffix
+                      now, so having one is no longer a precondition for opening
+                      it. (groupedPosts still keeps dateless posts out of this
+                      feed — that is the list's business, not this button's.) */}
                   <button
                     type="button"
                     onClick={openComments(post)}
@@ -1138,7 +1347,15 @@ export const ListView = () => {
                   <CalendarItem
                     display="day"
                     isBeforeNow={false}
-                    date={newDayjs(post.publishDate)}
+                    // newDayjs is plain dayjs(), so a null here is an Invalid
+                    // Date and an ABSENT one is now. The prop feeds only the
+                    // drag payload's `date` field, which no drop target reads
+                    // (they take item.id and item.interval), so this is inert
+                    // today, but an Invalid Date passed through a prop typed
+                    // `dayjs.Dayjs` is a live trap for whoever reads it next.
+                    date={
+                      post.publishDate ? newDayjs(post.publishDate) : newDayjs()
+                    }
                     state={post.state}
                     statistics={openStatistics(post.id)}
                     missingRelease={openMissingRelease(post.id)}
@@ -1199,14 +1416,23 @@ const ExpandChevron: FC<{ up?: boolean }> = ({ up }) => (
 );
 
 export const CalendarColumn: FC<{
+  /** The INSTANT this cell's wall clock names, on the display clock. The only
+   *  value scheduling ever sees: the drop handler writes it as the new publish
+   *  date and the composer opens on it. */
   getDate: dayjs.Dayjs;
+  /** The cell's IDENTITY: its wall clock on the display clock, formatted
+   *  'YYYY-MM-DD' (month), 'YYYY-MM-DD HH' (week) or 'YYYY-MM-DD HH:mm' (day).
+   *  Posts are bucketed, and today/past decided, against THIS and never
+   *  against getDate. See the clock-model comment at the top of the file for
+   *  why deriving one from the other reintroduces the bug on a DST day. */
+  cellKey: string;
   randomHour?: boolean;
   /** month grid only: 'previous-month' | 'current-month' | 'next-month' */
   monthLabel?: string;
 }> = memo((props) => {
   const t = useT();
 
-  const { getDate, randomHour, monthLabel } = props;
+  const { getDate, cellKey, randomHour, monthLabel } = props;
   const [num, setNum] = useState(0);
   const user = useUser();
   const {
@@ -1218,37 +1444,41 @@ export const CalendarColumn: FC<{
     sets,
     signature,
     loading,
-    startDate,
   } = useCalendar();
   const modal = useModals();
   const fetch = useFetch();
 
   // Use shared post actions hook
   const { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease } = usePostActions();
+  const displayTimezone = useDisplayTimezone();
+  // THE REBUCKETING. One rule for every view: format the post's stored (UTC)
+  // date on the display clock at the cell's granularity and compare it to the
+  // cell's own wall clock. This is why changing the display timezone now moves
+  // cards BETWEEN cells instead of only relabelling them in place, and it is
+  // the same mechanism ListView's day groups already used, which is why the
+  // list and the grids finally agree.
+  //
+  // It replaces three different comparisons, all of which read the post through
+  // `dayjs.utc(...).local()`. set.timezone.tsx patches that `.local()` to the
+  // SCHEDULING zone, so the old code bucketed on one clock while the card
+  // printed its time on another, and a post near midnight landed a day out.
+  //
+  // Formatted keys, not instant ranges, on purpose: no boundary is truncated in
+  // some third zone, a nonexistent local hour matches nothing (correct: no
+  // instant formats to a wall clock that does not exist), and an ambiguous hour
+  // matches both of its occurrences (also correct: they are both that hour).
+  //
+  // An undated draft has no wall clock to format, so it keys to null and equals
+  // no cell's identity: it is drawn in no cell at all, which is the only correct
+  // answer for a post with no position in time. The repository excludes them
+  // from the calendar query as well, so this is the second of two layers.
   const postList = useMemo(() => {
-    return posts.filter((post) => {
-      const pList = dayjs.utc(post.publishDate).local();
-      const check =
-        display === 'day'
-          ? // instant compare at minute granularity, NOT formatted-string
-            // equality. set.timezone.tsx patches `.local()` on the object
-            // dayjs.utc() returns to `.tz(localStorage 'timezone')`, while
-            // getDate arrives through a DERIVED chain
-            // (utc(startDate).startOf('day').add(min).local()) whose
-            // `.local()` is the machine-zone prototype method. With a
-            // scheduling timezone set that differs from the machine zone the
-            // two strings named the same instant on different wall clocks,
-            // never matched, and every day-view slot rendered empty between
-            // its time labels. isSame('minute') compares timestamps, which
-            // no display zone can shift.
-            pList.isSame(getDate, 'minute')
-          : display === 'week'
-          ? pList.isSameOrAfter(getDate.startOf('hour')) &&
-            pList.isBefore(getDate.endOf('hour'))
-          : pList.format('DD/MM/YYYY') === getDate.format('DD/MM/YYYY');
-      return check;
-    });
-  }, [posts, display, getDate]);
+    const keyFormat = cellKeyFormat(display);
+    return posts.filter(
+      (post) =>
+        formatPostTime(post.publishDate, displayTimezone, keyFormat) === cellKey
+    );
+  }, [posts, display, cellKey, displayTimezone]);
   const [showAll, setShowAll] = useState(false);
   const showAllFunc = useCallback(() => {
     setShowAll(true);
@@ -1263,12 +1493,20 @@ export const CalendarColumn: FC<{
     return postList.slice(0, 3);
   }, [postList, showAll]);
 
+  // Has this cell fully elapsed? Compared as display-clock KEYS, like every
+  // other time decision in the grid: month at date granularity (a whole day is
+  // past), week and day at hour granularity, which is exactly what the old
+  // instant chain expressed. Keys sidestep both hazards of doing this with
+  // arithmetic on a zone-aware object (a fixed offset that goes stale across a
+  // DST boundary, and a :30/:45 zone whose hour starts do not line up with the
+  // machine's), and they tie the wash to the same string that buckets the cards.
   const isBeforeNow = useMemo(() => {
-    const originalUtc = getDate.startOf('hour');
-    return originalUtc
-      .startOf('hour')
-      .isBefore(newDayjs().startOf('hour').utc());
-  }, [getDate, num]);
+    const granularity = display === 'month' ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH';
+    return (
+      cellKey.slice(0, granularity.length) <
+      displayWall(Date.now(), displayTimezone).format(granularity)
+    );
+  }, [cellKey, display, displayTimezone, num]);
 
   const { start, stop } = useInterval(
     useCallback(() => {
@@ -1296,10 +1534,17 @@ export const CalendarColumn: FC<{
       let action: 'schedule' | 'update' = 'schedule';
 
       // Check if post is already published or queued in the past
+      // `post.publishDate &&` guards the comparison, not the state: dayjs.utc(null)
+      // is an Invalid Date and `dayjs().isAfter(Invalid)` is false, so a dateless
+      // QUEUE post would silently take the reschedule-without-asking branch. It
+      // cannot exist (nothing enters QUEUE without a date) but the read is one
+      // token, and getting it wrong is a rescheduled post with no prompt.
       if (
         post &&
         (post.state === 'PUBLISHED' ||
-          (post.state === 'QUEUE' && dayjs().isAfter(dayjs.utc(post.publishDate))))
+          (post.state === 'QUEUE' &&
+            !!post.publishDate &&
+            dayjs().isAfter(dayjs.utc(post.publishDate))))
       ) {
         const whatToDo = await new Promise<'schedule' | 'update' | 'cancel'>(
           (resolve) => {
@@ -1352,6 +1597,16 @@ export const CalendarColumn: FC<{
         action = whatToDo;
       }
 
+      // SCHEDULE-WHAT-YOU-SEE BOUNDARY (drop). `getDate` is the instant the
+      // dropped-on cell's wall clock names in the display zone, so `.utc()`
+      // converts the cell the user aimed at into the exact instant to store.
+      // The display zone changes WHICH cell holds a given moment, never what a
+      // drop on a cell means. The wire format is unchanged (a UTC wall clock
+      // with no offset, which is what the backend's dayjs(date) expects), so
+      // nothing about the stored value's interpretation moves either.
+      // `changeDate` in calendar.context re-derives the same instant via
+      // .utc() for the optimistic update, so the card does not jump and then
+      // settle somewhere else.
       if (!item.interval) {
         changeDate(item.id, getDate);
       }
@@ -1373,7 +1628,25 @@ export const CalendarColumn: FC<{
     collect: (monitor) => ({
       canDrop: isBeforeNow ? false : !!monitor.canDrop() && !!monitor.isOver(),
     }),
-  }), [posts]);
+  }), [
+    posts,
+    // isBeforeNow is the whole point of the interval tick above: with [posts]
+    // alone both `drop` and `collect` kept the value captured when the cell
+    // last re-registered, so once a cell's hour elapsed it went on advertising
+    // and accepting drops into the past, exactly what the tick was added to
+    // prevent. getDate is equally load-bearing: the drop writes
+    // `getDate.utc()` as the post's new publish date, and this component is
+    // memo'd, so a stale capture would reschedule to the wrong slot.
+    isBeforeNow,
+    getDate,
+    changeDate,
+    fetch,
+    reloadCalendarView,
+    t,
+    // `modal` is deliberately absent: useModals() builds a NEW object every
+    // render while the underlying store actions are stable, so listing it
+    // would re-register 42 drop targets on every render and buy nothing.
+  ]);
 
   const addModal = useCallback(async () => {
     const set: any = !sets.length
@@ -1433,13 +1706,35 @@ export const CalendarColumn: FC<{
                 ],
               }
             : {})}
+          // SCHEDULE-WHAT-YOU-SEE BOUNDARY (cell click). The composer opens on
+          // the instant the clicked cell names in the display zone, so a new
+          // post defaults to the moment the user pointed at, whatever zone they
+          // are viewing in. toComposerDate re-flavours that instant onto the
+          // machine clock the composer's DatePicker computes in WITHOUT
+          // changing it (see its definition). That is the conversion, and the
+          // instant is what survives it.
+          // The random month hour is built from the cell's DATE plus a wall
+          // clock rather than `getDate.hour(n)`: .hour() on a zone-aware object
+          // reuses the offset it was built with and lands an hour out on a
+          // spring-forward day.
           date={
             randomHour
-              ? getDate.hour(Math.floor(Math.random() * 24))
-              : getDate.format('YYYY-MM-DDTHH:mm:ss') ===
-                newDayjs().startOf('hour').format('YYYY-MM-DDTHH:mm:ss')
-              ? newDayjs().add(10, 'minute')
-              : getDate
+              ? toComposerDate(
+                  displayInstant(
+                    `${cellKey.slice(0, 10)} ${String(
+                      Math.floor(Math.random() * 24)
+                    ).padStart(2, '0')}:00:00`,
+                    displayTimezone
+                  )
+                )
+              : // this cell IS the current hour: default to "in 10 minutes"
+                // rather than the top of the hour already gone by
+                cellKey ===
+                displayWall(Date.now(), displayTimezone).format(
+                  cellKeyFormat(display)
+                )
+              ? toComposerDate(dayjs().add(10, 'minute'))
+              : toComposerDate(getDate)
           }
           {...(set?.content ? { set: JSON.parse(set.content) } : {})}
           reopenModal={() => ({})}
@@ -1447,24 +1742,33 @@ export const CalendarColumn: FC<{
       ),
       size: '80%',
     });
-  }, [integrations, getDate, sets, signature]);
+  }, [
+    integrations,
+    getDate,
+    cellKey,
+    display,
+    displayTimezone,
+    randomHour,
+    sets,
+    signature,
+  ]);
 
   const addProvider = useAddProvider();
-  // formatted-date comparison, same mechanism as WeekView's todayKey —
-  // isSame(_, 'day') truncates in the machine-local zone and can disagree
-  // with the column the 3-day slice anchored
-  const isToday =
-    getDate.format('YYYY-MM-DD') === newDayjs().format('YYYY-MM-DD');
+  // The cell's own day, off its identity rather than off its instant, compared
+  // to today on the DISPLAY clock, the same key WeekView's header underline
+  // and 3-day slice use, so the today circle, the underline and the cards can
+  // never land on different columns.
+  const cellDayKey = cellKey.slice(0, 10);
+  const todayKey = displayTodayKey(displayTimezone);
+  const isToday = cellDayKey === todayKey;
   // Buffer past wash (re-verified live): FULLY past days only, at date
   // granularity; today (even its elapsed hours/slots) and future days stay
-  // white, so this is never the hour-level isBeforeNow. Lexicographic
-  // compare on the same formatted keys the week slice/underline use. The
-  // day view keys on the VIEWED day (startDate) because its per-slot
-  // getDate goes through .local() and can cross midnight at the day edges.
-  const isPastDay =
-    (display === 'day'
-      ? newDayjs(startDate).format('YYYY-MM-DD')
-      : getDate.format('YYYY-MM-DD')) < newDayjs().format('YYYY-MM-DD');
+  // white, so this is never the hour-level isBeforeNow. Lexicographic compare
+  // on the same display-clock keys the week slice/underline use.
+  // The day view no longer needs its own `startDate` branch: its slots are
+  // built on the display-zone day now, so cellDayKey IS the viewed day and can
+  // no longer cross midnight the way the old `.local()`-derived instant could.
+  const isPastDay = cellDayKey < todayKey;
   const isOtherMonth = !!monthLabel && monthLabel !== 'current-month';
   return (
     <div
@@ -1509,11 +1813,16 @@ export const CalendarColumn: FC<{
         // 24px line box, 13px left inset, 4px gap to the first chip
         <div className="pt-[12px] px-[12px] h-[36px] text-[14px] font-[500] text-start flex items-center">
           {/* Buffer three-tone day numbers; today = filled circle (their green
-              -> our lime; the global primary-surface rule paints black ink) */}
+              -> our lime; the global primary-surface rule paints black ink).
+              bg-btnPrimary, not a raw Buffer-family literal: the spec's
+              "today = day number in 24px green circle (ours: lime + black
+              ink)" puts Cuesoft lime #bfff72 in this slot, and the phone date
+              sheet's today circle already uses the token. Two surfaces in one
+              product must not paint "today" in two different greens. */}
           <span
             className={clsx(
               isToday
-                ? 'w-[24px] h-[24px] -ms-[4px] rounded-full bg-[#b7eb9d] text-[#292928] flex items-center justify-center'
+                ? 'w-[24px] h-[24px] -ms-[4px] rounded-full bg-btnPrimary text-black flex items-center justify-center'
                 : isOtherMonth
                 ? 'text-newTextColor/40'
                 : isBeforeNow
@@ -1521,7 +1830,9 @@ export const CalendarColumn: FC<{
                 : 'text-newTextColor'
             )}
           >
-            {getDate.date()}
+            {/* off the cell's identity, not its instant, so the printed number
+                always matches the column the cards were bucketed into */}
+            {newDayjs(cellDayKey).date()}
           </span>
         </div>
       )}
@@ -1828,9 +2139,14 @@ const SentPostStats: FC<{
               metric set is whatever the provider returns (Reactions/
               Comments/Impressions/Reach/Shares/Reposts…) */}
           <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[4px] px-[16px] py-[8px]">
-            {items.map((item: any) => (
+            {items.map((item: any, index: number) => (
               <span
-                key={`${post.id}-${item.label}`}
+                // the label is NOT a key: the metric set is whatever the
+                // provider hands back, and the Buffer relay passes Buffer's
+                // own metric names straight through (`label: m.name`), so two
+                // entries sharing a name would collide and reconcile onto one
+                // strip slot. Position in the returned array is unique.
+                key={`${post.id}-${index}-${item.label}`}
                 className="text-[14px] text-newTextColor whitespace-nowrap text-start"
               >
                 <span className="font-[550]">{sentMetricTotal(item)}</span>{' '}
@@ -1932,6 +2248,17 @@ const CalendarItem: FC<{
     }
     return `${platformName} ${type}`.trim();
   }, [post.settings, post.integration?.providerIdentifier]);
+  // 'You created this N ago'. Both list and calendar queries select createdAt, so
+  // the fallback is the rare path, and it is the dangerous one now that
+  // publishDate is nullable: with neither field present `dayjs.utc(undefined)` is
+  // NOW, so a post of unknown age would claim it was created 'a few seconds ago',
+  // and `dayjs.utc(null)` would print the words 'Invalid Date' where a duration
+  // belongs. null here means the byline does not render at all, which says less
+  // but nothing false.
+  const createdAgo = useMemo(() => {
+    const stamp = post.createdAt || post.publishDate;
+    return stamp ? dayjs.utc(stamp).fromNow() : null;
+  }, [post.createdAt, post.publishDate]);
   const showCreationMethodBadge =
     user?.impersonate &&
     post.creationMethod &&
@@ -2070,6 +2397,10 @@ const CalendarItem: FC<{
   // Approvals v1: 'request changes' = leave feedback on the post's comments
   // (Buffer Notes geometry: 446px full-height right sheet, not a centered
   // modal)
+  // The date is only a suffix on the sheet's heading (comment.component.tsx
+  // takes it as `date?: dayjs.Dayjs | null`), so an undated draft can be sent
+  // back for changes like any other — pass null rather than dayjs.utc(null),
+  // which is a truthy Invalid Date that formats as the literal 'Invalid Date'.
   const itemModals = useModals();
   const openCommentsForPost = useCallback(
     (e: React.MouseEvent) => {
@@ -2090,7 +2421,7 @@ const CalendarItem: FC<{
         children: (
           <CommentComponent
             postId={post.id}
-            date={dayjs.utc(post.publishDate)}
+            date={post.publishDate ? dayjs.utc(post.publishDate) : null}
           />
         ),
       });
@@ -2533,26 +2864,28 @@ const CalendarItem: FC<{
           {/* phone: the byline gets its own full-width line above the action
               buttons — squeezed into the button row it truncated to ~2
               characters ('Y..') */}
+          {!!createdAgo && (
           <div className="hidden phone:block px-[16px] pt-[8px] text-[14px] text-start truncate">
             <span className="font-[550] text-newTextColor">
               {t('you_created_this', 'You created this')}
             </span>{' '}
-            <span className="text-newTextColor/60">
-              {dayjs.utc(post.createdAt || post.publishDate).fromNow()}
-            </span>
+            <span className="text-newTextColor/60">{createdAgo}</span>
           </div>
+          )}
           {/* phone: the approvals state carries four buttons (Request changes,
               Approve, Edit, overflow) — they cannot fit one 390px row, and
               without wrap the card blows out the layout viewport (the same
               over-wide failure that broke position:fixed elsewhere) */}
           <div className="flex items-center gap-[8px] px-[16px] py-[8px] phone:justify-end phone:flex-wrap">
             <div className="flex-1 min-w-0 text-[14px] text-start truncate phone:hidden">
-              <span className="font-[550] text-newTextColor">
-                {t('you_created_this', 'You created this')}
-              </span>{' '}
-              <span className="text-newTextColor/60">
-                {dayjs.utc(post.createdAt || post.publishDate).fromNow()}
-              </span>
+              {!!createdAgo && (
+                <>
+                  <span className="font-[550] text-newTextColor">
+                    {t('you_created_this', 'You created this')}
+                  </span>{' '}
+                  <span className="text-newTextColor/60">{createdAgo}</span>
+                </>
+              )}
             </div>
             {/* A failed post's whole reason for being in this list is that it
                 needs another go, so it gets the same action, labelled Retry. */}
@@ -2586,6 +2919,12 @@ const CalendarItem: FC<{
             )}
             {state === 'DRAFT' && listState === 'approvals' && (
               <>
+                {/* Unconditional: the sheet's date is only a heading suffix, so
+                    having one is no longer a precondition for asking for
+                    changes. Whether an undated draft reaches this list at all is
+                    the list query's business (every tab sends the repository's
+                    `undated=exclude` default today) and not a reason to hide the
+                    control here. */}
                 <button
                   type="button"
                   onClick={openCommentsForPost}
@@ -2751,7 +3090,8 @@ const CalendarItem: FC<{
             <div className="flex-1 flex items-center gap-[6px] text-[12px] font-[500] text-newTextColor whitespace-nowrap overflow-hidden phone:hidden">
               <span className="truncate">
                 {state === 'DRAFT' ? t('draft', 'Draft') + ' · ' : ''}
-                {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
+                {formatPostTime(post.publishDate, displayTimezone, 'h:mm A') ??
+                  t('no_date', 'No date')}
               </span>
               {/* media slot — 23px r6 measured on Buffer's month pills
                   (desktop only); videos paint their first frame as poster */}
@@ -2790,7 +3130,8 @@ const CalendarItem: FC<{
                 alt=""
               />
               <div className="min-w-0 overflow-hidden text-[15px] font-[400] text-newTextColor whitespace-nowrap">
-                {formatPostTime(post.publishDate, displayTimezone, 'h:mm A')}
+                {formatPostTime(post.publishDate, displayTimezone, 'h:mm A') ??
+                  t('no_date', 'No date')}
               </div>
             </div>
             {/* phone (Buffer screenshots): the chip is icon + time only —
@@ -2828,7 +3169,7 @@ const CalendarItem: FC<{
               post.publishDate,
               displayTimezone,
               isUSCitizen() ? 'h:mm A' : 'H:mm'
-            )}
+            ) ?? t('no_date', 'No date')}
           </div>
         )}
       </div>
@@ -3029,7 +3370,9 @@ export const SetSelectionModal: FC<{
   return (
     <div className="flex flex-col gap-4">
       <div className="text-lg font-medium">
-        {t('choose_set_or_continue', 'Choose a set or continue without one')}
+        {/* Keys keep the old "set" wording — they are lookup ids, and renaming
+            one silently falls back to the default for every other locale. */}
+        {t('choose_set_or_continue', 'Choose a template or continue without one')}
       </div>
 
       <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
@@ -3054,7 +3397,7 @@ export const SetSelectionModal: FC<{
           onClick={onContinueWithoutSet}
           className="flex-1 px-4 py-2 text-newTextColor border border-newTableBorder rounded-[8px] transition-colors hover:bg-boxHover"
         >
-          {t('continue_without_set', 'Continue without set')}
+          {t('continue_without_set', 'Continue without a template')}
         </button>
       </div>
     </div>

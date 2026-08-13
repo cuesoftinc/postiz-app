@@ -67,8 +67,10 @@ export const SkeletonTable: FC<{
 }> = ({ rows = 5, className }) => (
   <div className={clsx('w-full flex flex-col gap-[8px]', className)}>
     <div className="h-[40px] rounded-[8px] bg-newTableHeader animate-pulse" />
+    {/* Rows are 36px, not 44: the ladder rewrites h-[44px] to 36px, so
+        authoring 44 here reserved a row taller than any real one. */}
     {[...new Array(rows)].map((_, i) => (
-      <Skeleton key={i} className="h-[44px] w-full" />
+      <Skeleton key={i} className="h-[36px] w-full" />
     ))}
   </div>
 );
@@ -105,7 +107,11 @@ export const SkeletonPage: FC<{
     aria-busy="true"
   >
     <div className="flex items-center gap-[10px]">
-      <Skeleton className="w-[40px] h-[40px] !rounded-[10px] shrink-0" />
+      {/* 32x32 r8 is Buffer's measured channel avatar. Authored as 32 rather
+          than 40 on purpose: the size ladder rewrites h-[40px] to 32px but has
+          no width rung, so a 40x40 square here reserved 40 wide by 32 tall and
+          the skeleton was a different shape from the thing it stands in for. */}
+      <Skeleton className="w-[32px] h-[32px] !rounded-[8px] shrink-0" />
       <Skeleton className="h-[20px] w-[180px] max-w-[50%]" />
     </div>
     <div className="flex flex-col gap-[12px]">

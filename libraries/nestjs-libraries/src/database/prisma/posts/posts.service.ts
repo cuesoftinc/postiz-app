@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   ValidationPipe,
 } from '@nestjs/common';
 import { PostsRepository } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.repository';
+import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
 import { CreatePostDto } from '@gitroom/nestjs-libraries/dtos/posts/create.post.dto';
 import dayjs from 'dayjs';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
@@ -13,6 +15,7 @@ import {
   Media,
   From,
   CreationMethod,
+  Role,
   State,
 } from '@prisma/client';
 import { GetPostsDto } from '@gitroom/nestjs-libraries/dtos/posts/get.posts.dto';
@@ -59,6 +62,38 @@ type PostWithConditionals = Post & {
   childrenPost: Post[];
 };
 
+/**
+ * The org tag that labels a post awaiting approval. The tag is the UI's label
+ * only — Post.needsApproval is the rule the server enforces — but the Approvals
+ * tab resolves this exact name (see calendar.context.tsx APPROVAL_TAG_NAME), so
+ * the two must agree.
+ */
+export const APPROVAL_TAG_NAME = 'needs-approval';
+const APPROVAL_TAG_COLOR = '#B191FF';
+
+/**
+ * Who may move a post into QUEUE when the org's approvals gate is on.
+ *
+ * USER is deliberately excluded and undefined is deliberately excluded: an
+ * unknown role is not an approver. This is the whole authorization surface of
+ * the gate, so it fails closed.
+ */
+const APPROVER_ROLES: ReadonlyArray<Role> = [Role.SUPERADMIN, Role.ADMIN];
+
+export const isApproverRole = (role?: Role | null): boolean =>
+  !!role && APPROVER_ROLES.includes(role);
+
+/**
+ * How far ahead the next-free-slot search may walk before it gives up.
+ *
+ * The search advances one day per DATABASE QUERY, so this is a cost ceiling as
+ * much as a termination guard: a year of queries to answer one composer click
+ * is not a better outcome than an error. Two months is far past any real
+ * posting queue, and an org whose next sixty days are solid has a scheduling
+ * problem the answer to which is not "keep looking".
+ */
+const MAX_FIND_SLOT_DAYS = 60;
+
 @Injectable()
 export class PostsService {
   private storage = UploadFactory.createStorage();
@@ -70,7 +105,12 @@ export class PostsService {
     private _shortLinkService: ShortLinkService,
     private _openaiService: OpenaiService,
     private _temporalService: TemporalService,
-    private _refreshIntegrationService: RefreshIntegrationService
+    private _refreshIntegrationService: RefreshIntegrationService,
+    // Reads the org's approvals gate. OrganizationRepository is already a
+    // provider on the @Global() DatabaseModule alongside this service, so this
+    // needs no module change, and it depends only on PrismaRepository — no cycle
+    // back to PostsService.
+    private _organizationRepository: OrganizationRepository
   ) {}
 
   searchForMissingThreeHoursPosts() {
@@ -451,7 +491,14 @@ export class PostsService {
     return {
       type: 'draft' as const,
       shortLink: false,
-      date: rootPost.publishDate.toISOString(),
+      // An undated draft has no date to export, and this used to be an
+      // unconditional .toISOString() — a hard TypeError the moment publishDate
+      // became nullable. null is the honest value: the export's type is 'draft',
+      // and a draft is exactly what is allowed to have no date, so re-importing
+      // this payload reproduces an undated draft rather than inventing a slot.
+      date: rootPost.publishDate
+        ? rootPost.publishDate.toISOString()
+        : null,
       tags:
         rootPost.tags?.map((t: any) => ({
           value: t.tag.id,
@@ -873,11 +920,81 @@ export class PostsService {
     return '';
   }
 
+  /**
+   * Resolves the org's approvals gate and, when it is on, rewrites the request
+   * so that nothing can be created live.
+   *
+   * This sits in the service rather than on a route decorator on purpose. The
+   * obvious-looking home would be @CheckPolicies, but PermissionsService.check()
+   * short-circuits and grants every requested permission when
+   * STRIPE_PUBLISHABLE_KEY is unset (permissions.service.ts:52-67), which is the
+   * case in this deployment — so a policy-based gate would be a no-op today and
+   * would silently start enforcing the day billing is switched on. Enforcing
+   * here means every caller of createPost is gated: the composer's POST /posts,
+   * the public API's POST /public/v1/posts, and anything added later, because
+   * they all funnel through this one method.
+   */
+  private async applyApprovalGate(
+    orgId: string,
+    body: CreatePostDto
+  ): Promise<{ requireApproval: boolean; type: CreatePostDto['type'] }> {
+    const requireApproval =
+      await this._organizationRepository.getRequireApproval(orgId);
+
+    if (!requireApproval) {
+      return { requireApproval, type: body.type };
+    }
+
+    // 'update' keeps its type because it edits an existing post, whose state
+    // must be left alone — reverting a PUBLISHED post to DRAFT over a typo fix
+    // would destroy the record of it having gone out. The repository still
+    // refuses to let the 'update' path CREATE a live row (see stateFor there),
+    // so this is not a hole.
+    const type = body.type === 'update' ? body.type : ('draft' as const);
+
+    // Keep the tag in step with the field. The field is what the server
+    // enforces, but the Approvals tab resolves this tag by name, so a gated post
+    // with no such tag row would sit in the approvals feed unlabelled.
+    const tag = await this._postRepository.ensureTagByName(
+      orgId,
+      APPROVAL_TAG_NAME,
+      APPROVAL_TAG_COLOR
+    );
+
+    const alreadyTagged = (body.tags || []).some(
+      (t) => t?.label === APPROVAL_TAG_NAME
+    );
+
+    if (!alreadyTagged) {
+      // createOrUpdatePost attaches tags by matching `label` against tag names,
+      // so the label is the load-bearing half here.
+      body.tags = [
+        ...(body.tags || []),
+        { value: tag.id, label: APPROVAL_TAG_NAME },
+      ];
+    }
+
+    return { requireApproval, type };
+  }
+
   async createPost(
     orgId: string,
     body: CreatePostDto,
     creationMethod: CreationMethod
   ): Promise<any[]> {
+    // Resolved once per request, before the loop: one query, and every post in
+    // the batch is gated identically even if the flag were flipped mid-request.
+    const { requireApproval, type } = await this.applyApprovalGate(orgId, body);
+
+    // Derived from the ORIGINAL type, not the gated one. A 'now' post that the
+    // gate turned into a draft still records the slot it asked for, so approving
+    // it publishes at that moment rather than at some other one. A draft with no
+    // date at all stays dateless — that is the undated-draft feature.
+    const date =
+      body.type === 'now'
+        ? dayjs().format('YYYY-MM-DDTHH:mm:00')
+        : body.date ?? null;
+
     const postList = [];
     for (const post of body.posts) {
       const provider = this._integrationManager.getSocialIntegration(
@@ -901,13 +1018,14 @@ export class PostsService {
       }));
 
       const { posts } = await this._postRepository.createOrUpdatePost(
-        body.type,
+        type,
         orgId,
-        body.type === 'now' ? dayjs().format('YYYY-MM-DDTHH:mm:00') : body.date,
+        date,
         post,
         body.tags,
         creationMethod,
-        body.inter
+        body.inter,
+        requireApproval
       );
 
       if (!posts?.length) {
@@ -941,10 +1059,67 @@ export class PostsService {
     return this._postRepository.changeState(id, state, err, body);
   }
 
+  /**
+   * The approvals gate on the way into QUEUE. Every transition that results in a
+   * queued post goes through here.
+   *
+   * Takes the actor's user id, not their role, so the role lookup only happens
+   * when the gate is actually on. With the gate off — the default, and the
+   * owner's single-operator setup — this costs one indexed read of the org flag
+   * and nothing else, so dragging a card around the calendar does not pay for a
+   * feature nobody switched on.
+   *
+   * The role is then read from the membership row rather than off
+   * req.org.users[0], because that array is shaped differently depending on which
+   * middleware filled it in: auth.middleware.ts:88-108 puts the real
+   * UserOrganization there, while public.auth.middleware.ts:39,57 fabricates a
+   * nested `{ users: { role } }` whose `.role` reads undefined. A null or
+   * unknown role is not an approver, so machine callers (the public API,
+   * pipelines, agent tools) cannot self-approve — they queue drafts and a human
+   * releases them, which is the reason to turn the gate on at all.
+   */
+  private async assertMayEnterQueue(
+    orgId: string,
+    actorUserId?: string | null
+  ) {
+    const requireApproval =
+      await this._organizationRepository.getRequireApproval(orgId);
+
+    if (!requireApproval) {
+      return;
+    }
+
+    const role = actorUserId
+      ? await this._organizationRepository.getUserRoleInOrg(orgId, actorUserId)
+      : null;
+
+    if (!isApproverRole(role)) {
+      throw new ForbiddenException(
+        'This organization requires approval before a post can be scheduled. An admin has to approve it.'
+      );
+    }
+  }
+
+  /**
+   * Nothing may be queued without a date. The publish workflow's first act is to
+   * sleep until publishDate (post.workflow.v1.0.6.ts:132-138); handed a null it
+   * would compute a NaN delay from an Invalid Date, so an undated post entering
+   * the queue is not "published early", it is undefined behaviour. This is the
+   * guard that makes an undated draft unpublishable by construction.
+   */
+  private assertHasPublishDate(post: { publishDate: Date | null }) {
+    if (!post.publishDate) {
+      throw new BadRequestException(
+        'This draft has no date yet. Give it a date before scheduling it.'
+      );
+    }
+  }
+
   async changePostStatus(
     orgId: string,
     id: string,
-    status: 'draft' | 'schedule'
+    status: 'draft' | 'schedule',
+    actorUserId?: string | null
   ) {
     const getPostById = await this._postRepository.getPostById(id, orgId);
     if (!getPostById) {
@@ -952,7 +1127,22 @@ export class PostsService {
     }
 
     const state: State = status === 'draft' ? 'DRAFT' : 'QUEUE';
+
+    // Both checks run before anything is written. Moving a post back to DRAFT is
+    // never gated — un-scheduling is the safe direction, and blocking it would
+    // trap a post nobody can pull back.
+    if (state === State.QUEUE) {
+      this.assertHasPublishDate(getPostById);
+      await this.assertMayEnterQueue(orgId, actorUserId);
+    }
+
     await this._postRepository.changeState(id, state);
+
+    // Reaching QUEUE is what approval means, so the flag comes down with it.
+    // Otherwise an approved post would sit in the approvals feed forever.
+    if (state === State.QUEUE && getPostById.needsApproval) {
+      await this._postRepository.clearNeedsApproval(orgId, id);
+    }
 
     try {
       await this.startWorkflow(
@@ -970,9 +1160,34 @@ export class PostsService {
     orgId: string,
     id: string,
     date: string,
-    action: 'schedule' | 'update' = 'schedule'
+    action: 'schedule' | 'update' = 'schedule',
+    actorUserId?: string | null
   ) {
+    // Checked first, before any database work: this route takes its date from a
+    // raw @Body('date') with no DTO behind it, and `dayjs(undefined)` is NOW, so
+    // an absent one would schedule the post immediately instead of failing.
+    if (!date || !dayjs(date).isValid()) {
+      throw new BadRequestException('A valid date is required.');
+    }
+
     const getPostById = await this._postRepository.getPostById(id, orgId);
+
+    if (!getPostById) {
+      throw new BadRequestException('Post not found');
+    }
+
+    // Verified rather than assumed: this route does NOT flip DRAFT to QUEUE. The
+    // repository sets `state: isDraft ? 'DRAFT' : 'QUEUE'`, so a draft dragged
+    // around the calendar stays a draft. What it does do is re-queue an ERROR or
+    // PUBLISHED post, which is a transition into QUEUE and so is gated.
+    const willEnterQueue =
+      action === 'schedule' &&
+      getPostById.state !== State.DRAFT &&
+      getPostById.state !== State.QUEUE;
+
+    if (willEnterQueue) {
+      await this.assertMayEnterQueue(orgId, actorUserId);
+    }
 
     // schedule: Set status to QUEUE and change date (reschedule the post)
     // update: Just change the date without changing the status
@@ -998,6 +1213,167 @@ export class PostsService {
     }
 
     return newDate;
+  }
+
+  /**
+   * The undated-drafts view: posts captured with no slot committed yet.
+   *
+   * Reuses getPostsList so the panel inherits paging, the customer/channel/tag
+   * filters and the same minified wire shape as every other list, rather than
+   * growing a second query that would drift from it.
+   */
+  async getUndatedDrafts(orgId: string, query: GetPostsListDto) {
+    return this.getPostsList(orgId, {
+      ...query,
+      state: 'draft',
+      undated: 'only',
+    });
+  }
+
+  /**
+   * Promotes an undated draft into a real slot.
+   *
+   * Separate from changeDate because changeDate derives the target state from
+   * the current one, so a draft stays a draft — correct for dragging a card
+   * around the calendar, useless for the one operation that has to end with the
+   * post scheduled.
+   *
+   * When the approvals gate is on and the caller is not an approver, the date is
+   * still pinned but the post stays a DRAFT. That is deliberate: proposing a slot
+   * is not the same act as releasing the post, and refusing outright would leave
+   * a contributor unable to do the half they are allowed to do. The response says
+   * which of the two happened so the caller never has to guess.
+   */
+  async scheduleUndatedPost(
+    orgId: string,
+    id: string,
+    date: string,
+    target: 'queue' | 'draft' = 'queue',
+    actorUserId?: string | null
+  ) {
+    if (!date || !dayjs(date).isValid()) {
+      throw new BadRequestException('A valid date is required.');
+    }
+
+    const post = await this._postRepository.getPostById(id, orgId);
+
+    if (!post) {
+      throw new BadRequestException('Post not found');
+    }
+
+    if (post.publishDate) {
+      // Refusing rather than silently rescheduling: this route is the promotion
+      // path, and quietly moving an already-scheduled post would make a
+      // mis-addressed call look like a success.
+      throw new BadRequestException(
+        'This post already has a date. Use the date route to move it.'
+      );
+    }
+
+    if (post.state !== State.DRAFT) {
+      // Cannot happen while the invariant holds (only a DRAFT may be dateless),
+      // so this is the assertion that would catch it having been broken.
+      throw new BadRequestException(
+        'Only a draft can be scheduled from the undated list.'
+      );
+    }
+
+    const requireApproval =
+      await this._organizationRepository.getRequireApproval(orgId);
+
+    // Same lazy shape as assertMayEnterQueue: no role lookup at all when the
+    // gate is off.
+    const isApprover =
+      !requireApproval ||
+      isApproverRole(
+        actorUserId
+          ? await this._organizationRepository.getUserRoleInOrg(
+              orgId,
+              actorUserId
+            )
+          : null
+      );
+
+    const mayQueue = target === 'queue' && isApprover;
+
+    const state = mayQueue ? State.QUEUE : State.DRAFT;
+
+    const updated = await this._postRepository.setDateAndState(
+      orgId,
+      id,
+      date,
+      state
+    );
+
+    try {
+      await this.startWorkflow(
+        post.integration.providerIdentifier.split('-')[0].toLowerCase(),
+        post.id,
+        orgId,
+        state
+      );
+    } catch (err) {}
+
+    return {
+      id,
+      state,
+      publishDate: updated.publishDate,
+      // False when the gate held the post back, so the UI can say "date saved,
+      // still awaiting approval" instead of implying it is scheduled.
+      scheduled: state === State.QUEUE,
+      awaitingApproval: state === State.DRAFT && requireApproval,
+    };
+  }
+
+  /** The org's approvals gate, for the settings UI. */
+  async getApprovalsSettings(orgId: string) {
+    return {
+      requireApproval: await this._organizationRepository.getRequireApproval(
+        orgId
+      ),
+    };
+  }
+
+  /**
+   * Flips the org's approvals gate. Restricted to an approver: a USER who could
+   * switch the gate off would be able to approve their own posts by removing the
+   * requirement, which is the same hole by a longer route.
+   */
+  async updateApprovalsSettings(
+    orgId: string,
+    requireApproval: boolean,
+    actorUserId?: string | null
+  ) {
+    // Unlike the queue guard, this lookup is unconditional: the authorization
+    // question here is "may you change the gate", which does not depend on the
+    // gate's current value.
+    const role = actorUserId
+      ? await this._organizationRepository.getUserRoleInOrg(orgId, actorUserId)
+      : null;
+
+    if (!isApproverRole(role)) {
+      throw new ForbiddenException(
+        'Only an organization admin can change the approvals setting.'
+      );
+    }
+
+    if (requireApproval) {
+      // Make sure the label the Approvals tab looks for exists before any post
+      // can be gated, so the very first gated post is not the one that discovers
+      // the tag is missing.
+      await this._postRepository.ensureTagByName(
+        orgId,
+        APPROVAL_TAG_NAME,
+        APPROVAL_TAG_COLOR
+      );
+    }
+
+    const updated = await this._organizationRepository.updateRequireApproval(
+      orgId,
+      requireApproval
+    );
+
+    return { requireApproval: updated.requireApproval };
   }
 
   async generatePostsDraft(orgId: string, body: CreateGeneratedPostsDto) {
@@ -1118,11 +1494,44 @@ export class PostsService {
     return this._postRepository.createPopularPosts(post);
   }
 
+  /**
+   * Walks forward a day at a time looking for a configured posting time that is
+   * still in the future and not already taken.
+   *
+   * TERMINATION, which this had none of. `getPostsCountsByDates` returns the
+   * subset of `times` that is free on `date`, so an org with NO configured
+   * posting times gets an empty array on every single day — and the old
+   * `if (!list.length) return recurse(date.add(1, 'day'))` then walked forward
+   * for ever. That is not merely slow: it is one database round trip per
+   * simulated day, on a request that can never answer, holding its connection
+   * while the returned-promise chain grows a link per level. Every caller of
+   * `/posts/find-slot` (the composer's Create Another, the calendar's new-post
+   * flow, the public API) was one unconfigured org away from that.
+   *
+   * So there are two guards, because there are two distinct dead ends: nothing
+   * is configured (answerable immediately, and worth saying plainly because the
+   * fix is a settings change), and everything configured is booked solid for
+   * longer than anyone should search.
+   */
   private async findFreeDateTimeRecursive(
     orgId: string,
     times: number[],
-    date: dayjs.Dayjs
+    date: dayjs.Dayjs,
+    // days already walked; the caller starts at 0 and never passes this
+    daysAhead = 0
   ): Promise<string> {
+    if (!times.length) {
+      throw new BadRequestException(
+        'No posting times are configured for this organization, so there is no free slot to find. Add posting times in your settings first.'
+      );
+    }
+
+    if (daysAhead >= MAX_FIND_SLOT_DAYS) {
+      throw new BadRequestException(
+        `Could not find a free posting slot in the next ${MAX_FIND_SLOT_DAYS} days. Pick a date manually or add more posting times.`
+      );
+    }
+
     const list = await this._postRepository.getPostsCountsByDates(
       orgId,
       times,
@@ -1130,7 +1539,12 @@ export class PostsService {
     );
 
     if (!list.length) {
-      return this.findFreeDateTimeRecursive(orgId, times, date.add(1, 'day'));
+      return this.findFreeDateTimeRecursive(
+        orgId,
+        times,
+        date.add(1, 'day'),
+        daysAhead + 1
+      );
     }
 
     const num = list.reduce<null | number>((prev, curr) => {

@@ -194,8 +194,17 @@ export const AddEditModalInnerInner: FC<AddEditModalProps> = (props) => {
                     .split('\n')
                     .map((line: string) => `<p>${line}</p>`)
                     .join(''),
+            // `image` is what a set is WRITTEN as. sets.tsx stores the composer
+            // payload verbatim (JSON.stringify of manage.modal's `data`), and
+            // that payload's per-value attachment key is `image` — the
+            // CreatePostDto field name — and has been since the modal landed
+            // (af2f952e). Reading `p.media` therefore resolved undefined, so
+            // every set ever loaded dropped its attachments with no error;
+            // only the read side was ever wrong. `media` stays as a fallback
+            // because set rows are stored JSON that nothing migrates, so a set
+            // written by any other producer keeps working too.
             // @ts-ignore
-            media: p.media,
+            media: p.image ?? p.media ?? [],
           }))
         : [
             {

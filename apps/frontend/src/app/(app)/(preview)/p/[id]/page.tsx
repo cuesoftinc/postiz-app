@@ -78,9 +78,23 @@ export default async function Auth(
                 <CopyClient />
               </div>
             )}
+            {/* `publishDate` is nullable now (undated drafts), and this page is
+                a PUBLIC share link — the route sits outside the auth middleware
+                on purpose, so whatever renders here is what an outsider sees.
+                Formatting a null gave the literal 'Invalid Date', so the whole
+                labelled row is dropped for a dateless post and replaced with a
+                plain statement of the fact. Omitting the label too, rather than
+                pairing it with a value, keeps it from reading as a formatting
+                failure. */}
             <div className="text-[14px] text-textItemBlur">
-              {t('publication_date', 'Publication Date:')}{' '}
-              <RenderPreviewDateClient date={post[0].publishDate} />
+              {post[0].publishDate ? (
+                <>
+                  {t('publication_date', 'Publication Date:')}{' '}
+                  <RenderPreviewDateClient date={post[0].publishDate} />
+                </>
+              ) : (
+                t('no_publication_date', 'No date set')
+              )}
             </div>
           </div>
         </div>

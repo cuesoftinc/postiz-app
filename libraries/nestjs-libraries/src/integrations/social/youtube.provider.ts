@@ -908,6 +908,10 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       acc.push({
         label: 'Average View Duration',
         average: true,
+        // YouTube reports averageViewDuration in SECONDS, not percent. `average`
+        // alone could not say that, so the frontend inferred the unit from the
+        // label and printed this metric as "182.00%".
+        unit: 'duration' as const,
         data: mappedData?.map((p: any) => ({
           total: p.averageViewDuration,
           date: p.day,
@@ -917,6 +921,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       acc.push({
         label: 'Average View Percentage',
         average: true,
+        unit: 'percentage' as const,
         data: mappedData?.map((p: any) => ({
           total: p.averageViewPercentage,
           date: p.day,

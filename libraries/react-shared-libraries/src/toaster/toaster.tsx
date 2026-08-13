@@ -31,15 +31,25 @@ export const Toaster = () => {
     return <></>;
   }
   // Buffer toast surface (measured): #f6f6f4 on a 1px #e6e5e2 hairline, r12,
-  // 20px icon slot, 14px ink body, soft shadow. The exact hexes are kept —
-  // bg-newTableHeader (#f4f3f0) is close but NOT equal, and the border token
-  // is an alpha, so neither token matches the measurement. Positioning
+  // 20px icon slot, 14px ink body, soft shadow. The exact hexes are kept for
+  // LIGHT: bg-newTableHeader (#f4f3f0) is close but NOT equal, and the border
+  // token is an alpha, so neither token matches the measurement. Positioning
   // (top-center fixed) and the 4200ms timing are ours and stay; the old
   // dark card + blurred glow ellipse are retired.
+  //
+  // The pinned hexes MUST be light-scoped. Pinned unconditionally they left the
+  // body copy (theme-dependent --new-textColor = white in dark) on a light
+  // surface, so every toast in the default dark theme was invisible. The fork's
+  // rule for a measured Buffer light value is "apply it light-only, dark keeps
+  // its tokens" (colors.scss r1/r2 "dark mode untouched"; the .light-scoped
+  // #cs-datetime / #cs-composer hover rules in global.scss), so the SURFACE
+  // becomes theme-aware rather than the already-correct text being pinned to
+  // match it. dark:border also replaces the black-alpha shadow as the edge on a
+  // dark surface, the same fixup .dropdown-menu carries in its `.dark &` rule.
   return (
     <div
       className={clsx(
-        'animate-fadeDown rounded-[12px] gap-[12px] flex items-center bg-[#f6f6f4] border border-[#e6e5e2] shadow-[0_4px_12px_rgba(0,0,0,0.08)] p-[16px] min-w-[319px] fixed start-[50%] z-[900] top-[32px] -translate-x-[50%] h-[56px]'
+        'animate-fadeDown rounded-[12px] gap-[12px] flex items-center bg-[#f6f6f4] dark:bg-newBgColorInner border border-[#e6e5e2] dark:border-newTableBorder shadow-[0_4px_12px_rgba(0,0,0,0.08)] p-[16px] min-w-[319px] fixed start-[50%] z-[900] top-[32px] -translate-x-[50%] h-[56px]'
       )}
     >
       <div className="w-[20px] h-[20px] min-w-[20px] flex items-center justify-center">

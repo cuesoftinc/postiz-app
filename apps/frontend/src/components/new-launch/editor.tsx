@@ -57,6 +57,10 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { AComponent } from '@gitroom/frontend/components/new-launch/a.component';
 import { Placeholder } from '@tiptap/extensions';
 import { useToaster } from '@gitroom/react/toaster/toaster';
+import useSWR from 'swr';
+import { useModals } from '@gitroom/frontend/components/layout/new-modal';
+import { Button } from '@gitroom/react/form/button';
+import { Input } from '@gitroom/react/form/input';
 import { InformationComponent } from '@gitroom/frontend/components/launches/information.component';
 import {
   LockIcon,
@@ -376,9 +380,11 @@ export const EditorWrapper: FC<{
               <div className="w-[54px] h-[54px] rounded-full bg-newSettings opacity-80" />
             </div>
             <div className="text-[14px] font-[550] text-white">
+              {/* Key stays `..._set` — it is a lookup id, not copy; only the
+                  English default follows the Sets → Templates rename. */}
               {t(
                 'cant_edit_networks_when_creating_set',
-                "You can't edit networks when creating a set"
+                "You can't edit networks when creating a template"
               )}
             </div>
           </div>
@@ -446,6 +452,12 @@ export const EditorWrapper: FC<{
                 setImages={changeImages(index)}
                 autoComplete={canEdit}
                 validateChars={true}
+                // Buffer's second Templates entry point lives in the editor
+                // placeholder, and it has exactly one home: the first box of
+                // the post. Opting in from here (rather than deriving it from
+                // `num` inside Editor) keeps it out of thread.finisher, which
+                // renders Editor directly with num 0.
+                showTemplates={index === 0}
                 identifier={internalFromAll?.identifier || 'global'}
                 totalChars={totalChars}
                 appendImages={appendImages(index)}
@@ -547,6 +559,7 @@ export const Editor: FC<{
   dummy: boolean;
   chars: Record<string, number>;
   childButton?: React.ReactNode;
+  showTemplates?: boolean;
 }> = (props) => {
   const {
     editorType = 'normal',
@@ -560,6 +573,7 @@ export const Editor: FC<{
     chars,
     childButton,
     comments,
+    showTemplates,
   } = props;
   const [id] = useState(makeId(10));
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
@@ -714,7 +728,15 @@ export const Editor: FC<{
         )}
         id={id}
       >
-        <div className="relative cursor-text flex flex-1 flex-col">
+        {/* data-drag-active drives Buffer's measured drag-over treatment (green
+            dashed outline on the editor column, see global.scss). It sits on
+            THIS box, not the dropzone root below, because this is the box the
+            drag overlay is positioned against, so the two frame the same
+            rectangle. */}
+        <div
+          data-drag-active={isDragActive}
+          className="relative cursor-text flex flex-1 flex-col"
+        >
           <div {...getRootProps()} className="flex flex-1 flex-col">
             <div
               className={clsx(
@@ -730,6 +752,7 @@ export const Editor: FC<{
                 editorType={editorType}
                 onChange={props.onChange}
                 paste={paste}
+                showTemplates={showTemplates}
                 ref={editorRef}
               />
             </div>
@@ -930,16 +953,27 @@ export const OnlyEditor = forwardRef<
     value: string;
     onChange: (value: string) => void;
     paste?: (event: ClipboardEvent | File[]) => void;
+    showTemplates?: boolean;
   }
->(({ editorType, value, onChange, paste }, ref) => {
+>(({ editorType, value, onChange, paste, showTemplates }, ref) => {
   const t = useT();
   const fetch = useFetch();
+  const openTemplates = useOpenTemplates();
 
-  const { internal } = useLaunchStore(
+  const { internal, isGlobal } = useLaunchStore(
     useShallow((state) => ({
       internal: state.internal.find((p) => p.integration.id === state.current),
+      isGlobal: state.current === 'global',
     }))
   );
+
+  // A template describes the whole post, so the affordance only belongs on the
+  // global stack; offering it on a channel tab would apply content the user
+  // cannot see from there. Reading `current` at mount is safe because every tab
+  // switch already remounts this tree (SelectCurrent sets `hide`, which
+  // unmounts EditorWrapper for a render), the same reason the placeholder
+  // below can be decided once, inside useEditor's options.
+  const templatePlaceholder = !!showTemplates && isGlobal;
 
   const loadList = useCallback(
     async (query: string) => {
@@ -983,7 +1017,13 @@ export const OnlyEditor = forwardRef<
       BulletList,
       ListItem,
       Placeholder.configure({
-        placeholder: t('write_something', 'Write something …'),
+        // Buffer's composer placeholder is a real element rather than a
+        // pseudo, because it CONTAINS the Templates affordance and a
+        // ::before cannot hold a button. Where we render that element the
+        // extension's own placeholder must go quiet, or the two stack.
+        placeholder: templatePlaceholder
+          ? ''
+          : t('write_something', 'Write something …'),
         emptyEditorClass: 'is-editor-empty',
       }),
       ...(editorType === 'html' || editorType === 'markdown'
@@ -1110,5 +1150,437 @@ export const OnlyEditor = forwardRef<
     editor,
   }));
 
-  return <EditorContent editor={editor} />;
+  return (
+    <div className="relative">
+      <EditorContent editor={editor} />
+      {/* Measured Buffer placeholder: "Start writing or get inspired with
+          [Templates]", the chip 24 tall at radius 6. Absolutely positioned so
+          it cannot shift the caret line, and pointer-events-none so clicking
+          the copy still falls through to the editor: only the chip takes the
+          click. `editor.isEmpty` is live here because the editor is created
+          with shouldRerenderOnTransaction. */}
+      {templatePlaceholder && editor?.isEmpty && (
+        <div className="pointer-events-none select-none absolute start-0 top-0 flex items-center gap-[6px] h-[24px] -mt-[1px] text-[14px] leading-[21px] text-textItemBlur">
+          <span>
+            {t(
+              'start_writing_or_get_inspired_with',
+              'Start writing or get inspired with'
+            )}
+          </span>
+          <button
+            type="button"
+            data-cs
+            onClick={openTemplates}
+            className="pointer-events-auto cursor-pointer h-[24px] px-[10px] rounded-[6px] border border-newTableBorder bg-newTableHeader text-[13px] font-[500] text-newTextColor hover:bg-boxHover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
+          >
+            {t('templates', 'Templates')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 });
+
+/* ───────────────────────── Templates ─────────────────────────
+ *
+ * Buffer's Templates is "start from a saved post". This fork already has that
+ * concept and calls it a SET: `model Sets { id, organizationId, name, content }`
+ * where `content` is the composer's own submit payload as JSON. It is
+ * org-scoped, it is named, it already has a management UI (Settings → Sets) and
+ * it already has a picker, but only BEFORE the composer opens
+ * (`SetSelectionModal`, reached from the New Post button and the calendar).
+ *
+ * So Templates needs no store of its own. What is missing is purely the
+ * surfacing Buffer has: a picker reachable from inside the OPEN composer, and a
+ * way to put the post you are writing INTO the library. Both live here, on top
+ * of `/sets`, using the same SWR key (`sets`) the settings page uses so the two
+ * views can never disagree about what exists.
+ *
+ * This deliberately does NOT extend Signatures. A signature is a text fragment
+ * inserted at the cursor and its row has no name, no thread structure and no
+ * per-channel settings to carry, plus `autoAdd`, which appends the row to
+ * every post and would be actively wrong for a whole-post template.
+ *
+ * Lives in editor.tsx rather than manage.modal.tsx only to keep the import
+ * graph acyclic: manage.modal already imports this file, so the header control
+ * can import from here, while the reverse direction would be a cycle.
+ */
+
+/** Opens the picker. Shared by both of Buffer's entry points (the composer
+ *  header control and the editor-placeholder chip), so there is one picker, not
+ *  one per entry point. */
+export const useOpenTemplates = () => {
+  const modals = useModals();
+  const t = useT();
+
+  return useCallback(() => {
+    modals.openModal({
+      title: t('templates', 'Templates'),
+      withCloseButton: true,
+      closeOnClickOutside: true,
+      closeOnEscape: true,
+      classNames: {
+        modal: 'text-newTextColor',
+      },
+      children: (close) => <TemplatesPicker close={close} />,
+    });
+  }, [modals, t]);
+};
+
+export const TemplatesPicker: FC<{ close: () => void }> = ({ close }) => {
+  const t = useT();
+  const fetch = useFetch();
+  const modals = useModals();
+  const toaster = useToaster();
+
+  const {
+    applyTemplate,
+    global,
+    internal,
+    selectedIntegrations,
+    providersRef,
+    tags,
+    date,
+    repeater,
+    isCreateSet,
+  } = useLaunchStore(
+    useShallow((state) => ({
+      applyTemplate: state.applyTemplate,
+      global: state.global,
+      internal: state.internal,
+      selectedIntegrations: state.selectedIntegrations,
+      providersRef: state.providersRef,
+      tags: state.tags,
+      date: state.date,
+      repeater: state.repeater,
+      isCreateSet: state.isCreateSet,
+    }))
+  );
+
+  const load = useCallback(async () => {
+    return (await fetch('/sets')).json();
+  }, []);
+
+  const { data, mutate } = useSWR('sets', load);
+
+  const templates = useMemo(() => {
+    return ((data as any[]) || []).map((set) => {
+      try {
+        const content = JSON.parse(set.content);
+        const posts: any[] = content?.posts || [];
+        return {
+          id: set.id,
+          name: set.name,
+          content,
+          posts: posts?.[0]?.value?.length || 0,
+          channels: posts.filter((p) => p?.integration?.id).length,
+          readable: !!posts?.[0]?.value?.length,
+        };
+      } catch {
+        // a row saved by something else, or hand-edited: show it, but without
+        // actions, rather than offering a button that cannot work
+        return {
+          id: set.id,
+          name: set.name,
+          content: null,
+          posts: 0,
+          channels: 0,
+          readable: false,
+        };
+      }
+    });
+  }, [data]);
+
+  const hasContent = useMemo(() => {
+    return [...global, ...internal.flatMap((i) => i.integrationValue)].some(
+      (v) =>
+        stripHtmlValidation('normal', v?.content || '', true).trim().length >
+          0 || (v?.media || []).length > 0
+    );
+  }, [global, internal]);
+
+  const apply = useCallback(
+    (template: any, mode: 'replace' | 'append') => () => {
+      applyTemplate(template.content, mode);
+      close();
+      toaster.show(t('template_applied', 'Template applied'), 'success');
+    },
+    [applyTemplate, close, t]
+  );
+
+  const saveAsTemplate = useCallback(async () => {
+    // The live per-network settings exist ONLY on the provider handles: the
+    // store's copy is the seed, and each provider's react-hook-form stays
+    // uncontrolled while that seed is empty. Reading the store here would save
+    // a template whose subreddit / video title / board silently went missing.
+    // getAllValues reaches into every provider handle; if one is mid-mount it
+    // throws, and an unhandled rejection here would read as a button that does
+    // nothing at all
+    let allValues: any[] | null = null;
+
+    if (selectedIntegrations.length) {
+      try {
+        allValues = await providersRef?.current?.getAllValues();
+      } catch (err) {
+        toaster.show(
+          t('template_could_not_be_saved', 'The template could not be saved'),
+          'warning'
+        );
+        return;
+      }
+    }
+
+    const posts = allValues?.length
+      ? allValues.map((post: any) => ({
+          integration: { id: post.id },
+          settings: { ...(post.settings || {}) },
+          // NO `value.id` and NO `group`. Both are identifiers of the post that
+          // was submitted, not of the template: `posts.repository` upserts on
+          // `value.id`, so a template carrying one would overwrite the row it
+          // was saved from the next time it is used.
+          value: post.values.map((value: any) => ({
+            content: value.content,
+            delay: value.delay || 0,
+            image: (value?.media || []).map(
+              ({ id, path, alt, thumbnail, thumbnailTimestamp }: any) => ({
+                id,
+                path,
+                alt,
+                thumbnail,
+                thumbnailTimestamp,
+              })
+            ),
+          })),
+        }))
+      : // No channel picked yet. Keep the text anyway, in the same shape, so a
+        // content-only template still round-trips: every loader reads
+        // `posts[0].value` and skips post entries with no integration.
+        [
+          {
+            settings: {},
+            value: global.map((v) => ({
+              content: v.content,
+              delay: v.delay || 0,
+              image: v.media || [],
+            })),
+          },
+        ];
+
+    // Same envelope the composer submits and the Sets page stores, so a
+    // template saved from here is editable from Settings → Sets and vice versa.
+    const content = JSON.stringify({
+      type: 'draft',
+      ...(repeater ? { inter: repeater } : {}),
+      tags,
+      shortLink: false,
+      date: date.utc().format('YYYY-MM-DDTHH:mm:ss'),
+      posts,
+    });
+
+    modals.openModal({
+      title: t('save_as_template', 'Save as template'),
+      withCloseButton: true,
+      closeOnClickOutside: true,
+      closeOnEscape: true,
+      classNames: {
+        modal: 'text-newTextColor',
+      },
+      children: (closeName) => (
+        <TemplateNameForm
+          onCancel={closeName}
+          onSave={async (name) => {
+            try {
+              await fetch('/sets', {
+                method: 'POST',
+                body: JSON.stringify({ name, content }),
+              });
+            } catch (err) {
+              toaster.show(
+                t(
+                  'template_could_not_be_saved',
+                  'The template could not be saved'
+                ),
+                'warning'
+              );
+              return;
+            }
+            closeName();
+            // shared SWR key with the settings Sets page AND the calendar
+            // context that feeds the pre-open picker, so one save lands
+            // everywhere the library is shown
+            mutate();
+            toaster.show(t('template_saved', 'Template saved'), 'success');
+          }}
+        />
+      ),
+    });
+  }, [
+    selectedIntegrations,
+    providersRef,
+    global,
+    tags,
+    date,
+    repeater,
+    modals,
+    mutate,
+    toaster,
+    t,
+  ]);
+
+  return (
+    <div className="flex flex-col gap-[16px]">
+      <div className="text-[14px] text-textItemBlur">
+        {t(
+          'templates_are_saved_posts_you_can_start_from',
+          'Templates are saved posts you can start from. They are shared with your team, and they are the same library as the Sets page in Settings.'
+        )}
+      </div>
+
+      {!templates.length && (
+        <div className="text-[14px] text-textItemBlur border border-newTableBorder rounded-[12px] p-[16px]">
+          {t(
+            'no_templates_yet',
+            'No templates yet. Save the post you are writing to start the library.'
+          )}
+        </div>
+      )}
+
+      {!!templates.length && (
+        <div className="flex flex-col gap-[8px] max-h-[320px] overflow-y-auto scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner">
+          {templates.map((template) => (
+            <div
+              key={template.id}
+              className="flex items-center gap-[12px] p-[12px] border border-newTableBorder rounded-[12px]"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] font-[500] truncate">
+                  {template.name}
+                </div>
+                <div className="text-[13px] text-textItemBlur">
+                  {template.readable
+                    ? t(
+                        'template_summary',
+                        '{{posts}} post(s), {{channels}} channel(s)',
+                        {
+                          posts: template.posts,
+                          channels: template.channels,
+                        }
+                      )
+                    : t(
+                        'template_could_not_be_read',
+                        'This template could not be read'
+                      )}
+                </div>
+              </div>
+              {/* no actions on an unreadable row: the rule here is that a
+                  control never appears unless it can do the thing */}
+              {template.readable && (
+                <div className="flex items-center gap-[8px] shrink-0">
+                  {!hasContent && (
+                    <Button
+                      secondary={true}
+                      onClick={apply(template, 'replace')}
+                    >
+                      {t('use_template', 'Use')}
+                    </Button>
+                  )}
+                  {hasContent && (
+                    <>
+                      {/* the composer already holds a post, so the choice is
+                          explicit rather than a hidden guess */}
+                      <Button
+                        secondary={true}
+                        onClick={apply(template, 'replace')}
+                      >
+                        {t('replace_post', 'Replace')}
+                      </Button>
+                      <Button
+                        secondary={true}
+                        onClick={apply(template, 'append')}
+                      >
+                        {t('append_to_post', 'Append')}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Hidden while building a Set: that composer's own footer already saves
+          to this exact library, and two save-to-Sets buttons in one modal is
+          the confusion this feature was built to avoid. */}
+      {!isCreateSet && (
+        <div className="flex flex-col gap-[6px] pt-[12px] border-t border-newTableBorder">
+          <div>
+            <Button
+              secondary={true}
+              disabled={!hasContent}
+              onClick={saveAsTemplate}
+            >
+              {t('save_current_as_template', 'Save current post as template')}
+            </Button>
+          </div>
+          {!hasContent && (
+            <div className="text-[13px] text-textItemBlur">
+              {t(
+                'write_something_first_to_save_a_template',
+                'Write something first, then save it as a template.'
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TemplateNameForm: FC<{
+  onSave: (name: string) => Promise<void>;
+  onCancel: () => void;
+}> = ({ onSave, onCancel }) => {
+  const t = useT();
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!name.trim() || saving) {
+        return;
+      }
+      setSaving(true);
+      try {
+        await onSave(name.trim());
+      } finally {
+        setSaving(false);
+      }
+    },
+    [name, saving, onSave]
+  );
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-[16px]">
+      <Input
+        label={t('template_name', 'Template name')}
+        translationKey="template_name"
+        name="templateName"
+        value={name}
+        disableForm={true}
+        onChange={(e) => setName(e.target.value)}
+        placeholder={t('template_name_placeholder', 'Weekly product update')}
+        autoFocus
+      />
+      <div className="flex gap-[8px] justify-end">
+        <Button type="button" secondary={true} onClick={onCancel}>
+          {t('cancel', 'Cancel')}
+        </Button>
+        <Button type="submit" loading={saving} disabled={!name.trim()}>
+          {t('save', 'Save')}
+        </Button>
+      </div>
+    </form>
+  );
+};

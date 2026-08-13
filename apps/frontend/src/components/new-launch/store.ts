@@ -6,6 +6,7 @@ import { Integrations } from '@gitroom/frontend/components/launches/calendar.con
 import { createRef, RefObject } from 'react';
 import { PostComment } from '@gitroom/frontend/components/new-launch/providers/post-comment.enum';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 
 interface Values {
   id: string;
@@ -133,7 +134,61 @@ interface StoreState {
   setChars: (id: string, chars: number) => void;
   chars: Record<string, number>;
   setComments: (comments: boolean | 'no-media') => void;
+  /** Buffer's footer "Create Another": keep the composer open after a submit
+   *  and clear it for the next post. Deliberately NOT part of `initialState`,
+   *  so `reset()` (which the composer runs on unmount) leaves it alone and a
+   *  user batching posts does not re-tick it on every open. It lives as long as
+   *  the page does, which is the "session" the requirement asks for. */
+  createAnother: boolean;
+  setCreateAnother: (createAnother: boolean) => void;
+  /** Bumped by `resetForNextPost` and `applyTemplate`. The composer keys its
+   *  editor stack, its provider stack and its tags chip on this, because all
+   *  three seed local state ONCE and never re-read the store afterwards:
+   *  TipTap takes `content` only at `useEditor` time, each provider's
+   *  react-hook-form is uncontrolled while its settings are empty, and the
+   *  tags chip copies `initial` into `useState`. Clearing the store alone
+   *  would leave every one of them showing the previous post. */
+  composerGeneration: number;
+  /** The ShowAllProviders imperative handle. Both Templates entry points need
+   *  it to save the post as a template, and only the provider handles hold the
+   *  LIVE per-network settings (the store copy is just the seed). The header
+   *  control could be handed the ref directly; the editor-placeholder
+   *  affordance is too deep to thread it through, so it is parked here. */
+  providersRef: RefObject<any> | null;
+  setProvidersRef: (providersRef: RefObject<any> | null) => void;
+  resetForNextPost: (nextDate?: dayjs.Dayjs) => void;
+  applyTemplate: (template: any, mode: 'replace' | 'append') => void;
 }
+
+/** Turns a saved template's `value[]` into composer values.
+ *
+ *  Two things here are load-bearing, not cosmetic:
+ *
+ *  1. `id: makeId(10)` is REGENERATED. The composer sends `value.id` to the
+ *     server and `posts.repository` upserts on it
+ *     (`where: { id: value.id || uuidv4() }`), so a value id that already
+ *     belongs to a Post row makes the next submit UPDATE that row instead of
+ *     creating a new post. Carrying ids over from a template would silently
+ *     overwrite whatever was published from it the first time.
+ *  2. `p.image ?? p.media`: a template's media key depends on who wrote it.
+ *     The submit payload names it `image`; the composer's own values name it
+ *     `media`. Reading only one of them loses the attachments.
+ *
+ *  The `<p>`-wrap mirrors how existing posts are rehydrated in
+ *  add.edit.modal, so plain-text templates keep their line breaks. */
+const templateToValues = (value: any[]): Values[] =>
+  (value || []).map((p: any) => ({
+    id: makeId(10),
+    delay: p?.delay || 0,
+    content:
+      (p?.content || '').indexOf('<p>') > -1
+        ? p.content
+        : (p?.content || '')
+            .split('\n')
+            .map((line: string) => `<p>${line}</p>`)
+            .join(''),
+    media: p?.image || p?.media || [],
+  }));
 
 const initialState = {
   editor: undefined as undefined,
@@ -155,10 +210,16 @@ const initialState = {
   global: [] as Values[],
   internal: [] as Internal[],
   chars: {},
+  composerGeneration: 0,
 };
 
 export const useLaunchStore = create<StoreState>()((set) => ({
   ...initialState,
+  // outside initialState on purpose. See the interface notes: `reset()`
+  // spreads initialState over the current state, so anything declared only
+  // here survives a composer close
+  createAnother: false,
+  providersRef: null,
   setCurrent: (current: string) =>
     set((state) => ({
       current: current,
@@ -512,6 +573,146 @@ export const useLaunchStore = create<StoreState>()((set) => ({
     set((state) => ({
       ...state,
       ...initialState,
+    })),
+  /** "Create Another": empty the composer for the next post while keeping the
+   *  channel selection, because composing again to the same channels is the
+   *  entire point of the checkbox.
+   *
+   *  Everything else is treated as belonging to the post that was just sent.
+   *  In particular:
+   *
+   *  - `global` gets ONE fresh empty value with a NEW id. A reused id would
+   *    make the second submit upsert over the first post's row (see
+   *    `templateToValues`), which is invisible in the UI and unrecoverable.
+   *  - `internal` is dropped: per-network overrides are overrides OF the text
+   *    that just went out.
+   *  - `settings` is cleared per channel but the channel and its `ref` object
+   *    are kept. Keeping the ref matters: `schedule`'s closure holds this
+   *    array, and a same-identity ref still resolves to the freshly mounted
+   *    provider handle.
+   *  - `locked` is cleared because it is set by uppy's `file-added` and only
+   *    unset by that same uppy instance's `complete`/`error`. The editor
+   *    remount that the generation bump triggers destroys that instance, so a
+   *    lock left behind would disable submit for the rest of the session.
+   *  - `tags` go: a tag is written onto the post, and silently carrying a
+   *    campaign tag onto the next, unrelated post is the same class of leak as
+   *    carrying its text.
+   *
+   *  `repeater` is deliberately untouched: a cadence describes the batch, not
+   *  the one post that just left.
+   *
+   *  `date` MOVES, to `nextDate`. Post two has to leave post one's timestamp or
+   *  the two land on the same instant, so the caller resolves Buffer's "Next
+   *  Available" (`/posts/find-slot`) and hands the answer in. It is a parameter
+   *  rather than something this store fetches because the store is synchronous
+   *  by construction, and optional because the lookup is allowed to fail: with
+   *  no argument the current date simply stands. Note what is NOT done here —
+   *  falling back to `initialState.date`, which is a `newDayjs()` frozen at
+   *  MODULE LOAD, i.e. the moment the page opened rather than any moment
+   *  relevant to this post. */
+  resetForNextPost: (nextDate?: dayjs.Dayjs) =>
+    set((state) => ({
+      global: [{ id: makeId(10), content: '', delay: 0, media: [] }],
+      internal: [],
+      selectedIntegrations: state.selectedIntegrations.map((p) =>
+        Object.keys(p.settings || {}).length ? { ...p, settings: {} } : p
+      ),
+      current: 'global',
+      tab: 0,
+      hide: false,
+      locked: false,
+      chars: {},
+      totalChars: 0,
+      postComment: PostComment.ALL,
+      comments: true,
+      editor: 'normal' as const,
+      tags: [],
+      // the caller has already parsed and validated it; an absent slot leaves
+      // the composer on the date it was submitting from
+      ...(nextDate ? { date: nextDate } : {}),
+      composerGeneration: state.composerGeneration + 1,
+    })),
+  /** Applies a saved template (a `Sets` row's parsed `content`) to the OPEN
+   *  composer. `replace` swaps the post; `append` adds the template's items to
+   *  the end of the current thread.
+   *
+   *  Content always lands on the global stack and the view switches to it: the
+   *  template describes a whole post, so writing it into whichever channel tab
+   *  happened to be open would hide most of it.
+   *
+   *  Channels named by the template are ADDED rather than toggled:
+   *  `addOrRemoveSelectedIntegration` would remove an already-selected channel,
+   *  which is the opposite of what applying a template means. Their per-network
+   *  settings come along, since a template whose Reddit subreddit or YouTube
+   *  title is dropped is only half applied.
+   *
+   *  Bumping the generation is part of the contract, not the caller's job: both
+   *  entry points would otherwise have to remember it, and forgetting it looks
+   *  exactly like "the picker does nothing". */
+  applyTemplate: (template: any, mode: 'replace' | 'append') =>
+    set((state) => {
+      const posts: any[] = template?.posts || [];
+      const values = templateToValues(posts?.[0]?.value || []);
+
+      if (!values.length) {
+        return {};
+      }
+
+      const selectedIntegrations = [...state.selectedIntegrations];
+
+      for (const post of posts) {
+        const integration = state.integrations.find(
+          (i) => i.id === post?.integration?.id
+        );
+
+        // a channel the template names but this org no longer has connected
+        if (!integration) {
+          continue;
+        }
+
+        const settings = post?.settings || {};
+        const existing = selectedIntegrations.findIndex(
+          (s) => s.integration.id === integration.id
+        );
+
+        if (existing === -1) {
+          selectedIntegrations.push({
+            integration,
+            settings,
+            ref: createRef(),
+          });
+          continue;
+        }
+
+        if (Object.keys(settings).length) {
+          selectedIntegrations[existing] = {
+            ...selectedIntegrations[existing],
+            settings,
+          };
+        }
+      }
+
+      return {
+        global: mode === 'replace' ? values : [...state.global, ...values],
+        // overrides of the replaced text no longer describe anything
+        ...(mode === 'replace'
+          ? { internal: [], tags: template?.tags || [] }
+          : {}),
+        selectedIntegrations,
+        current: 'global',
+        tab: 0,
+        hide: false,
+        editor: 'normal' as const,
+        composerGeneration: state.composerGeneration + 1,
+      };
+    }),
+  setCreateAnother: (createAnother: boolean) =>
+    set(() => ({
+      createAnother,
+    })),
+  setProvidersRef: (providersRef: RefObject<any> | null) =>
+    set(() => ({
+      providersRef,
     })),
   setAllIntegrations: (integrations: Integrations[]) =>
     set((state) => ({

@@ -1,6 +1,14 @@
 'use client';
 
-import { useCalendar, ListStateFilter } from '@gitroom/frontend/components/launches/calendar.context';
+import {
+  useCalendar,
+  ListStateFilter,
+  displayTodayKey,
+  displayInstant,
+  displayWall,
+  resolveDisplayTimezone,
+  zoneOffsetMinutes,
+} from '@gitroom/frontend/components/launches/calendar.context';
 import clsx from 'clsx';
 import { useSearchParams } from 'next/navigation';
 import { ChannelAvatar } from '@gitroom/frontend/components/new-layout/channel-avatar';
@@ -17,13 +25,23 @@ import i18next from 'i18next';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { expandPostsList } from '@gitroom/helpers/utils/posts.list.minify';
 import useCookie from 'react-use-cookie';
+import { useToaster } from '@gitroom/react/toaster/toaster';
+import { EmptyState } from '@gitroom/frontend/components/cuesoft/empty-state';
+import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 
-// Helper function to get start and end dates based on display type
+// Helper function to get start and end dates based on display type.
+// `displayTimezone` only matters when there is no referenceDate: "the range
+// around today" has to mean today on the DISPLAY clock (the clock the grid
+// buckets and tints on), or pressing Today within a few minutes of midnight
+// navigates to the wrong week/month. Mirrors calendar.context's copy.
 function getDateRange(
   display: 'day' | 'week' | 'month' | 'list',
-  referenceDate?: string
+  referenceDate?: string,
+  displayTimezone?: string
 ) {
-  const date = referenceDate ? newDayjs(referenceDate) : newDayjs();
+  const date = newDayjs(
+    referenceDate || displayTodayKey(resolveDisplayTimezone(displayTimezone))
+  );
 
   switch (display) {
     case 'day':
@@ -41,7 +59,13 @@ function getDateRange(
       // Mirrors calendar.context getDateRange exactly: the whole visible
       // 6-week grid (Sunday of week one through Saturday of week six), so
       // Today/prev/next produce the same range shape as initial load.
-      const gridStart = date.startOf('month').startOf('week');
+      // Sunday is subtracted EXPLICITLY (.day() is Sunday-based whatever the
+      // locale) instead of via startOf('week'), which follows dayjs's ACTIVE
+      // locale: under a Monday-first locale (fr/de/ru…) the fetched window
+      // started a day after MonthView's Sunday-first first cell, so that cell
+      // held no data and rendered empty.
+      const firstOfMonth = date.startOf('month');
+      const gridStart = firstOfMonth.subtract(firstOfMonth.day(), 'day');
       return {
         startDate: gridStart.format('YYYY-MM-DD'),
         endDate: gridStart.add(41, 'day').format('YYYY-MM-DD'),
@@ -51,6 +75,16 @@ function getDateRange(
       return {
         startDate: date.format('YYYY-MM-DD'),
         endDate: date.format('YYYY-MM-DD'),
+      };
+    default:
+      // Unreachable by the declared type, mandatory at runtime: `display`
+      // comes from ?display= (user-editable) / the calendar-display cookie /
+      // the pathname, and every caller here casts it. Without this branch an
+      // unknown value returned undefined and the caller threw on
+      // `range.startDate`. Same fallback as calendar.context's copy.
+      return {
+        startDate: date.startOf('week').format('YYYY-MM-DD'),
+        endDate: date.endOf('week').format('YYYY-MM-DD'),
       };
   }
 }
@@ -67,8 +101,14 @@ function resolveAnchorDate(calendar: {
   endDate: string;
   display: string;
   anchor: string | null;
+  displayTimezone?: string;
 }): dayjs.Dayjs {
-  const today = newDayjs();
+  // today on the DISPLAY clock, as a bare date carrier so every comparison
+  // below stays date-on-date. The grid's "today" column and this anchor must be
+  // the same day or a view switch near midnight lands on the wrong week.
+  const today = newDayjs(
+    displayTodayKey(resolveDisplayTimezone(calendar.displayTimezone))
+  );
   const start = newDayjs(calendar.startDate);
   const end = newDayjs(calendar.endDate);
   if (calendar.anchor) {
@@ -347,7 +387,9 @@ const TimezoneFilter: FC = () => {
   // hour, minutes always shown.
   const gmt = useCallback((tz: string) => {
     try {
-      const minutes = newDayjs().tz(tz).utcOffset();
+      // the same offset source the calendar renders on, so the label in the
+      // picker cannot disagree with the times it produces
+      const minutes = zoneOffsetMinutes(Date.now(), tz);
       const sign = minutes < 0 ? '-' : '+';
       const abs = Math.abs(minutes);
       return `GMT${sign}${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, '0')}`;
@@ -454,6 +496,22 @@ const PhoneFilterSheet: FC<{ open: boolean; onClose: () => void }> = ({
   >('root');
   const [q, setQ] = useState('');
 
+  // A dismissed sheet stays MOUNTED (only its render short-circuits below), so
+  // the drill-in stage and the timezone search text survived the dismissal and
+  // the next tap on the funnel opened mid-navigation in a stale sub-view.
+  // Reset on CLOSE, not on open: an effect runs after paint, so resetting on
+  // open would paint one frame of the stale sub-view first. (PhoneCalendarSheet
+  // resyncs on open because it re-reads a prop that moves while it is closed,
+  // so there on-open is the only correct moment; here nothing arrives from
+  // outside.) Both paths that dismiss the sheet flip `open`, so this covers
+  // the backdrop tap and the cs:surface-open yield alike.
+  useEffect(() => {
+    if (!open) {
+      setStage('root');
+      setQ('');
+    }
+  }, [open]);
+
   const loadTags = useCallback(async () => {
     return (await fetch('/posts/tags')).json();
   }, []);
@@ -475,6 +533,7 @@ const PhoneFilterSheet: FC<{ open: boolean; onClose: () => void }> = ({
     (searchParams.get('tags') || '').split(',').filter(Boolean)
   );
   const urlState = searchParams.get('state') || 'all';
+  const undatedOpen = searchParams.get('undated') === '1';
 
   const stateOptions: { value: ListStateFilter; label: string }[] = [
     { value: 'all', label: t('all_posts', 'All Posts') },
@@ -567,6 +626,34 @@ const PhoneFilterSheet: FC<{ open: boolean; onClose: () => void }> = ({
               </svg>,
               t('filter_by_tag', 'Filter by tag'),
               () => setStage('tags')
+            )}
+            {/* The Undated-drafts panel, reachable on phone too: it is the only
+                surface those drafts have, so it cannot be desktop-only. It is a
+                toggle rather than a drill-in stage: the panel itself renders
+                below the grid at this width, so the sheet's job is done the
+                moment it is flipped, and it dismisses. */}
+            {rootRow(
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 2v4" />
+                <path d="M16 2v4" />
+                <rect width="18" height="18" x="3" y="4" rx="2" />
+                <path d="M3 10h18" />
+                <path d="m9 20 6-6" />
+              </svg>,
+              undatedOpen
+                ? t('hide_undated_drafts', 'Hide undated drafts')
+                : t('show_undated_drafts', 'Show undated drafts'),
+              () => {
+                const url = new URL(window.location.href);
+                if (undatedOpen) url.searchParams.delete('undated');
+                else url.searchParams.set('undated', '1');
+                window.history.replaceState(
+                  null,
+                  '',
+                  url.pathname + url.search
+                );
+                onClose();
+              }
             )}
             <div className="h-[1px] bg-newTableBorder my-[6px]" />
             {rootRow(
@@ -819,7 +906,12 @@ const PhoneCalendarSheet: FC<{
 
   if (!open) return null;
 
-  const today = newDayjs();
+  // display-clock today, as a date key: the mini picker's today circle has to
+  // fall on the same day the grid behind it marks as today
+  const todayKey = displayTodayKey(
+    resolveDisplayTimezone(calendar.displayTimezone)
+  );
+  const anchorKey = anchorDate.format('YYYY-MM-DD');
   const viewOptions: { key: '3days' | 'week' | 'month'; label: string }[] = [
     { key: '3days', label: t('three_days', '3 Days') },
     { key: 'week', label: t('week', 'Week') },
@@ -905,8 +997,12 @@ const PhoneCalendarSheet: FC<{
             </div>
           ))}
           {gridDays.map((day) => {
-            const isToday = day.isSame(today, 'day');
-            const isAnchor = day.isSame(anchorDate, 'day');
+            // date-key compares, like every other today test in the calendar:
+            // isSame(_, 'day') truncates in the machine zone and can disagree
+            // with the display-clock day the grid is showing
+            const dayKey = day.format('YYYY-MM-DD');
+            const isToday = dayKey === todayKey;
+            const isAnchor = dayKey === anchorKey;
             const otherMonth = !day.isSame(viewMonth, 'month');
             return (
               <button
@@ -1027,62 +1123,369 @@ const ViewFilter: FC = () => {
   );
 };
 
-/** Buffer's month-view "No Date" toggle — opens the Undated-drafts side panel
- *  (URL-derived state so the force-dynamic remount can't close it). */
-const NoDateToggle: FC = () => {
+// ---------------------------------------------------------------------------
+// UNDATED DRAFTS
+//
+// The blocker that got the first version of this deleted is gone. That version
+// was a pixel-correct shell: a "No Date" toggle that only flipped ?noDate, and a
+// panel behind it that performed zero fetches and could not have held a row if
+// it had, because Prisma declared Post.publishDate non-nullable, so an undated
+// draft was not a thing this product could represent. It was removed under the
+// no-dead-buttons rule rather than left looking finished.
+//
+// Post.publishDate is `DateTime?` now, `GET /posts/undated` returns exactly the
+// dateless drafts (state DRAFT, newest created first, since there is no date
+// to sort by), and `PUT /posts/:id/schedule` promotes one by giving it a date. So the
+// feature is real, and this is it: a fetching panel with a working promote path.
+//
+// IT IS DELIBERATELY NOT A CALENDAR VIEW. These posts have no position in time,
+// so putting them in a grid would be a lie about what they are: there is no
+// cell they belong in, which is exactly why the calendar query excludes them and
+// the grid buckets them nowhere. The panel is a plain list beside the grid,
+// ordered by when it was captured, and the only date it mentions is the one the
+// user is in the act of assigning.
+//
+// The toggle drives ?undated=1 through history.replaceState like every other
+// filter here, which is also what survives the force-dynamic page's remounts.
+// calendar.context's setFiltersWrapper carries the param through its URL rewrite
+// so a week or view change cannot close the panel.
+// ---------------------------------------------------------------------------
+
+/** Buffer's "No Date" toolbar toggle: opens/closes the Undated Drafts panel. */
+const UndatedFilter: FC = () => {
   const t = useT();
   const searchParams = useSearchParams();
-  const on = !!searchParams.get('noDate');
+  const open = searchParams.get('undated') === '1';
 
   const toggle = useCallback(() => {
     const url = new URL(window.location.href);
-    if (url.searchParams.get('noDate')) url.searchParams.delete('noDate');
-    else url.searchParams.set('noDate', '1');
+    if (open) url.searchParams.delete('undated');
+    else url.searchParams.set('undated', '1');
     window.history.replaceState(null, '', url.pathname + url.search);
-  }, []);
+  }, [open]);
 
   return (
     <button
       type="button"
-      aria-label={t('show_no_date_drafts', 'Show No Date drafts')}
       onClick={toggle}
-      className={clsx(ddTriggerCls, on && 'bg-boxHover text-newTextColor')}
+      aria-pressed={open}
+      className={clsx(
+        ddTriggerCls,
+        open && '!text-newTextColor bg-boxHover'
+      )}
     >
+      {/* a calendar with its date struck through: "no date" */}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <rect width="18" height="18" x="3" y="3" rx="2" />
-        <path d="M15 3v18" />
-        <path d="m10 15-3-3 3-3" />
+        <path d="M8 2v4" />
+        <path d="M16 2v4" />
+        <rect width="18" height="18" x="3" y="4" rx="2" />
+        <path d="M3 10h18" />
+        <path d="m9 20 6-6" />
       </svg>
-      {t('no_date', 'No Date')}
+      {/* Its own key, not the shared `no_date`: that one already exists as the
+          status label 'No date' (week-run.component.tsx, and the card fallbacks
+          in calendar.tsx), and this is a toolbar CONTROL named after Buffer's
+          button. One key translated once cannot say both. */}
+      {t('no_date_filter', 'No Date')}
     </button>
   );
 };
 
-/** Buffer's Undated-drafts panel: in-content right sibling of the calendar
- *  grid (the grid shrinks beside it). Postiz drafts always carry a date, so
- *  the Buffer empty state is the steady state. */
-export const UndatedDraftsPanel: FC = () => {
-  const t = useT();
-  const searchParams = useSearchParams();
-  if (!searchParams.get('noDate')) return null;
+/** GetPostsListDto caps `limit` at 100, so this is the ceiling, not a preference:
+ *  a larger page is a validation failure, and reaching past it means more pages. */
+const PAGE_SIZE = 100;
 
-  const close = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('noDate');
-    window.history.replaceState(null, '', url.pathname + url.search);
+type UndatedDraft = {
+  id: string;
+  content: string;
+  createdAt?: string | null;
+  needsApproval?: boolean;
+  integration?: {
+    id: string;
+    name?: string;
+    picture?: string;
+    providerIdentifier?: string;
   };
+};
+
+/** One row's promote control: pick a wall clock, hand it to the post.
+ *
+ *  SCHEDULE-WHAT-YOU-SEE BOUNDARY (undated promote). The fourth of these; the
+ *  other three are in calendar.tsx. The input is a wall clock the user reads on
+ *  the DISPLAY clock, and `displayInstant` is what turns that reading into the
+ *  instant to store, so the slot the post lands in is the one the user typed
+ *  whatever zone they are viewing in. It goes through the same helper the grid's
+ *  cells and drops use, and deliberately not through dayjs's `.tz()`/`.local()`:
+ *  those compute via the machine zone and are an hour out on a transition date. */
+const SchedulePicker: FC<{
+  onCancel: () => void;
+  onConfirm: (utcWallClock: string) => Promise<void>;
+}> = ({ onCancel, onConfirm }) => {
+  const t = useT();
+  const calendar = useCalendar();
+  const zone = resolveDisplayTimezone(calendar.displayTimezone);
+
+  // Default: the top of the next hour on the display clock.
+  //
+  // Two deliberate details, both about wall clocks that DO NOT EXIST. Verified
+  // against 7 display zones on their spring-forward, fall-back and southern-DST
+  // dates; the first version failed New York on 2026-03-08 by exactly one hour.
+  //
+  // 1. The hour is added in EPOCH space, not to the wall-clock carrier. Adding an
+  //    hour to the carrier is calendar arithmetic on a day that may not have 24
+  //    of them: at 01:30 EST it produces 02:30, and 02:30 does not exist that
+  //    day. An instant plus 3,600,000ms is a real later moment whichever way the
+  //    clocks move, and expressing THAT on the display clock can only ever name
+  //    an hour that exists.
+  // 2. The result is still round-tripped through displayInstant/displayWall,
+  //    which normalises anything left over (a zone whose gap is a half hour can
+  //    still be truncated into it by startOf('hour')). What the input shows is
+  //    then guaranteed to be the wall clock the Schedule button will store, which
+  //    is the whole promise of this control: a default that reads 02:00 and
+  //    silently saves 03:00 is the same class of bug the display clock exists to
+  //    kill, just moved into the picker.
+  const [value, setValue] = useState(() => {
+    const nextHour = displayWall(Date.now() + 3600000, zone)
+      .startOf('hour')
+      .format('YYYY-MM-DD HH:mm:00');
+    return displayWall(
+      displayInstant(nextHour, zone).valueOf(),
+      zone
+    ).format('YYYY-MM-DDTHH:mm');
+  });
+  const [saving, setSaving] = useState(false);
+
+  const instant = useMemo(
+    () => (value ? displayInstant(`${value.replace('T', ' ')}:00`, zone) : null),
+    [value, zone]
+  );
+  const valid = !!instant?.isValid();
+  // A past slot is allowed (it is the same thing Publish Now does) but never
+  // silently: the publish workflow does not wait for a date already gone, so the
+  // post goes out on save, and the user has to be told that before they save.
+  const isPast = valid && instant!.isBefore(dayjs());
+
+  const confirm = useCallback(async () => {
+    if (!valid || saving) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await onConfirm(instant!.utc().format('YYYY-MM-DDTHH:mm:ss'));
+    } finally {
+      setSaving(false);
+    }
+  }, [valid, saving, instant, onConfirm]);
 
   return (
-    <div className="w-[300px] shrink-0 ms-[16px] flex flex-col gap-[6px] phone:hidden select-none">
-      <div className="flex items-center justify-between">
-        <div className="text-[16px] font-[550] text-newTextColor" data-cs>
-          {t('undated_drafts', 'Undated drafts')}
+    <div className="flex flex-col gap-[6px] pt-[8px]">
+      {/* No data-cs anywhere in this control: h-[36px], h-[32px], text-[13px]
+          and rounded-[6px]/[8px] are all off the global.scss size ladder (its
+          height rungs start at 40, its type rungs at 18, its radius rungs at 10),
+          so there is nothing here to opt out of. */}
+      <input
+        type="datetime-local"
+        value={value}
+        autoFocus
+        onChange={(e) => setValue(e.target.value)}
+        className="h-[36px] px-[8px] rounded-[6px] border border-newTableBorder bg-newBgColorInner text-[13px] text-newTextColor w-full"
+      />
+      {isPast && (
+        <div className="text-[12px] text-newTextColor/60">
+          {t(
+            'undated_past_slot_warning',
+            'That time has passed, so this will publish as soon as it is scheduled.'
+          )}
+        </div>
+      )}
+      <div className="flex items-center gap-[6px]">
+        <button
+          type="button"
+          onClick={confirm}
+          disabled={!valid || saving}
+          className={clsx(
+            'h-[32px] px-[10px] rounded-[8px] bg-btnPrimary text-black text-[13px] font-[500] transition-opacity duration-150',
+            !valid || saving ? 'opacity-50' : 'hover:opacity-90'
+          )}
+        >
+          {saving ? t('scheduling', 'Scheduling...') : t('schedule', 'Schedule')}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-[32px] px-[10px] rounded-[8px] border border-newTableBorder text-[13px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+        >
+          {t('cancel', 'Cancel')}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/** Buffer's Undated-drafts panel: the right sibling of the calendar grid (and of
+ *  the list, since this is the only surface undated drafts have: every list tab
+ *  sends the repository's `undated=exclude` default, so they appear in none of
+ *  them).
+ *
+ *  Rendered by launches.component.tsx next to <Calendar />; open state is
+ *  ?undated=1, written by UndatedFilter above. */
+export const UndatedDraftsPanel: FC = () => {
+  const t = useT();
+  const fetch = useFetch();
+  const toaster = useToaster();
+  const calendar = useCalendar();
+  const searchParams = useSearchParams();
+  const open = searchParams.get('undated') === '1';
+
+  const close = useCallback(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('undated');
+    window.history.replaceState(null, '', url.pathname + url.search);
+  }, []);
+
+  // How many pages deep the rail is showing. A rail has no room for a pager, so
+  // "more" grows this and every page is refetched together below.
+  //
+  // It counts PAGES rather than raising `limit`, because GetPostsListDto caps
+  // limit at @Max(100), so asking for 200 is not a bigger page, it is a 400.
+  const [pages, setPages] = useState(1);
+
+  // Same customer/channel/tag filters as the views beside it, so the panel
+  // answers the same question the rest of the page is asking. No date params:
+  // there is no range to filter a dateless post by.
+  const filterParams = useMemo(() => {
+    const search = new URLSearchParams({
+      limit: PAGE_SIZE.toString(),
+      customer: calendar.customer?.toString() || '',
+      integration: calendar.integration?.toString() || '',
+    });
+    if (calendar.tags) search.set('tags', calendar.tags);
+    return search.toString();
+  }, [calendar.customer, calendar.integration, calendar.tags]);
+
+  const load = useCallback(async () => {
+    // Every page in ONE batch (the same Promise.all fan-out the tab counts use)
+    // rather than appending each page to a kept array. Accumulating across
+    // separate fetches is what lets a row be shown twice or skipped: promote a
+    // draft out of page 0 and every later row shifts up one, so a page 1 fetched
+    // afterwards starts one row late. Refetched together, the pages are all read
+    // against one state of the list, and `total` comes from the same read as the
+    // rows it describes.
+    //
+    // The endpoint forces state=draft&undated=only itself, so these params cannot
+    // widen the result into something dated.
+    const responses = await Promise.all(
+      Array.from({ length: pages }, async (_, page) =>
+        expandPostsList(
+          await (
+            await fetch(`/posts/undated?page=${page}&${filterParams}`)
+          ).json()
+        )
+      )
+    );
+    return {
+      posts: responses.flatMap((response: any) => response?.posts || []),
+      total: (responses[0] as any)?.total ?? 0,
+    };
+  }, [pages, filterParams]);
+
+  const { data, isLoading, mutate } = useSWR(
+    open ? `/posts-undated-${pages}-${filterParams}` : null,
+    load,
+    {
+      revalidateOnFocus: false,
+      refreshWhenHidden: false,
+      // Load more mints a NEW key, and without this SWR has no data for it yet,
+      // so isLoading flips true and the rows the user is reading are replaced by
+      // 'Loading...' before coming back one item longer. keepPreviousData holds
+      // current rows in place while the deeper batch arrives.
+      keepPreviousData: true,
+    }
+  );
+
+  const drafts: UndatedDraft[] = data?.posts || [];
+  // The header count is the server's `total`, not `drafts.length`: the rows are a
+  // window over that total, so counting the window would under-report the moment
+  // there are more than fit in it.
+  const total = data?.total ?? drafts.length;
+  const [picking, setPicking] = useState<string | null>(null);
+
+  const schedule = useCallback(
+    (id: string) => async (utcWallClock: string) => {
+      const response = await fetch(`/posts/${id}/schedule`, {
+        method: 'PUT',
+        body: JSON.stringify({ date: utcWallClock, target: 'queue' }),
+      });
+      if (!response.ok) {
+        toaster.show(
+          t('could_not_schedule_draft', 'Could not schedule this draft'),
+          'warning'
+        );
+        return;
+      }
+      // The route answers with which of the two things happened: an approvals
+      // gate the caller cannot clear pins the date but leaves the post a DRAFT,
+      // and saying "scheduled" then would be false.
+      const result = await response.json();
+      toaster.show(
+        result?.scheduled
+          ? t('draft_scheduled', 'Draft scheduled')
+          : t(
+              'draft_date_set_awaiting_approval',
+              'Date saved. Still awaiting approval before it can be scheduled.'
+            ),
+        'success'
+      );
+      setPicking(null);
+      // The post left this panel and (when it was queued) entered the grid and
+      // the list, so both have to be refetched, not just this one.
+      mutate();
+      calendar.reloadCalendarView();
+    },
+    // reloadCalendarView rather than `calendar`: useCalendar() returns a fresh
+    // object every render, so depending on the whole context would rebuild this
+    // callback on every render for no gain.
+    [fetch, toaster, t, mutate, calendar.reloadCalendarView]
+  );
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    // Buffer measured the panel at ~300px. shrink-0 keeps it there while the grid
+    // takes the rest; phone drops it below the grid at full width, since 300px
+    // beside a 390px viewport would leave neither usable.
+    // phone:max-h-[60vh] because the phone layout stacks: without a cap, a long
+    // list would take its full natural height out of the pane's min-height and
+    // starve the grid above it down to nothing. Capped, the list scrolls inside
+    // its own overflow-y-auto and the grid keeps its share.
+    <div
+      data-cs
+      className="w-[300px] shrink-0 ms-[12px] flex flex-col bg-newBgColorInner border border-newTableBorder rounded-[12px] overflow-hidden phone:w-full phone:ms-0 phone:mt-[12px] phone:max-h-[60vh]"
+    >
+      <div className="shrink-0 flex items-start gap-[8px] px-[12px] pt-[12px]">
+        <div className="flex-1 min-w-0 flex flex-col gap-[2px]">
+          <div className="text-[16px] font-[550] text-newTextColor">
+            {t('undated_drafts', 'Undated drafts')}
+            {total > 0 && (
+              <span className="ms-[6px] text-[13px] font-[400] text-newTextColor/60">
+                {total}
+              </span>
+            )}
+          </div>
+          <div className="text-[12px] text-newTextColor/60">
+            {t(
+              'undated_drafts_sub',
+              'Ideas with no slot yet. Give one a date to schedule it.'
+            )}
+          </div>
         </div>
         <button
           type="button"
-          aria-label={t('close', 'Close')}
           onClick={close}
-          className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center hover:bg-boxHover text-newTextColor/70"
+          aria-label={t('close', 'Close')}
+          className="shrink-0 w-[28px] h-[28px] phone:w-[40px] phone:h-[40px] rounded-[6px] flex items-center justify-center text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover transition-colors duration-150"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 6 6 18" />
@@ -1090,28 +1493,102 @@ export const UndatedDraftsPanel: FC = () => {
           </svg>
         </button>
       </div>
-      <div className="text-[13px] text-newTextColor/60">
-        {t(
-          'undated_drafts_sub',
-          'Drafts and approvals without a scheduled date.'
+      <div className="flex-1 min-h-0 overflow-y-auto p-[12px] flex flex-col gap-[8px]">
+        {isLoading ? (
+          <div className="text-[13px] text-newTextColor/60">
+            {t('loading', 'Loading...')}
+          </div>
+        ) : drafts.length === 0 ? (
+          // A real empty state now, not a hardcoded one: this renders because the
+          // query came back empty, and it stops rendering when a draft exists.
+          <EmptyState
+            variant="hero"
+            icon={
+              <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                  <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                  <path d="M16 13H8" />
+                  <path d="M16 17H8" />
+                </svg>
+              </div>
+            }
+            title={t('no_undated_drafts', 'No undated drafts')}
+            description={t(
+              'no_undated_drafts_sub',
+              'Save a post without a date and it waits here until you give it one.'
+            )}
+          />
+        ) : (
+          drafts.map((draft) => (
+            <div
+              key={draft.id}
+              className="flex flex-col gap-[6px] p-[10px] rounded-[8px] border border-newTableBorder bg-newColColor"
+            >
+              <div className="flex items-center gap-[8px] min-w-0">
+                <ChannelAvatar
+                  picture={draft.integration?.picture}
+                  identifier={draft.integration?.providerIdentifier || ''}
+                  name={draft.integration?.name || ''}
+                  size={24}
+                  badgeSize={10}
+                  fallback="placeholder"
+                />
+                <span className="flex-1 min-w-0 truncate text-[13px] font-[500] text-newTextColor">
+                  {draft.integration?.name}
+                </span>
+                {/* Read off the needsApproval FIELD, which is the gate itself.
+                    It matters here specifically: the Approvals tab inherits the
+                    `undated=exclude` default, so a gated draft with no date
+                    appears in no tab, and this chip is the only place anyone
+                    would learn it is waiting on someone. */}
+                {draft.needsApproval && (
+                  <span className="shrink-0 rounded-full bg-newTextColor/10 px-[7px] h-[18px] flex items-center text-[11px] text-newTextColor whitespace-nowrap">
+                    {t('needs_approval', 'Needs approval')}
+                  </span>
+                )}
+              </div>
+              <div className="text-[13px] leading-[18px] text-newTextColor/80 line-clamp-3 break-words text-start">
+                {stripHtmlValidation('none', draft.content || '', false)}
+              </div>
+              {/* The only time this panel prints is when the draft was captured.
+                  Guarded because dayjs.utc(null) renders the words 'Invalid Date'
+                  and dayjs.utc(undefined) renders NOW, and "added just now" about
+                  a draft of unknown age is a plausible-looking lie. */}
+              {!!draft.createdAt && (
+                <div className="text-[12px] text-newTextColor/60">
+                  {t('added', 'Added')} {dayjs.utc(draft.createdAt).fromNow()}
+                </div>
+              )}
+              {picking === draft.id ? (
+                <SchedulePicker
+                  onCancel={() => setPicking(null)}
+                  onConfirm={schedule(draft.id)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPicking(draft.id)}
+                  className="self-start h-[32px] px-[10px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[13px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+                >
+                  {t('add_a_date', 'Add a date')}
+                </button>
+              )}
+            </div>
+          ))
         )}
-      </div>
-      <div className="flex flex-col items-center gap-[10px] mt-[56px] px-[16px] text-center">
-        <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-            <path d="M10 9H8" />
-            <path d="M16 13H8" />
-            <path d="M16 17H8" />
-          </svg>
-        </div>
-        <div className="text-[16px] font-[550] text-newTextColor" data-cs>
-          {t('no_undated_drafts', 'No Undated Drafts')}
-        </div>
-        <div className="text-[13px] text-newTextColor/60">
-          {t('undated_drafts_empty', 'Drafts without a date will appear here.')}
-        </div>
+        {/* Only rendered when there is genuinely more to fetch, so it is never a
+            button that does nothing. It widens the window rather than paging, so
+            the rows already on screen stay exactly where they are. */}
+        {drafts.length > 0 && total > drafts.length && (
+          <button
+            type="button"
+            onClick={() => setPages((value) => value + 1)}
+            className="h-[32px] rounded-[8px] border border-newTableBorder text-[13px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150"
+          >
+            {t('load_more', 'Load more')} ({total - drafts.length})
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1184,18 +1661,10 @@ export const PageHeader: FC = () => {
       <h1 className="font-display text-[20px] font-[400] text-newTextColor truncate" data-cs>
         {single ? single.name : t('all_channels', 'All Channels')}
       </h1>
-      {/* Buffer's bookmark sits right of the title (saved-views live there);
-          anatomy only until saved views exist here — hidden on phone, where a
-          24px non-functional target under the 40px floor read as dead chrome */}
-      <button
-        type="button"
-        title={t('save_current_view', 'Save current view')}
-        className="phone:hidden w-[24px] h-[24px] rounded-[6px] flex items-center justify-center text-newTextColor/60 hover:text-newTextColor hover:bg-boxHover transition-colors duration-150"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" />
-        </svg>
-      </button>
+      {/* Buffer's saved-views bookmark sat here as anatomy only: no handler, no
+          state, no endpoint. Deleted under the no-dead-buttons rule; it can
+          come back with the feature (saved views need a persistence surface
+          this fork does not have yet), not before. */}
       <div className="flex-1" />
       {/* phone puts the segmented in the toolbar row (Buffer) — hidden here.
           Buffer segmented geometry (measured live 2026-08-10): container 32px
@@ -1301,12 +1770,20 @@ export const Filters = () => {
       calendar.endDate,
       calendar.display,
       calendar.anchor,
+      // resolveAnchorDate reads "today" off the display clock, so a zone switch
+      // can legitimately move the anchor (and with it the phone title chip)
+      calendar.displayTimezone,
     ]
   );
 
   const setToday = useCallback(() => {
+    // the only getDateRange call with no reference date, so the only one whose
+    // result depends on which clock "today" is read on: the display clock, the
+    // same one the grid draws the today column with
     const currentRange = getDateRange(
-      calendar.display as 'day' | 'week' | 'month'
+      calendar.display as 'day' | 'week' | 'month',
+      undefined,
+      calendar.displayTimezone
     );
 
     // Check if we're already showing today's range (a lingering picked-day
@@ -1469,7 +1946,8 @@ export const Filters = () => {
   );
 
   // Buffer's list tabs: Queue · Drafts · Approvals · Sent — no 'All', Queue is
-  // the default landing state. Approvals = drafts tagged 'needs-approval'.
+  // the default landing state. Approvals = drafts the gate has flagged
+  // (needsApproval=only), not drafts carrying a tag by that name.
   const listStateOptions: {
     value: ListStateFilter;
     label: string;
@@ -1486,11 +1964,23 @@ export const Filters = () => {
     }
   }, [isListView, calendar.listState]);
 
-  // Per-tab count pills (Buffer): three feather-light list queries, 1 row each,
+  // Per-tab count pills (Buffer): four feather-light list queries, 1 row each,
   // sharing the active customer/channel/tag filters. Read-path only.
+  //
+  // A COUNT AND ITS LIST MUST NOT BE ABLE TO DISAGREE, so each of these builds the
+  // same query the list itself builds (calendar.context's listParams) with
+  // page=1&limit=1 and reads `.total`. That is why Approvals now sets
+  // `needsApproval=only` here as well: while the count asked for the
+  // 'needs-approval' TAG and the list asked for the FIELD, any post the server
+  // gated without the tag attached, or any tag someone renamed, would show a
+  // pill number that contradicted the rows underneath it. One source, one answer.
+  //
+  // The old `approvalTag?.id` key input is gone with the tag lookup it keyed:
+  // there is no longer an id that resolves an SWR hop after mount, so nothing here
+  // needs to wait for one.
   const countsKey = `tab-counts-${calendar.customer || ''}-${
-    (calendar as any).integration || ''
-  }-${(calendar as any).tags || ''}-${calendar.listTotal}`;
+    calendar.integration || ''
+  }-${calendar.tags || ''}-${calendar.listTotal}`;
   const loadTabCounts = useCallback(async () => {
     const entries = await Promise.all(
       (['scheduled', 'draft', 'approvals', 'published'] as const).map(
@@ -1499,18 +1989,16 @@ export const Filters = () => {
             page: '1',
             limit: '1',
             customer: calendar.customer?.toString() || '',
-            integration: ((calendar as any).integration || '').toString(),
+            integration: (calendar.integration || '').toString(),
             state: state === 'approvals' ? 'draft' : state,
           });
           if (state === 'approvals') {
-            // drafts carrying the needs-approval tag; unknown id = empty feed
-            search.set(
-              'tags',
-              (calendar as any).approvalTag?.id || '__no-approval-tag__'
-            );
-          } else {
-            const tags = (calendar as any).tags;
-            if (tags) search.set('tags', tags);
+            search.set('needsApproval', 'only');
+          }
+          // Applied to Approvals too, exactly like listParams: the tag filter is
+          // its own clause now instead of being spent on resolving the tab.
+          if (calendar.tags) {
+            search.set('tags', calendar.tags);
           }
           const raw = expandPostsList(
             await (await fetch(`/posts/list?${search.toString()}`)).json()
@@ -1520,12 +2008,7 @@ export const Filters = () => {
       )
     );
     return Object.fromEntries(entries) as Record<string, number>;
-  }, [
-    calendar.customer,
-    (calendar as any).integration,
-    (calendar as any).tags,
-    (calendar as any).approvalTag?.id,
-  ]);
+  }, [calendar.customer, calendar.integration, calendar.tags]);
   const { data: tabCounts } = useSWR(isListView ? countsKey : null, loadTabCounts);
 
   const previousPage = useCallback(() => {
@@ -1767,7 +2250,12 @@ export const Filters = () => {
         <ChannelsFilter />
         {!isListView && <StateFilter />}
         <TagsFilter />
-        {calendar.display === 'month' && <NoDateToggle />}
+        {/* Shown on the list view too, not just the calendar Buffer puts it on:
+            every list tab sends the repository's `undated=exclude` default, so
+            this panel is the ONLY place an undated draft is visible anywhere in
+            the product, and hiding its toggle behind a view switch would make
+            them unreachable from the view people work from. */}
+        <UndatedFilter />
         <SelectCustomer
           customer={calendar.customer as string}
           onChange={(customer: string) => setCustomer(customer)}

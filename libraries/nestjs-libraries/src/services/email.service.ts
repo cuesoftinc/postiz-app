@@ -6,9 +6,29 @@ import { NodeMailerProvider } from '@gitroom/nestjs-libraries/emails/node.mailer
 import { TemporalService } from 'nestjs-temporal-core';
 import { timer } from '@gitroom/helpers/utils/timer';
 
+// Per-attempt wall clock for one SMTP/API send. The nodemailer transport
+// already fails fast on its own socket timeouts, so this only catches a
+// provider that hangs without ever timing out: without it, one wedged send
+// would occupy a dispatch slot for the life of the process.
+const SEND_ATTEMPT_TIMEOUT = 30_000;
+// How many sends may be in flight at once. Notification fan-out is per
+// recipient, so this is the only thing standing between a 40-user org and 40
+// simultaneous SMTP handshakes.
+const SEND_CONCURRENCY = 2;
+// Backstop on the dispatch backlog. If SMTP is down, sends retry for ~1 minute
+// each, so the backlog can grow much faster than it drains; past this point the
+// oldest queued mail is already stale and holding its HTML in memory is the
+// bigger problem. Shedding is logged, never silent.
+const SEND_QUEUE_MAX = 500;
+
 @Injectable()
 export class EmailService {
   emailService: EmailInterface;
+  // Fire-and-forget dispatch queue, see sendEmail(). In-process and
+  // deliberately NOT durable: it exists to keep SMTP latency out of the
+  // caller's path, not to guarantee delivery.
+  private _queue: (() => Promise<void>)[] = [];
+  private _inFlight = 0;
   constructor(private _temporalService: TemporalService) {
     this.emailService = this.selectProvider(process.env.EMAIL_PROVIDER!);
     console.log('Email service provider:', this.emailService.name);
@@ -51,7 +71,58 @@ export class EmailService {
     // synchronously through the same nodemailer path (with its own 3-attempt
     // retry) and skip Temporal entirely. `addTo` only ordered the workflow
     // queue and is irrelevant for an immediate send.
-    return this.sendEmailSync(to, subject, html, replyTo);
+    //
+    // ...but the send does NOT happen in the caller's path. Every caller of
+    // this method (notification fan-out, invites, resets, billing) is on a
+    // request or a publish workflow activity, and none of them inspects the
+    // outcome, while NotificationService.sendEmailsToOrg awaits us once per
+    // recipient. Awaiting an SMTP handshake there made publish latency scale
+    // with org size and put a dead mail host inside the publish path: the
+    // inAppNotification activity has a 10 minute startToCloseTimeout, and a
+    // handful of recipients times three attempts each is enough to blow it,
+    // which retries the activity (duplicate in-app rows) and can fail the
+    // workflow for a post that already published.
+    //
+    // So: hand the send to the bounded in-process queue below and return.
+    // Nothing here can reject into the caller, and the fan-out cost no longer
+    // accumulates in the publish path. Failures are logged by the queue.
+    // Delivery stays best effort, exactly as before, since sendEmailSync has
+    // never surfaced a failure to callers either.
+    this.enqueue(to, subject, html, replyTo);
+  }
+
+  /** Queue one send for background dispatch. Nothing awaits the result: the
+   *  only report of a failed notification is the log line. */
+  private enqueue(
+    to: string,
+    subject: string,
+    html: string,
+    replyTo?: string
+  ) {
+    if (this._queue.length >= SEND_QUEUE_MAX) {
+      console.error(
+        `Email queue full (${SEND_QUEUE_MAX}), dropping email to ${to}: ${subject}`
+      );
+      return;
+    }
+    this._queue.push(() => this.sendEmailSync(to, subject, html, replyTo));
+    this.drain();
+  }
+
+  private drain() {
+    while (this._inFlight < SEND_CONCURRENCY && this._queue.length) {
+      const task = this._queue.shift()!;
+      this._inFlight++;
+      // sendEmailSync swallows send failures itself; this catch is for the
+      // unexpected (a provider throwing outside its retry loop), because an
+      // unhandled rejection here would take the whole worker down.
+      task()
+        .catch((err) => console.error('Email dispatch failed:', err))
+        .finally(() => {
+          this._inFlight--;
+          this.drain();
+        });
+    }
   }
 
   async sendEmailSync(
@@ -128,13 +199,15 @@ export class EmailService {
     let lastErr: unknown;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const sends = await this.emailService.sendEmail(
-          to,
-          subject,
-          modifiedHtml,
-          process.env.EMAIL_FROM_NAME,
-          process.env.EMAIL_FROM_ADDRESS,
-          replyTo
+        const sends = await this.withTimeout(
+          this.emailService.sendEmail(
+            to,
+            subject,
+            modifiedHtml,
+            process.env.EMAIL_FROM_NAME,
+            process.env.EMAIL_FROM_ADDRESS,
+            replyTo
+          )
         );
         console.log(sends);
         return;
@@ -147,5 +220,25 @@ export class EmailService {
       }
     }
     console.log(`Email to ${to} failed after 3 attempts:`, lastErr);
+  }
+
+  /** Caps one provider call by wall clock. A rejected race counts as a failed
+   *  attempt, so the caller's retry loop and its final log line still apply. */
+  private withTimeout<T>(promise: Promise<T>): Promise<T> {
+    let handle: ReturnType<typeof setTimeout> | undefined;
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        handle = setTimeout(
+          () =>
+            reject(
+              new Error(`Email send timed out after ${SEND_ATTEMPT_TIMEOUT}ms`)
+            ),
+          SEND_ATTEMPT_TIMEOUT
+        );
+      }),
+    ]).finally(() => {
+      if (handle) clearTimeout(handle);
+    });
   }
 }

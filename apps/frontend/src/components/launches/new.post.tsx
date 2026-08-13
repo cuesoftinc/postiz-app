@@ -22,7 +22,9 @@ export const NewPost = () => {
       ? undefined
       : await new Promise((resolve) => {
           modal.openModal({
-            title: t('select_set', 'Select a Set'),
+            // Key stays `select_set` — it is a lookup id, not copy; only the
+            // English default follows the Sets → Templates rename.
+            title: t('select_set', 'Select a Template'),
             closeOnClickOutside: true,
             closeOnEscape: true,
             withCloseButton: false,

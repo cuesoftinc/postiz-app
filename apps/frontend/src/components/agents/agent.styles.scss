@@ -1,5 +1,21 @@
 /* Agents-page-scoped overrides (Buffer parity r1 + agent-page consistency r1).
-   Imported by agent.chat.tsx. Two scopes:
+   Imported by BOTH agent.chat.tsx and content-agent/content-chat.component.tsx
+   (the latter needs the `.cs-chat-textarea` block at the bottom of this file).
+   Three scopes, and NOTHING here is dead - checked 2026-08-13:
+
+   | selector          | consumer                                            |
+   |-------------------|-----------------------------------------------------|
+   | `.agent`          | agent.chat.tsx:91 `className="trz agent …"`          |
+   | `.agent-scope`    | agent.tsx:63 `MediaPortal`                           |
+   | `.cs-chat-textarea` | content-chat.component.tsx:618                     |
+
+   `.agent` and `.agent-scope` render only on the CopilotKit path, which is the
+   pre-hydration fallback described at the top of agent.tsx. That path is
+   RETAINED deliberately, so these rules are retained with it - do not strip
+   them as "unreachable". `.cs-chat-textarea` is on the always-live bridge
+   composer. Complements the separate `.agent` block in app/global.scss.
+
+   Two scopes in detail:
 
    - `.agent`       — the CopilotKit chat surface (classes CopilotKit owns);
                       complements the `.agent` block in app/global.scss.

@@ -12,9 +12,26 @@ import clsx from 'clsx';
  *
  * Analytics, Agents, Media and Third-party all hand-rolled their own copy of
  * this anatomy with drifting dimensions (64px bars, 56px phone-only rows,
- * p-[20px] panes); they now render these two components instead. /launches
- * keeps its own PageHeader (it carries page-specific chrome: bookmark,
- * segmented view switch, per-channel title) — this file matches it exactly.
+ * p-[20px] panes); they now render these two components instead.
+ *
+ * TWO `PageHeader` COMPONENTS EXIST, AND THEY HAVE DRIFTED. /launches keeps
+ * its own (`launches/filters.tsx:1123`) because it carries page-specific
+ * chrome: bookmark, segmented view switch, per-channel title. An earlier
+ * revision of this docblock claimed "this file matches it exactly". It does
+ * not, as of 2026-08-13:
+ *
+ *   |                  | this file            | launches/filters.tsx  |
+ *   |------------------|----------------------|-----------------------|
+ *   | band height      | h-[48px] phone:h-[56px] | h-[48px] only      |
+ *   | title classes    | truncate min-w-0     | truncate (no min-w-0) |
+ *   | bookmark button  | none                 | 24px "Save current view" |
+ *   | title source     | `title` prop         | derived (single ?integration= → channel name, else "All Channels") |
+ *
+ * The 40px r10 chip, the 20/400 display title and every `data-cs` DO match.
+ * The drift is in the phone band, the min-w-0 shrink chain and the bookmark.
+ * If you touch either one, decide deliberately whether the other follows -
+ * filters.tsx is upstream's hottest file, so "make them identical" is a real
+ * rebase cost and has so far not been paid.
  *
  * `data-cs` everywhere a dimension is load-bearing: the global.scss ladder
  * would otherwise rescale h-[48px]→36, w/h-[40px]→32, rounded-[10px]→8,

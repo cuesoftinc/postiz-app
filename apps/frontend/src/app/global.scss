@@ -21,7 +21,11 @@
    with it takes black ink — exactly the tiles' CTA treatment. Components
    hardcode text-white next to bg-btnPrimary all over upstream, hence global. */
 [class*="bg-btnPrimary"], [class*="bg-btnPrimary"] svg {
-  color: #000 !important;
+  /* #292928 is Buffer's measured label ink, not pure black (read back through a
+     canvas pixel on 2026-08-13, since Buffer serves lab()). This rule outranks
+     anything a component can author, so the primary Button cannot reach the
+     measured value on its own and this is where it has to be set. */
+  color: #292928 !important;
 }
 [class*="bg-boxFocused"] svg { color: inherit; }
 
@@ -828,8 +832,13 @@ html[dir='rtl'] [dir='ltr'] {
   display: none !important;
 }
 
+/* Placeholder ink follows the theme's muted family. The old hardcoded #adb5bd
+   was a cool bootstrap grey that ignored the theme entirely; --new-textItemBlur
+   IS Buffer's measured muted ink in light (#5a5a59, the value their composer
+   placeholder uses) and lifts to #ababab in dark. Body type is untouched: the
+   editor already inherits Buffer's measured 14px/21px 400. */
 .tiptap p.is-editor-empty:first-child::before {
-  color: #adb5bd;
+  color: var(--new-textItemBlur);
   content: attr(data-placeholder);
   float: left;
   height: 0;
@@ -1168,12 +1177,18 @@ button { white-space: nowrap; }
   .select-none.flex.flex-col[class*="gap-[8px]"]:not([data-cs]) { align-items: stretch !important; width: 100%; }
   .select-none.flex.flex-col[class*="gap-[8px]"]:not([data-cs]) > *:last-child { align-self: flex-end; }
 
-  /* type steps down again for a 390px screen */
-  [class^="text-[24px]"], [class*=" text-[24px]"] { font-size: 18px !important; }
-  [class^="text-[20px]"], [class*=" text-[20px]"] { font-size: 15px !important; }
-  [class^="text-[18px]"], [class*=" text-[18px]"] { font-size: 15px !important; }
-  [class^="p-[12px]"], [class*=" p-[12px]"] { padding: 10px !important; }
-  [class^="p-[20px]"], [class*=" p-[20px]"] { padding: 12px !important; }
+  /* type steps down again for a 390px screen.
+     Every rule here carries the :not([data-cs]) escape, same as the desktop
+     ladder above. Without it these five overrode data-cs opt-outs at phone
+     only, which is a trap: a value deliberately pinned for desktop silently
+     moved on a 390px screen. Live victims before this was closed were the
+     data-cs page titles (signatures, teams, global settings) and the Insights
+     stat-tile figure, all of which opt out precisely to hold 20px. */
+  [class^="text-[24px]"]:not([data-cs]), [class*=" text-[24px]"]:not([data-cs]) { font-size: 18px !important; }
+  [class^="text-[20px]"]:not([data-cs]), [class*=" text-[20px]"]:not([data-cs]) { font-size: 15px !important; }
+  [class^="text-[18px]"]:not([data-cs]), [class*=" text-[18px]"]:not([data-cs]) { font-size: 15px !important; }
+  [class^="p-[12px]"]:not([data-cs]), [class*=" p-[12px]"]:not([data-cs]) { padding: 10px !important; }
+  [class^="p-[20px]"]:not([data-cs]), [class*=" p-[20px]"]:not([data-cs]) { padding: 12px !important; }
 
   /* month grid keeps real (tappable) columns and scrolls horizontally (only a
      pre-hydration fallback now — once mounted, phone month/week render the
@@ -1194,52 +1209,25 @@ button { white-space: nowrap; }
 }
 
 /* ===== Create Post editor (mobile) =====
-   Stock is a fixed two-column modal (editor | preview). At 390px it measured
-   901px wide: the preview, the close button and the entire action bar were off
-   screen and the page scrolled sideways. Stack the columns and let it shrink.
+   Stock was a fixed two-column modal (editor | preview) that measured 901px
+   wide at 390px, and the whole stacking pass was keyed off `bg-popup`. Nothing
+   carries that class any more: the composer rebuild moved the overlay fill to
+   Buffer's measured `bg-black/80` (new-modal.tsx) and the column stacking to
+   manage.modal.tsx's own `phone:` classes plus its `<=1100px` full-bleed rule.
+   The nine unreachable `[class*="bg-popup"]` rules are gone, and with them two
+   more that could no longer match either: the `rounded-[20px]` two-column
+   reset (the only `flex flex-1 bg-newBgColorInner` element left is the
+   onboarding modal, at rounded-[24px]) and the `rounded-s/e-[20px]` pair (zero
+   occurrences anywhere in src).
+
+   The one rule below still matches (`#cs-composer-shell` is its only target)
+   but note it is fully shadowed at this width by that element's own
+   `#cs-composer-shell { padding: 0 !important }` in manage.modal.tsx, which
+   wins on id specificity. It is kept because it matches, not because it does
+   anything; the element's `phone:p-0` is the honest home for that intent.
    ========================================================================== */
 @media (max-width: 767px) {
-  /* the modal root is correctly viewport-width, but its inner flex chain
-     inherits min-width:auto and refuses to shrink below the editor's content.
-     Reset ONLY that implicit auto: never touch an explicit min-w-*, and never
-     touch the overlay root. Add Channel's overlay is `min-w-full min-h-full`
-     (Create Post's is `w-full h-full`), so a blanket reset collapsed Add
-     Channel to width:0 — blur applied, modal invisible. */
-  [class*="bg-popup"] *:not([class*="min-w-"]) { min-width: 0 !important; }
-
   .w-full.h-full.flex-1[class*="p-[40px]"] { padding: 10px !important; }
-  .flex.flex-1.bg-newBgColorInner[class*="rounded-[20px]"] > .flex-1.flex { flex-direction: column !important; }
-  .flex.flex-1.bg-newBgColorInner[class*="rounded-[20px]"] > .flex-1.flex > * {
-    width: 100% !important; border-inline-end: 0 !important;
-  }
-  /* side-only radii are meant for a 2-up layout */
-  [class*="rounded-s-[20px]"], [class*="rounded-e-[20px]"] { border-radius: 0 !important; }
-
-  /* preview column is a hard 580px whose scroll pane is absolute top/left/full,
-     so once stacked the column contributed no height and the action bar drew
-     straight over "Start writing your post for a preview" */
-  [class*="bg-popup"] [class*="w-[580px]"] { width: 100% !important; }
-  [class*="bg-popup"] .absolute.top-0.left-0[class*="overflow-y-scroll"] {
-    position: static !important; height: auto !important;
-    overflow-y: visible !important; padding: 16px !important;
-  }
-  [class*="bg-popup"] .flex-1.relative { min-height: 0 !important; }
-
-  /* the action bar is absolutely positioned for the 2-up layout and packs
-     tag + repeat + datetime + draft + submit into one nowrap row */
-  [class*="bg-popup"] .select-none.absolute.w-full[class*="z-[100]"] {
-    position: static !important; width: 100% !important;
-  }
-  [class*="bg-popup"] .select-none[class*="h-[84px]"] {
-    height: auto !important; min-height: 0 !important;
-    flex-wrap: wrap !important; gap: 10px !important;
-    padding: 12px !important; justify-content: flex-start;
-  }
-  [class*="bg-popup"] .select-none[class*="h-[84px]"] > * { flex: 1 1 auto; min-width: 0; }
-  [class*="bg-popup"] .select-none[class*="h-[84px]"] .flex.items-center.justify-end {
-    flex-wrap: wrap !important; justify-content: flex-start !important;
-    padding-inline-end: 0 !important; gap: 8px !important;
-  }
 }
 
 /* Short viewports (landscape phone, short laptop window) are handled by the
@@ -1298,6 +1286,27 @@ input:focus-visible,
   outline-offset: 1px;
 }
 
+/* ===== Media drag-over (composer editor column) =====
+   Buffer's drag-over state swaps the idle drop tile's grey dashed edge for a
+   GREEN dashed outline on the whole editor column. Brand mapping: their
+   #4e975b becomes --new-table-text-focused, the fork's own brand green already
+   theme-corrected for both surfaces (lime #bfff72 in dark, #3f6c0e in light;
+   raw lime on the white column would be ~1.1:1, i.e. invisible).
+
+   Two mechanics this rule depends on:
+   (1) !important is REQUIRED, because `body * { outline: none !important }` at
+       the top of this file kills every outline otherwise (same reason the focus
+       ring below carries it). Class beats `body *` on specificity, so it wins.
+   (2) it must be an OUTLINE, not a border: outlines paint outside the border
+       box, so the column's own inset drag overlay cannot cover it, and it adds
+       no layout box the way a border would.
+   The attribute is set by editor.tsx off react-dropzone's isDragActive.
+   ========================================================================== */
+[data-drag-active='true'] {
+  outline: 1px dashed var(--new-table-text-focused) !important;
+  outline-offset: -1px;
+}
+
 /* ===== Collapsed side panel (mobile) =====
    The collapse control reclaims horizontal space on desktop. Once the panel is
    a full-width horizontal strip there is nothing to reclaim, and the collapsed
@@ -1322,15 +1331,11 @@ input:focus-visible,
   .group.sidebar [class*="group-[.sidebar]:mx-auto"] { margin-left: 0 !important; margin-right: 0 !important; }
 }
 
-/* ===== Modals (mobile) =====
-   The sizing that used to live here — min-w-[600px], p-[32px], gap-[40px],
-   rounded-[24px], the w-fit clamp — is now handled properly with responsive
-   variants in new-modal.tsx, so those overrides are gone. What remains is the
-   vertical inset and the Create Post action bar.
-   ========================================================================== */
-@media (max-width: 767px) {
-  [class*="bg-popup"] [class*="pt-[100px]"] { padding-top: 24px !important; padding-bottom: 24px !important; }
-
-  /* the Create Post action bar now wraps via responsive classes in
-     manage.modal.tsx — no override needed */
-}
+/* The mobile-modals block that used to sit here is gone: its sizing overrides
+   (min-w-[600px], p-[32px], gap-[40px], rounded-[24px], the w-fit clamp) had
+   already moved to responsive variants in new-modal.tsx, the Create Post action
+   bar wraps via manage.modal.tsx's own classes, and the last rule left,
+   trimming the layout modal's pt/pb-[100px] inset on phone, was keyed off a
+   `bg-popup` ancestor that no longer exists, so it could never match. If that
+   phone inset is still worth trimming it belongs on the pt-[100px] element in
+   new-modal.tsx, not on a dead selector here. */

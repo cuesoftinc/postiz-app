@@ -1,5 +1,9 @@
 /**
- * Cuesoft fork — shared empty-state component (UI-CONSISTENCY-PLAN row 9).
+ * Cuesoft fork - shared empty-state component.
+ *
+ * DOC PROVENANCE (corrected 2026-08-13): "UI-CONSISTENCY-PLAN row 9" and "the
+ * brand-contract hero ramp" cited documents that do not exist in this repo and
+ * never did. The decisions are real and are restated inline.
  *
  * Normalizes the ~18 hand-rolled empties: one type ramp per variant and ONE
  * muted color token instead of the 9-token roulette (text-gray-400,
@@ -17,13 +21,23 @@
  * is alpha-capable, so `text-newTextColor/60` is the working spelling of
  * "textColor at 60%".
  *
- * Size-ladder note: the hero title is written as `text-[16px]` directly —
- * the brand-contract hero ramp (16/600). This matches what the ladder
- * already rescaled the old `text-[20px]` heroes to, but without depending
- * on global.scss. `text-[16px]` and below stay stock. No `data-cs` needed.
+ * HERO TYPE RAMP - 16px / weight 550. One number, stated once.
+ * Earlier revisions of this file disagreed with themselves: the variant list
+ * said "20px/600", this note said "16/600", and the `title` prop doc said
+ * "Hero: 16px/600", while the code has always rendered `text-[16px]
+ * font-[550]`. All three now read 16/550, which is what ships. 550 is the kit
+ * semibold (the same weight as the list day-group heading and the Buffer
+ * section heading measured at 16/550), NOT 600.
+ *
+ * Size-ladder note: the hero title is written as `text-[16px]` directly, so it
+ * is below every rung of the global.scss ladder (its type rungs start at
+ * text-[18px]) and needs no `data-cs`. It renders 16px whatever the ladder
+ * does. This is also where the old `text-[20px]` heroes ended up anyway -
+ * the ladder rescales text-[20px] to 16px - but this file does not depend on
+ * that.
  *
  * Variants (normalized from the best existing implementations):
- *  - `hero`   — illustration + 20px/600 title + 14px muted sub + optional
+ * - `hero` - illustration + 16px/550 title + 14px muted sub + optional
  *               CTA row; models launches.component.tsx:551 ("No channels
  *               yet") and media.component.tsx:481.
  *  - `pane`   — flex-1 centered 16px muted text; models the calendar
@@ -44,7 +58,9 @@ import clsx from 'clsx';
 
 /**
  * The one muted-text token for empty/secondary copy. Exported so adjacent
- * hand-written copy in adopting files can stop rolling its own.
+ * hand-written copy in adopting files can stop rolling its own - no external
+ * importer has taken it up yet (checked 2026-08-13), so treat the export as an
+ * offer, not a convention already in force.
  */
 export const MUTED_TEXT_CLASS = 'text-newTextColor/60';
 
@@ -64,7 +80,7 @@ export const EmptyState: FC<{
    * src, `min-w-[100%]`, ...), e.g. launches' no-channels.svg.
    */
   image?: ReactNode;
-  /** Pre-translated. Hero: 16px/600 full-strength. Pane/inline: muted. */
+  /** Pre-translated. Hero: 16px/550 full-strength. Pane/inline: muted. */
   title: ReactNode;
   /** Pre-translated secondary line; 14px muted (hero/pane only). */
   description?: ReactNode;

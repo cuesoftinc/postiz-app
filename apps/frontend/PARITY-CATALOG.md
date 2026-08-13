@@ -5,8 +5,15 @@ control, and feature in this Postiz fork, cross-checked against Buffer (publish.
 This file is the loop ledger for the pixel-level Buffer replica: every user-facing surface
 gets a row; a missed surface is a parity hole. Companion docs: `BUFFER-REPLICA-SPEC.md`
 (measured values), the scratchpad measurement notes (`buffer-measurements-r1.md`,
-`parity-gaps-r1.md`, `backlog.md`), and the `cuesoft/customizations` git log (each wave
-commit documents what was measured and applied).
+`buffer-measurements-2026-08-13.md`, `parity-gaps-r1.md`, `backlog.md`), and the
+`cuesoft/customizations` git log (each wave commit documents what was measured and
+applied). Scratchpad notes live outside the repo and are session-scoped: anything from
+them that a future reader needs must be copied into this file or the spec, which is what
+the 2026-08-13 changelog entry does.
+
+**Before you audit a size, read the MECHANISM section immediately below the
+statuses.** It exists because ten reported "regressions" turned out to be the
+global.scss ladder, not drift.
 
 **Update protocol.** Every parity wave updates the Status column here (and appends a
 changelog line). Statuses:
@@ -23,7 +30,135 @@ changelog line). Statuses:
 
 **The loop ends when no `NEEDS-WORK` or `NEEDS-BUFFER-MEASUREMENT` rows remain.**
 
+---
+
+## MECHANISM: the global.scss SIZE LADDER - read this before auditing any row
+
+**If you are about to report that a component renders smaller than this catalog
+claims, read this section first. It is probably not a regression.**
+
+`app/global.scss` carries a global re-scale of upstream's arbitrary Tailwind
+values. It rewrites the *authored* class to a *rendered* value with
+`!important`, for every element that does **not** carry a `data-cs` attribute.
+The components were never edited. The ladder simply landed **after** a batch of
+this catalog's rows were measured, so those rows still quote the authored
+number while the browser paints the laddered one.
+
+This produced roughly **ten phantom regressions** in the 2026-08-11/12 audit
+pass. Each cost real time to disprove. Four rungs account for all ten -
+`h-[40px]`, `h-[44px]`, `text-[20px]` and `p-[24px]` - and here is the full
+ladder, so the next one can be recognised on sight:
+
+| Authored class | Renders as | Rung |
+|---|---|---|
+| `h-[40px]` | **32px** | control heights |
+| `h-[44px]`, `h-[48px]` | **36px** | control heights |
+| `h-[52px]` | 40px | control heights |
+| `text-[20px]`, `text-[18px]` | **16px** | display type |
+| `text-[24px]` / `[28px]` / `[30px]` / `[40px]` / `[48px]` | 20 / 22 / 24 / 28 / 32px | display type |
+| `p-[24px]`, `p-[20px]`, `px-[20px]` | **16px** | box padding |
+| `gap-[24px]`, `gap-[20px]` | 16px | box gaps |
+| `rounded-[24px]` / `[20px]` / `[10px]` | 16 / 12 / 8px | radius |
+| `min-h-[44px]` / `min-h-[40px]` / `min-w-[44px]` | 36 / 32 / 36px | min box |
+| `max-h-[44px]` | 36px + py 8px | primary CTA clamp |
+
+**What the ladder does NOT touch** - anything at or below `text-[16px]`;
+`h-[36px]`, `h-[42px]`, `h-[33px]`, `h-[32px]`, `h-[24px]`; `rounded-[4px]`
+(deliberately absent - 6px on a 16px checkbox reads as a circle),
+`rounded-[6px]`, `rounded-[8px]`, `rounded-[12px]`, `rounded-[16px]`;
+`p-[12px]`, `p-[16px]`, `px-[24px]`, `gap-[8px]`, `gap-[12px]`, `gap-[16px]`.
+Selectors are anchored `[class^="TOKEN"], [class*=" TOKEN"]`, so **prefixed
+variants never match**: `phone:h-[44px]`, `custom:h-[44px]` and
+`!rounded-[10px]` are all immune, as are corner-prefixed radii
+(`rounded-tl-[10px]`, `rounded-s-[20px]`).
+
+**How to audit a size row, in order:**
+
+1. Read the authored class in the component.
+2. Is the token on a rung above? If no → the authored value is the rendered
+   value; a mismatch with this catalog is real drift.
+3. If yes: **does that element carry `data-cs`?** `data-cs` is the escape
+   hatch; the ladder skips it entirely.
+   - `data-cs` present → authored value ships. A catalog row quoting the
+     authored number is CORRECT.
+   - `data-cs` absent → the laddered value ships. A catalog row quoting the
+     authored number is WRONG, and it is the ROW that needs fixing, not the
+     component.
+4. Only after 1-3 disagree with Buffer is it a parity defect.
+
+Because of step 3, a row is only trustworthy if it says which case it is in.
+Rows below that depend on the ladder now say so explicitly - either
+"**40px held by `data-cs`**" or "authored X, **renders Y (laddered)**". When you
+add or edit a size row, write it that way.
+
 **Changelog**
+- 2026-08-13 - Catalog maintenance wave: the ladder mechanism, nine measured
+  rows, and a phantom purge. This file had fallen 21 commits behind its own
+  update protocol (last touched in 821183a5; bf275d44..849411dc landed since,
+  including the Buffer relay providers, relay Insights, the Ace chat rework and
+  the media-library multi-select). Five things changed.
+  (1) MECHANISM section added at the top documenting the global.scss SIZE
+  LADDER as a first-class concept, because roughly TEN of the eighteen
+  "regressions" in the 2026-08-11/12 audit pass were not code drift at all:
+  the ladder rewrites h-[40px]->32, h-[44px]/h-[48px]->36, text-[20px]->16 and
+  p-[24px]->16 for any element without `data-cs`, and it landed AFTER those
+  rows were measured. The components were never edited. The section gives the
+  full rung table, the non-matching tokens, the prefixed-variant immunity rule
+  and a four-step audit procedure, so the next auditor does not spend a day
+  disproving the same ten phantoms. Size rows now state which side of the
+  `data-cs` line they are on.
+  (2) Rows whose claimed values contradicted what actually ships, corrected:
+  composer header buttons (claimed 40px/15px, ship 32px/14px with data-cs;
+  close X is 32 not 40; the Tags chip authors h-[44px] with NO data-cs so it
+  renders 36); the footer button family (40px is real but ONLY because every
+  member carries data-cs, and the radii are not uniformly r12 - Save Draft is
+  r8, the chevron is rounded-none, primaries are r12 on the end corners only);
+  the Insights stat number (claimed 20/700, renders 16/550 - the weight was
+  never 700 and the size is laddered); and the Button, Input and Checkbox
+  primitive rows (Button has ONE authored height that always renders 32 and is
+  r6 not r8; Input is h-36/r6 not 32/r8 and its "414px settings width" existed
+  nowhere but a stray line in the vendored polonto.css; Checkbox is a 24px box
+  with a 16px glyph, not a 16px box).
+  (3) Worst false positive fixed: `Undated drafts` was VERIFIED-PARITY while
+  performing ZERO fetches, and it could not populate because
+  `schema.prisma` declared `publishDate DateTime` non-nullable. True of
+  appearance, false of function -> NEEDS-WORK with the migration spelled out.
+  SUPERSEDED LATER THE SAME DAY (2026-08-13): the migration was written,
+  `Post.publishDate` is `DateTime?`, and the panel was rebuilt against
+  `GET /posts/undated` with a `PUT /posts/:id/schedule` promote path. The row
+  is now NEEDS-BUFFER-MEASUREMENT: function is real, geometry unmeasured.
+  Do not read this entry as the current state; the row itself is authoritative.
+  (4) Live Buffer measurements folded in (publish.buffer.com, authenticated,
+  1440x807 DPR2, colours canvas-converted because Buffer serves `lab()`).
+  Nine rows answered outright: composer modal shell (1100x759, r16, no border,
+  four-layer shadow, and the backdrop dim lives on the overlay's `::after`
+  with `backdrop-filter: none`), editor area (14/400/21, placeholder is a real
+  interactive element not a `::before`), media drop zone (120x120, 1px dashed
+  #8c8b88, and the drag-over state outlines the COLUMN in dashed #4e975b),
+  schedule control (one joined 410x40 split button, r12 outer corners),
+  previews pane, card kebab for both tabs, trends chart, Top 5 Posts and the
+  channels table. Five standing assumptions were OVERTURNED and are recorded
+  as such on their rows: Buffer has NO 90-day Insights range (7 days / 30 days
+  / Month to date / paid Custom - so our relay channels' 7+30 matches Buffer's
+  own free surface exactly rather than degrading it, and it is `Month to date`
+  we are missing); the trends chart is a BAR chart with vertical-only solid
+  gridlines, no dots and no legend; the header `+ New Post` is NOT green but
+  transparent with a #dedcd9 hairline, green being reserved for the sidebar
+  pill and 40px primary CTAs; the previews pane is 379px on #f7f6f3, not 420px
+  white; and the Queue and Sent kebabs carry DIFFERENT option sets with `Edit`
+  a dedicated pencil button rather than a menu row. Token-level values also
+  written into BUFFER-REPLICA-SPEC.md.
+  (5) Housekeeping: Status totals recounted mechanically (the old block was
+  wrong on all five lines, notably claiming 15 NEEDS-WORK against an actual 2);
+  `toolbar/pager-stepper.tsx` deleted (zero consumers and its dedup target -
+  the two 42px steppers in launches/filters.tsx - was itself deleted in
+  60890473); the agents CopilotKit cluster rows annotated RETAINED after an
+  audit proposed deleting them as unreachable (they are the only callers of
+  /copilot/agent, /copilot/list and /copilot/:thread/list); and false adoption
+  claims corrected on Webhooks ("Tokenized (settings-table)" - it is not),
+  Loader ("sweep complete" - all six hand-rolled spinners remain and a seventh
+  was added in e80ee238) and SegmentedControl/SettingsTable/LoadingPane, all
+  three of which have zero consumers.
 - 2026-08-11 - DropdownPanel portaled to document.body (live-verified defect:
   at 1180px the calendar toolbar's timezone panel opened at L:98-378 under
   the 240px sidebar's nav rows, and z-300 inline on the panel plus every
@@ -846,7 +981,7 @@ changelog line). Statuses:
 | Bookmark "Save current view" click behavior | `launches/filters.tsx` | NEEDS-BUFFER-MEASUREMENT | Click Buffer's bookmark icon: what opens (save-view dialog? named views list?), panel geometry + fields |
 | Feedback bubble button (header right) | `launches/filters.tsx` | NEEDS-BUFFER-MEASUREMENT | Click Buffer's comment/feedback icon in the header: what surface opens (feedback form? beacon?), size + fields |
 | List/Calendar segmented control (white, hairline, 32px, 4px pad, 32% green active tint) | `launches/filters.tsx` | VERIFIED-PARITY | Tint + container corrected |
-| "+ New Post" primary button | `launches/filters.tsx` | VERIFIED-PARITY | Lime + black ink brand slot |
+| "+ New Post" header button - **transparent hairline, NOT green** | `launches/filters.tsx` | VERIFIED-PARITY | **Row corrected 2026-08-13; it said "Lime + black ink brand slot", which is wrong for the desktop header.** Buffer's header `+ New Post` is **not green**: it is the same transparent secondary used everywhere else - **110×32, radius 8, `1px #dedcd9` border, transparent fill**, label `14px/500 #292928`, padding `0 12px`, gap 4. Confirmed byte-identical on three controls (header `+ New Post` 110×32, card `Publish Now` 129×32, Sent card `Go to post` 115×32), so it is one shape used app-wide. **Green is reserved for exactly two slots**: the sidebar "New" pill (`#b0ec9c`, radius 1440, 208×40, padding `0 16px`, gap 8) and 40px primary CTAs (`#b0ec9c`, r12). Our desktop button already ships as the transparent 32px hairline (`filters.tsx:1246`, `data-cs`) - so the CODE was right and the row was wrong. The lime square is phone-only (40px r8 `bg-btnPrimary`, `data-cs`), which matches Buffer's own 390 capture |
 | Calendar toolbar left group (‹ › adjacent 32×32, H2 16/500, Today chip, view combobox) | `launches/filters.tsx` | VERIFIED-PARITY | Measured order/geometry |
 | Week-view H2 shows "August 2026" (not a date range) | `launches/filters.tsx` getDisplayText | VERIFIED-PARITY | Gap fix landed |
 | View combobox menu (Week/Month only, check-left rows) | `launches/filters.tsx` | VERIFIED-PARITY | 200px r6 p8 panel; DESKTOP-only now — the phone view switch moved into the date chip's calendar sheet (user phone screenshots) |
@@ -854,11 +989,11 @@ changelog line). Statuses:
 | Channels filter dropdown (380 r12: search, Select all, 48px avatar+checkbox rows) | `new-layout/channels-dropdown.tsx` via `launches/filters.tsx` ChannelsFilter | VERIFIED-PARITY | f67b9c9b + r1 measurements; presentation extracted to the shared ChannelsDropdown (multi mode) so Insights/Plugs reuse it — calendar behavior unchanged (same ?integration= replaceState plumbing) |
 | All Posts select (All/Drafts/Scheduled/Sent, check-left) | `launches/filters.tsx` | VERIFIED-PARITY | aa2ce4bc |
 | Tags filter dialog (256 r12: Untagged, colored pill rows, Clear all + Settings footer) | `launches/filters.tsx` | VERIFIED-PARITY | aa2ce4bc |
-| No Date toggle + Undated drafts right panel (~300px, empty state) | `launches/filters.tsx` UndatedDraftsPanel | VERIFIED-PARITY | de6ca24f |
+| No Date toggle + Undated drafts right panel (~300px) - **functional; needs a Buffer measurement to close** | `launches/filters.tsx` UndatedFilter + UndatedDraftsPanel | NEEDS-BUFFER-MEASUREMENT | **Blocker resolved 2026-08-13; panel rebuilt the same day.** History, because this row has been wrong in both directions: it was VERIFIED-PARITY while the panel performed zero fetches, was corrected to NEEDS-WORK as the catalog's worst false positive, and the shell was then DELETED under the no-dead-buttons rule rather than left looking finished. It no longer describes deleted code. `Post.publishDate` is `DateTime?` now, so an undated draft is a thing this database can represent, and the panel is wired to it end to end: `UndatedFilter` drives `?undated=1` (carried through `calendar.context`'s URL rewrite so a week/view change cannot close it, and present on the LIST view too, since every list tab sends `undated=exclude` and this is therefore the only surface those drafts have anywhere); the panel fetches `GET /posts/undated` through SWR with the active customer/channel/tag filters, renders a real empty state driven by an empty response rather than a hardcoded one, counts off the server's `total`, grows its window with Load more when there is more to fetch, chips rows the approvals gate has flagged (read off `needsApproval`, which matters here because a gated draft with no date appears in no tab at all), and promotes a draft with `PUT /posts/:id/schedule` from a display-clock picker (`displayInstant`, the fourth SCHEDULE-WHAT-YOU-SEE boundary), reporting `scheduled` vs `awaitingApproval` from the response instead of assuming. Deliberately NOT a calendar view: these posts have no position in time, so it is a plain list beside the grid ordered by capture time, and the only date it prints is the one being assigned. **Why not VERIFIED-PARITY:** function is now real but the geometry is unmeasured against Buffer's current panel. The 300px width, the 16/550 title + X header and the 64px-circle doc glyph carry over from the original build's measurements (de6ca24f); the row cards, the "Add a date" affordance and the picker have no Buffer counterpart measured, because Buffer's promote flow was never captured. Needs one live measurement pass on publish.buffer.com's undated panel to close. |
 | Timezone dialog (315 r12, "City (GMT+X)" rows, pinned current) | `launches/filters.tsx` | VERIFIED-PARITY | Display-timezone read path (aa2ce4bc) |
 | Filter trigger buttons (32px, transparent, full ink, 16px icons/chevrons) | `launches/filters.tsx` | VERIFIED-PARITY | Metrics converged |
-| List tabs (Queue · Drafts · Approvals⚡ · Sent, count pills, ink underline on hairline track, 45px on rule) | `launches/filters.tsx` | VERIFIED-PARITY | de6ca24f + 03770f12; Approvals real since bbe94a8c |
-| Per-tab count fetch (4 parallel state counts) | `launches/filters.tsx` + `calendar.context.tsx` | VERIFIED-PARITY | Includes approvals tag count |
+| List tabs (Queue · Drafts · Approvals⚡ · Sent, count pills, ink underline on hairline track, 45px on rule) | `launches/filters.tsx` | VERIFIED-PARITY | de6ca24f + 03770f12; Approvals real since bbe94a8c. Resolution moved off the tag name onto `Post.needsApproval` (2026-08-13): the tag is now only the server-maintained LABEL, so renaming or deleting it can no longer empty the tab while the gate keeps blocking those posts. The user's own `?tags=` filter also applies on this tab now; it used to be spent on resolving the tab itself and was silently dropped |
+| Per-tab count fetch (4 parallel state counts) | `launches/filters.tsx` + `calendar.context.tsx` | VERIFIED-PARITY | Approvals counts off `needsApproval=only`, the SAME query the Approvals list builds, so a pill can no longer contradict the rows under it (2026-08-13). It previously counted the `needs-approval` TAG while the list filtered on the tag id too, so one renamed tag zeroed both, and any post the gate flagged without the tag attached was counted by neither |
 | Phone toolbar (single row: ‹ › date chip, funnel, icon-only segmented) | `launches/filters.tsx` | VERIFIED-PARITY | 139cca46; reworked per user phone screenshots: the static month h2 and the phone view dropdown are replaced by the "August 10 ▾" chip → PhoneCalendarSheet |
 | Phone filter bottom sheet (drag handle, scrim, drill-in rows) | `launches/filters.tsx` | VERIFIED-PARITY | Measured vs buffer-phone-filtersheet.png |
 | Phone green icon-only "+" (40 r8) | `launches/filters.tsx` | VERIFIED-PARITY | 139cca46 |
@@ -918,7 +1053,7 @@ changelog line). Statuses:
 | Post cards ≤700px (avatar+badge header, 15px body, see-more, media right, hairline footer) | `launches/calendar.tsx` | VERIFIED-PARITY | 87488ff3 |
 | "see more" content expander | `launches/calendar.tsx` | VERIFIED-PARITY | line-clamp-3 + link |
 | Card footer meta ("You created this…") + actions (Publish Now quiet button, pencil, kebab) | `launches/calendar.tsx` | VERIFIED-PARITY | Publish Now real (87488ff3, drafts too in bbe94a8c) |
-| Kebab dropdown contents (per-card menu) | `launches/calendar.tsx` + dropdown | NEEDS-BUFFER-MEASUREMENT | Open Buffer's card kebab in Queue AND Sent: list the exact options (Edit, Duplicate, Move to Drafts, Copy link, Delete, Share again?), row order, destructive styling, panel geometry |
+| Kebab dropdown contents (per-card menu) - **Queue and Sent carry DIFFERENT option sets** | `launches/calendar.tsx` + dropdown | NEEDS-WORK | **MEASURED 2026-08-13, row answered for both tabs - and the catalog's guess was wrong in both.** The guess was "Edit, Duplicate, Move to Drafts, Copy link, Delete, Share again?" as one shared menu. Reality: **`Edit` is not a menu row at all** - it is a dedicated 32×32 pencil button in the card footer - and **the two tabs carry different sets**. Shared panel spec: white, radius **12px**, **NO border**, padding `12px 8px`, three-layer shadow `0 0 1px 1px rgba(55,33,0,.09), 0 4px 8px -4px rgba(49,25,0,.122), 0 16px 24px -8px rgba(49,25,0,.122)`; items 32px tall, `14px/500`, padding `8px 12px 8px 8px`, gap 8, icon 16×16. **Queue** panel 158×169, 4 rows in order: `Move to Drafts` · `Duplicate` · `Post Details` · `Delete` (destructive ink **`#94120e`**). **Sent** panel 191×152, 4 rows in order, **no Delete**: `Post Details` · `Share Link in a Post` · `Copy link` · `Duplicate`. Remaining work: split our single menu into the two per-tab sets, add `Post Details`, drop `Edit` from the menu (we already have the pencil), and check our destructive ink against `#94120e` |
 | Floating comment bubble outside card top-right (32px) | `launches/calendar.tsx` → comments | VERIFIED-PARITY | Wired to per-post comments |
 | Queue card labeled actions dropdown | `launches/calendar.tsx` (d408ed50) | VERIFIED-PARITY | Buffer labeled-dropdown pattern |
 | List empty states per tab (64px circle + heading + subline) | `launches/calendar.tsx` | VERIFIED-PARITY | Includes approvals convention copy |
@@ -932,7 +1067,7 @@ changelog line). Statuses:
 | Post statistics modal (clicks/short-link stats) | `launches/statistics.tsx`, `calendar.tsx` Statistics | VERIFIED-PARITY | Kit-converted 2026-08-10: 16/600 section heads, cards keep header-wash/hairline r12 (blue hover + purple/green/blue gradient charts dropped), chart now flat #2f7d44 2px line w/ hairline gridlines + token tooltip (local FlatMetricLine; skeleton loading kept), short-links table = hairline r8 frame + header wash (bg-forth/customColor6 removed). Buffer sent-post stats strip tracked in its own §Measure row |
 | Sent-post per-card stats (Buffer Sent tab shows metrics under cards) | `launches/calendar.tsx` SentPostStats | VERIFIED-PARITY | Measured 2026-08-10: hairline divider above a 14px-ink strip, font-[550] values + labels, gap 16; platform-dependent metric set as returned by GET /analytics/post/:id?date=30 (recent-posts.tsx fetch pattern, shared SWR key). List view + Sent tab only (DayView reuses the card shape and never fetches); lazy per visible card via IntersectionObserver, 5-min dedupe; posts without releaseId render nothing |
 | Delete post flow | `launches/calendar.tsx` DeletePost | VERIFIED-PARITY | Behind confirm dialog (surface itself → §Measure generic dialog) |
-| Set selection modal (apply a Set from calendar) | `launches/calendar.tsx` SetSelectionModal | POSTIZ-ONLY-KEEP | Sets are Postiz-only |
+| Template selection modal (apply a template before the composer opens) | `launches/calendar.tsx` SetSelectionModal | NEEDS-BUFFER-MEASUREMENT | **"Sets are Postiz-only" was wrong and is corrected.** These rows ARE Buffer's Templates (see the Templates row in §9) — the STORE is shared with the in-composer picker, so this is the pre-open entry point to the same library, not a separate feature. Its copy still says Set (`choose_set_or_continue`, `continue_without_set`), which is the last surviving "Sets" wording; the rename handoff is recorded against `calendar.tsx`. Buffer's own pre-open template flow is not measured |
 | Missing-release modal | `launches/missing-release.modal.tsx` | POSTIZ-ONLY-KEEP | Kit-converged 2026-08-10: selected tile #612BD3 -> lime border-btnPrimary, hover -> hairline, tableBorder -> newTableBorder, Cancel -> Button secondary, /70 -> /60 muted, sm:/lg: grid -> grid-cols-5 phone:grid-cols-3 |
 | Creation-method badge (API/AI-created marker on cards) | `launches/creation.method.badge.tsx` | POSTIZ-ONLY-KEEP | No Buffer counterpart |
 | Merge/separate post helpers | `launches/merge.post.tsx`, `separate.post.tsx` | POSTIZ-ONLY-KEEP | Editing plumbing |
@@ -947,14 +1082,14 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
 | Composer entry (store hydration, existing-data load, sets/onlyValues) | `new-launch/add.edit.modal.tsx` | N/A-INTERNAL | Logic only |
-| Modal shell (near-full-bleed, bg, radius, padding, backdrop) | `new-launch/manage.modal.tsx` | NEEDS-BUFFER-MEASUREMENT | Tablet done (composer r1): ≤1100px = full-viewport sheet, no radius (scoped `@media` — `max-[...]` variants don't compile against the raw `screens` config). Phone loop 2026-08-10 re-verified the fill chain: host opens `removeLayout+fullScreen` → `fixed w-full h-full` wrapper (new-modal), body scroll-locked, shell `h-full` + `phone:p-0`, so the sheet is x0 y0 viewport-sized with no page bleed. Still measure: backdrop opacity, desktop outer size/radius confirmation |
-| Header row ("Create Post" title, Tags chip, right cluster: Templates?, AI Assistant, Preview toggle, expand, X) | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | Composer r1 measured: title 18/500 Inter (body face, not display); quiet header buttons 40px px12 r8 15/500 textItemBlur + wash hover (Preview active keeps boxFocused pair); close X 40px; Tags chip 40px r8 hairline 15/500 ink. Phone loop 2026-08-10: header keeps title + Tags chip + Preview toggle (glyph-only, quiet; drives the phone overlay) + 40px close, matching Buffer 390 (Templates/AI omitted per no-dead-buttons) |
+| Modal shell (near-full-bleed, bg, radius, padding, backdrop) | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | **MEASURED 2026-08-13, row answered.** Buffer's composer dialog is **1100×759** at (170,24), white, radius **16px**, **no border**; shadow is four layers: `0 0 0 1px rgba(0,0,0,.08), 0 1px 1px 0 rgba(0,0,0,.02), 0 4px 8px -4px rgba(0,0,0,.04), 0 16px 24px -8px rgba(0,0,0,.06)`. Ours is `max-w-[1100px] max-h-[813px] rounded-[16px]` with that exact four-layer shadow - match on width, radius and shadow; our max-height is 813 vs their 759 (ours is a cap, not a fixed size). **Backdrop: the dim lives on the overlay's `::after`, not the overlay** - the overlay itself (`position:fixed; inset:0`) is fully transparent and its `::after` carries `content:""` + `background: rgba(0,0,0,0.8)` + **`backdrop-filter: none`**. This independently re-confirms the 2026-08-10 finding (0.8 black, NO blur) and extends it to the composer. Any surviving `backdrop-filter: blur()` in `global.scss` is therefore a divergence - see the generic modal-wrapper row for the exact leftovers. Tablet/phone unchanged: ≤1100px = full-viewport sheet, no radius (scoped `@media`); host opens `removeLayout+fullScreen` → `fixed w-full h-full` wrapper, body scroll-locked, shell `h-full` + `phone:p-0` |
+| Header row ("Create Post" title, Tags chip, right cluster: Assistant, Preview toggle, X) | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | **Row corrected 2026-08-13** - it claimed "quiet header buttons 40px px12 r8 15/500" and "close X 40px"; neither ships. Title 18/500 Inter (body face, not display; `data-cs`, so 18px survives the ladder) - Buffer measures 18/500/22.5px, match. Quiet header buttons (Assistant, Preview) are **h-[32px] px-[12px] r8 14/500**, `data-cs`, textItemBlur + wash hover, Preview active = boxFocused pair; Buffer's ghost is 32px r8 muted `#5a5a59`, active wash `#d9f1d1` + `#337046` ink. Close X is **32×32 r8**, not 40. Tags chip authored `h-[44px] text-[15px] font-[550] r8` with **NO `data-cs`** → **renders 36px (laddered)**; Buffer's chip is 98×32 secondary spec, so the chip is the one real gap here. Phone: title + Tags chip + **Templates + Assistant + Preview (all glyph-only, labels `phone:hidden`)** + close, matching Buffer 390. **Phone note corrected 2026-08-13**: it said "Templates/AI omitted per no-dead-buttons", which stopped being true once both shipped — Templates opens the picker (`useOpenTemplates`) and Assistant opens the bridge slide-over |
 | Channel avatar selector row (avatars 40 + badges, `+` tile, selected ring) | `new-launch/select.current.tsx`, `picks.socials.component.tsx` | VERIFIED-PARITY | Composer r1 measured: 40px rounded-[12px] tiles (was r10) on tile + image wrapper + `+` tile; lime ring selection kept |
 | Per-network customize tab strip (when customizing per channel) | `new-launch/select.current.tsx` + store | NEEDS-BUFFER-MEASUREMENT | In Buffer click "Customize for each network": tab strip anatomy (icon chips? underline?), per-network panel transitions |
 | Global vs per-channel editor split ("Customize for each network" flow) | `new-launch/store.ts` + `manage.modal.tsx` | VERIFIED-PARITY | Functional parity (Postiz global/internal values model preserved) |
-| Editor area (tiptap: placeholder, 15px body, min height) | `new-launch/editor.tsx` | NEEDS-BUFFER-MEASUREMENT | Measure "Start writing…" placeholder color/size, body line-height, editor padding, focused state |
+| Editor area (tiptap: placeholder, body type, min height) | `new-launch/editor.tsx` | NEEDS-WORK | **MEASURED 2026-08-13, row answered; one real gap found.** Buffer's contenteditable is **14px / 400 / line-height 21px**, ink `#292928`, padding `2px 0 0`, min-height **24px**; the editor column is **654px wide** inside the 1100 modal (the rest is the previews pane). Note ours was specced at 15px body - Buffer is 14px. **The placeholder is a REAL ELEMENT, not a `::before`** (`content: none` on the pseudo), and it is interactive: it reads "Start writing or get inspired with · Templates" where `Templates` is an inline 101×24 r6 affordance that opens the template picker. Placeholder ink is the muted `#5a5a59` family. So a pure-CSS `::before` placeholder cannot reproduce it. **"we have no Templates feature to link to" was corrected 2026-08-13: we do.** The interactive placeholder now ships — a real absolutely-positioned element (`pointer-events-none` on the copy so the caret still takes the click, `pointer-events-auto` on the chip alone), copy at 14/21 muted, chip 24 tall at r6 opening the same picker as the header control. Remaining work is the 14px body only |
 | Editor icon row (+ media, emoji, # tags position bottom-left) | `new-launch/editor.tsx` | NEEDS-BUFFER-MEASUREMENT | Measure icon row: order, 16px?, spacing, hover fills |
-| Media drag-drop zone (dashed, r8) | `new-launch/editor.tsx` + `media/media.component.tsx` MultiMediaComponent | NEEDS-BUFFER-MEASUREMENT | Composer r1: "select a file" link now Buffer green #2f7d44 15/400 hover-underline (links follow Buffer; buttons stay Cuesoft). Still measure: dashed border color/width, min height, icon + copy, drag-over state |
+| Media drag-drop zone (dashed, r8) | `new-launch/editor.tsx` + `media/media.component.tsx` MultiMediaComponent | NEEDS-WORK | **MEASURED 2026-08-13, row answered including the drag-over state.** Idle target is a **120×120 button**, radius 8, border **`1px dashed #8c8b88`**, padding 8, gap 8, sitting bottom-left of the editor column (container padding `8px 16px`, gap 12). Copy is two lines: "Drag & drop or" at `14px/400` **`#5a5a59`**, then "select a file" as a green link **`#337046`** at `14px/400`. **Drag-over state (the outstanding question): the EDITOR COLUMN takes a `1px dashed #4e975b` green outline**, versus the idle tile's grey `#8c8b88` - the highlight moves to the column, it is not a fill on the tile. Two corrections to our r1 note: we recorded the link green as `#2f7d44` but the measured value is **`#337046`**, and we specced the link at 15/400 where Buffer is **14/400**. Remaining work is those two token/size fixes plus the drag-over outline |
 | Attached-media thumbnails strip in editor | `media/media.component.tsx` MultiMediaComponent | NEEDS-BUFFER-MEASUREMENT | Measure thumb size/radius, remove-X, reorder affordance, video badge |
 | Bold / Underline text-style buttons (unicode styling) | `new-launch/bold.text.tsx`, `u.text.tsx` | POSTIZ-ONLY-KEEP | Unicode-trick styling; Buffer has none |
 | Emoji picker | `new-launch/editor.tsx` (emoji-picker-react) | POSTIZ-ONLY-KEEP | Third-party picker themed by mode |
@@ -970,23 +1105,25 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Delay-between-posts control | `new-launch/delay.component.tsx` | POSTIZ-ONLY-KEEP | Tokenized |
 | Tags picker in composer (create/select tags) | `launches/tags.component.tsx` | VERIFIED-PARITY | Tokenized; tag colors → §Measure tags manager |
 | Tags manager (create/edit tag: name + color swatches) | `launches/tags.component.tsx` TagsComponentInner | NEEDS-BUFFER-MEASUREMENT | Open Buffer Tags settings/new tag: dialog geometry, name input, color swatch grid (swatch size, palette, selected ring), save/cancel row |
-| Date/time picker (schedule field) | `launches/helpers/date.picker.tsx` | NEEDS-BUFFER-MEASUREMENT | Trigger done (composer r1): reshaped via `#cs-datetime` scoped skin + chevron segment in manage.modal into Buffer's split button — left calendar+label h40 start-r12 px12/8 15/500 ink hairline, attached end-r12 chevron (shared border, same action). Phone loop 2026-08-10: popover day-cell hover = measured #e6e5e2 wash (light only, scoped CSS in manage.modal; selected day keeps its lime). Still measure: popover mini-calendar geometry, time field, timezone hint |
-| "Next Available"-style schedule dropdown / footer split | `new-launch/manage.modal.tsx` footer | VERIFIED-PARITY | Composer r1 measured: split date button applied (see date picker row); footer family h-40 r12 (lime primaries + draft + repeat) so the row reads as one family; Postiz Post Now hover-dropdown semantics kept |
-| Footer actions: Save as Draft / Add to calendar / Schedule / Update / Post Now | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | All Postiz semantics preserved; composer r1: primaries/draft rounded-[12px] h-40 (draft 15/500) per Buffer footer family. Phone loop 2026-08-10: primary label shortens at phone via span swap (Buffer shows "Customize" at 390) — "Add to calendar"→"Schedule", "Check the circles above"→"Pick channels", "Create output"→"Create"; desktop labels untouched |
+| Date/time picker (schedule field) | `launches/helpers/date.picker.tsx` | NEEDS-BUFFER-MEASUREMENT | **TRIGGER MEASURED 2026-08-13 - the split button is answered; the POPOVER is not.** Buffer's schedule trigger and the primary CTA are **one joined split button, 410×40 overall**: left "Next Available" **165×40**, radius **`12px 0 0 12px`**, `1px #dedcd9`, transparent, padding `0 8px 0 12px`, gap 8, calendar glyph + label + chevron; right "Customize for each network" **245×40**, radius **`0 12px 12px 0`**, fill `#b0ec9c`, padding `0 16px`, gap 8, trailing arrow. This confirms Buffer's rule that **40px controls take r12 while 32px controls take r8** - our `#cs-datetime` split-button reshape was the right idea and these are the numbers to hold it to. One correction: we specced the label at 15/500, Buffer is **14/500**. Phone: popover day-cell hover = measured `#e6e5e2` wash (light only, scoped CSS in manage.modal; selected day keeps its lime). **Still to measure (Buffer's picker was not opened in this session): popover mini-calendar geometry, time field, timezone hint** |
+| "Next Available"-style schedule dropdown / footer split | `new-launch/manage.modal.tsx` footer | VERIFIED-PARITY | **Row corrected 2026-08-13.** Split date button applied (see date picker row). The footer family is **40px HELD BY `data-cs`** - every member carries it (`manage.modal.tsx` :927, :955, :975, :988, :1048), which is the ONLY reason `h-[40px]` is not laddered to 32px. Do not remove those attributes and do not report the family as a 32px regression. Buffer measured live 2026-08-13: split button 410×40 overall, left "Next Available" 165×40 `r12 0 0 12px` hairline transparent, right primary 245×40 `0 12px 12px 0` fill `#b0ec9c` - so 40px and r12 are the right targets. Postiz Post Now hover-dropdown semantics kept |
+| Footer actions: Save as Draft / Add to calendar / Schedule / Update / Post Now | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | **Row corrected 2026-08-13** - "primaries/draft rounded-[12px] h-40 (draft 15/500)" was wrong on radius and weight. Heights are 40px, held by `data-cs` (see row above). Radii are NOT uniformly r12: Save Draft is **r8** at 14/500 (not r12/15/500), the chevron segment is `rounded-none`, and the primaries carry `rounded-s-none rounded-e-[12px]` - r12 on the END corners only, because the whole thing is one attached split control. The Post Now hover panel is r16 with an inner r12 40px pill. Buffer's own hierarchy agrees with the shape (40px→r12, 32px→r8), so this is a documentation fix, not a code change. Phone: primary label shortens via span swap (Buffer shows "Customize" at 390) - "Add to calendar"→"Schedule", "Check the circles above"→"Pick channels", "Create output"→"Create"; desktop labels untouched. **Inventory updated 2026-08-13**: Save Draft is now a `group relative` disclosure carrying a second, differently labelled action — "Save without a date", the composer's only route to an undated draft (`Post.publishDate` is nullable in this fork). It reveals on hover/focus in the same r16 panel shape Post Now uses, is hidden at phone in favour of a plain wrapped footer button (a tap is a click, so a hover panel is unreachable on touch), and is absent entirely when editing a post that is not already a DRAFT, because clearing the date of a queued post would silently un-schedule it. Postiz-only; no Buffer counterpart measured |
+| Create Another (keep the composer open after scheduling) | `new-launch/manage.modal.tsx` footer-left + `new-launch/store.ts` (`createAnother`, `resetForNextPost`, `composerGeneration`) | NEEDS-BUFFER-MEASUREMENT | **SHIPPED. The catalog's "no Postiz analog" line (phone-composer reference row) was stale twice over and is corrected there.** What ships: the fork's own `Checkbox` primitive with `disableForm`, label at **16/400 (measured on Buffer)**, ticked state held in the store so it survives composer closes. On submit the post is sent, the composer is emptied rather than torn down, and the schedule ADVANCES to the next free slot via `GET /posts/find-slot` — bounded by a 4s client timeout, and the endpoint itself now has a search ceiling (`MAX_FIND_SLOT_DAYS`, posts.service) rather than walking forward for ever. Not offered for Set/dummy composers or when editing an existing post, since there is nothing to create another OF; not advanced for a draft, which keeps the date it was handed. **Still to measure on Buffer: checkbox box geometry (size, radius, checked fill/ink), gap to the label, and what Buffer actually does to the scheduled time on the second post** |
+| Templates (picker inside the open composer; save the current post as a template) | `new-launch/editor.tsx` (`useOpenTemplates` + picker + save dialog), `new-launch/manage.modal.tsx` header control, `sets/sets.tsx` (management surface) | NEEDS-BUFFER-MEASUREMENT | **SHIPPED, and this is the same store as Sets — one concept, not two.** Postiz's `Sets` model (`{id, organizationId, name, content}`, where `content` is the composer's own submit payload as JSON) already had a management UI and a pre-open picker; what Buffer has and Postiz lacked was surfacing from INSIDE an open composer, which is what the header control and the interactive editor placeholder chip now provide. Both entry points share one picker and one SWR key (`'sets'`) with the settings surface, so the two views cannot disagree about what exists. **Naming unified 2026-08-13**: every user-facing string now says Template; the route (`/sets`), the SWR key, the Prisma model and the settings tab id are deliberately unchanged. **Still to measure on Buffer: picker panel geometry, row anatomy, empty state, and the save-as-template dialog** |
 | Repeat/recurring post control | `launches/repeat.component.tsx` | POSTIZ-ONLY-KEEP | intervalInDays; no Buffer analog |
 | Customer selector (agency per-customer posting) | `launches/select.customer.tsx`, `customer.modal.tsx` | POSTIZ-ONLY-KEEP | Explicitly keep |
 | Post-URL selector (link a repo/release URL) | `post-url-selector/post.url.selector.tsx` | POSTIZ-ONLY-KEEP | Postiz-only |
 | Web3 posting providers (Telegram/Nostr/Warpcast/Moltbook connect dialogs) | `launches/web3/**` | POSTIZ-ONLY-KEEP | Explicitly keep; wrapcaster spinner tokenized (fc0f3cdf) |
-| Right "Post Previews" panel (420px: header, per-network preview, hints) | `new-launch/manage.modal.tsx` + `provider-preview/preview.provider.component.tsx` | NEEDS-BUFFER-MEASUREMENT | Phone loop 2026-08-10: at phone the same mounted pane (provider refs validate through it) presents full-width inside the modal via the header Preview toggle (`showPreviewPhone`, editor column display-hidden meanwhile). Still measure (desktop): width, "Post Previews" type, network switcher, preview card chrome (device frame? plain card?), skeleton |
+| Right "Post Previews" pane (**379px on `#f7f6f3`**, header, per-network preview, hints) | `new-launch/manage.modal.tsx` + `provider-preview/preview.provider.component.tsx` | NEEDS-WORK | **MEASURED 2026-08-13, row answered - and it overturns the catalog's guess twice.** The pane is **379px wide, NOT the 420px this row assumed**, and its background is **`#f7f6f3`** - a distinct warm tint, **not white like the editor column**. Both numbers were invented, not measured, and 420 has been propagated into the code (`manage.modal.tsx` comments still refer to "the fixed 420px preview pane"). Header row: min-height **60px**, padding `16px 32px 12px`, gap 12, title "Post Previews" at **`16px/400`** (not 16/600) plus a trailing info glyph. Empty state: **379×561**, gap 40, a skeleton post-card illustration flanked by sparkle glyphs, copy "See your post's preview here" at `16px/400`, and **no device frame**. Remaining work: 420→379, white→`#f7f6f3`, title weight 600→400. Phone behaviour unchanged: the same mounted pane (provider refs validate through it) presents full-width via the header Preview toggle (`showPreviewPhone`, editor column display-hidden meanwhile) |
 | Per-network preview renderers | `new-launch/providers/*/…preview…`, `provider-preview/**` | POSTIZ-ONLY-KEEP | Platform-accurate previews; keep all |
 | Composer comments (per-post comment thread) | `launches/comments/comment.component.tsx` | VERIFIED-PARITY | Rewired to per-post endpoints + restyled (de7f7dc3); quiet bordered Add-comment (ac9b7c33) |
 | Buffer comments UI reference | — | NEEDS-BUFFER-MEASUREMENT | Open a Buffer post's comment thread: panel placement (side? below?), avatar row, input geometry, timestamp style — confirm our dialog matches the pattern |
 | Phone composer (editor owns full width; preview via header toggle overlay) | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | 02e62616, then phone parity loop 2026-08-10: full-viewport sheet (fixed fullScreen host + ≤1100px scoped `@media`, radius 0, p 0); header keeps title/Tags chip/Preview toggle (glyph-only at phone)/40px close; footer primary swaps to a short label at phone; preview = the mounted side pane shown full-width via the toggle |
-| Buffer phone composer reference | — | VERIFIED-PARITY | Measured 390x844 (orchestrator screenshot 2026-08-10): full-screen sheet r0; header "Create Post" (wraps) + Tags chip + glyph-only Templates/AI/Preview + X; channels row avatars + `+` tile; editor full-width w/ dashed drop zone + emoji row; footer "Create Another" + Next Available split + lime "Customize" short-label primary. Ours matches except Templates/AI Assistant (omitted per no-dead-buttons) and Create Another (no Postiz analog) |
+| Buffer phone composer reference | — | VERIFIED-PARITY | Measured 390x844 (orchestrator screenshot 2026-08-10): full-screen sheet r0; header "Create Post" (wraps) + Tags chip + glyph-only Templates/AI/Preview + X; channels row avatars + `+` tile; editor full-width w/ dashed drop zone + emoji row; footer "Create Another" + Next Available split + lime "Customize" short-label primary. **Exception list corrected 2026-08-13 — it was stale on all three counts.** Templates ships (header ghost control + editor-placeholder chip, both `useOpenTemplates`), the AI Assistant ships as the Claude Code bridge slide-over, and **Create Another ships** as a footer-left checkbox that keeps the composer open and advances to the next free slot; none of the three is a dead button any more, and all three render glyph-only at phone exactly as Buffer does. See the dedicated Create Another and Templates rows below for what still needs measuring |
 | Close-with-unsaved-changes confirm | `new-launch/manage.modal.tsx` | VERIFIED-PARITY | Confirm dialog flow kept |
 | Editor helpers (headings, bullets, links) | `new-launch/heading.component.tsx`, `bullets.component.tsx`, `a.component.tsx` | POSTIZ-ONLY-KEEP | Long-form platforms (dev.to/Hashnode/WordPress) |
 | Dummy code block (API-created posts) | `new-launch/dummy.code.component.tsx` | POSTIZ-ONLY-KEEP | Debug/code display |
-| Set creation from composer (addEditSets) | `new-launch/manage.modal.tsx` + `sets/sets.tsx` | POSTIZ-ONLY-KEEP | Sets pipeline |
+| Template creation from composer (addEditSets) | `new-launch/manage.modal.tsx` + `sets/sets.tsx` | NEEDS-BUFFER-MEASUREMENT | The settings surface opens the composer in `addEditSets` mode: the footer primary becomes **Save Template** (was "Save Set"), Save Draft and Create Another are absent, and the payload is handed back rather than posted. **Data-loss bug fixed 2026-08-13**: loading a saved template read `p.media`, but the payload is written with `p.image` (the `CreatePostDto` field name) and always has been, so every template ever loaded dropped its attachments with no error. The read side now takes `p.image ?? p.media ?? []`. Not POSTIZ-ONLY: this is Buffer's Templates concept, unmeasured |
 | Information/help popover in composer | `launches/information.component.tsx` | POSTIZ-ONLY-KEEP | Contextual help |
 | Composer settings modal (per-channel Settings title row) | `launches/settings.modal.tsx` | POSTIZ-ONLY-KEEP | Wraps provider settings |
 | Provider settings shared form styling (inputs/selects inside per-network tabs) | `new-launch/providers/high.order.provider.tsx` | NEEDS-BUFFER-MEASUREMENT | Phone loop 2026-08-10: composer text-input hover border = measured #8a8a88 (Buffer --color-border-neutral), scoped CSS in manage.modal (light only; focus keeps border-forth). Still measure: input geometry, labels, helper text (Instagram first comment, Pinterest board/title, YouTube title) |
@@ -1073,14 +1210,14 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 |---|---|---|---|
 | Page header (bar-chart chip + title) | `new-layout/page-header.tsx` on `platform.analytics.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell`; ONE header at every width (separate 56px phone copy removed) |
 | Channel selection (shared channels dropdown, single-select: avatar+name trigger, check-left rows) | `platform.analytics.tsx` + `new-layout/channels-dropdown.tsx` | VERIFIED-PARITY | Replaced the phone chip strip (user request: calendar-style dropdown at every width, first control of the Insights toolbar); phone = 40px trigger + bottom sheet; refresh-needed channels stay selectable — the pane's refresh card (render.analytics) takes over, same path the Channels table rows allow |
-| Date-range segmented (single hairline container, 24px segments, green-tint active) | `platform.analytics.tsx` | VERIFIED-PARITY | Fleet |
+| Date-range segmented (single hairline container, 24px segments, green-tint active) - **Buffer has NO 90-day option** | `platform.analytics.tsx` | NEEDS-WORK | **MEASURED 2026-08-13; this overturns a standing assumption.** Geometry matches and is **identical to the List/Calendar segmented** in Publish: wrapper 360×32, white, r8, `1px #dedcd9`, padding 4, gap 4; item height 24, r6, padding `0 8px`, `14px/500`; inactive label `#5a5a59`, **active label `#337046` on `#95cd8f` @ alpha .322**. But the OPTIONS are not what we assumed. Buffer's are, in order: **`7 days` · `30 days` · `Month to date` · `Custom`** (Custom carries an "Upgrade" marker - paid). Consequences: (1) **Buffer does not offer a 90-day range at all**, so our native channels' 7/30/90 is our own invention, not parity, and we are MISSING `Month to date`; (2) our Buffer-relay channels' restriction to 7/30 therefore **matches Buffer's own free-plan surface exactly** rather than degrading it - the earlier framing of that limit as a degradation was too pessimistic and should stop being described that way; (3) Buffer states the comparison window explicitly in a subtitle, "Jul 15 - Aug 13, 2026 · Compared to Jun 15 - Jul 14, 2026" at `12px/400 #5a5a59`, where we show a bare percentage delta with no statement of what it compares against. Remaining work: add `Month to date`, decide whether 90 days stays as a deliberate superset, and add the "compared to" subtitle |
 | Phone date-range trigger + bottom sheet | `platform.analytics.tsx` | VERIFIED-PARITY | Fleet |
 | Summary section container (warm wash r12, title 16/600 + concrete date range subline) | `platform.analytics.tsx` | VERIFIED-PARITY | Fleet |
-| Stat tiles (white r8 hairline 216×77, 14 muted label, 20/700 number, info-i, no chart) | `render.analytics.tsx` AnalyticsCard | VERIFIED-PARITY | Fleet + refinements (fc0f3cdf) |
+| Stat tiles (white r8 hairline 216×77, 12 muted label, number 16/550 rendered, info-i, no chart) | `render.analytics.tsx` AnalyticsCard | VERIFIED-PARITY | **Row corrected 2026-08-13** - it claimed a "20/700 number". Neither number was ever true: the code is `text-[20px] leading-[24px] font-[550]` with **NO `data-cs`**, so the ladder rewrites it and it **renders 16px / weight 550**. Weight was never 700. Buffer measured live 2026-08-13: tile **216×77** (our 216×77 confirmed), r8, border **`1px #eae8e5`** - LIGHTER than the `#dedcd9` hairline used elsewhere, worth a token check - padding `12px 16px`, gap 8; label **`12px/400 #5a5a59`**; value **`20px/400`, line-height 25px**. So Buffer's value is 20px at weight 400 and ours paints 16px at 550: the ladder is making this tile diverge. Either add `data-cs` to the value span to land 20px, or accept 16px deliberately - but the row must not read as verified-at-20/700. Buffer also puts a ⓘ on every tile and shows Followers' delta as an ABSOLUTE (`+5`) while every other tile uses a percentage |
 | Trend indicator (stroke arrow, green/orange, ink value) | `render.analytics.tsx` | VERIFIED-PARITY | Fleet |
-| Trends chart (per-day metric series) | `platform-analytics/analytics-chart.tsx` | NEEDS-BUFFER-MEASUREMENT | Buffer Insights chart: measure axis type/12px?, gridline color, line weight/color, dot markers, tooltip card, legend, empty-day handling |
-| Recent posts (per-post stats via /analytics/post/:id) | `platform-analytics/recent-posts.tsx` | NEEDS-BUFFER-MEASUREMENT | Buffer "Top 5 Posts"/recent cards: 212×179 r12 per structure JSON — verify card anatomy (thumb, copy lines, metric row, Reactions/Comments segmented) against ours |
-| Channels summary table | `platform-analytics/channels-summary.tsx` | NEEDS-BUFFER-MEASUREMENT | Buffer Performance/channels table: header row style, row height, number alignment, hover; verify our table matches |
+| Trends chart (per-day metric series) - **BARS, not a line** | `platform-analytics/analytics-chart.tsx` | VERIFIED-PARITY | **MEASURED 2026-08-13, row answered; this was the headline correction of the session.** Buffer renders **Recharts BAR charts** (`recharts-bar` / `recharts-bar-rectangles`), two of them, titled "Followers" and "Posts", each **1060×160**. Gridlines are **VERTICAL ONLY** (`recharts-cartesian-grid-vertical`), stroke `#dedcd9`, 1px, **solid - no dasharray**. xAxis has ticks and tick-lines; **no yAxis labels**; **no dot markers**; **no legend**; tooltip present. **No sparklines anywhere on the page** - only 2 Recharts instances exist in the whole document, so the stat tiles carry none. Our chart had been drawing a line series with gridlines on the other axis and dot markers, i.e. divergent on all four counts; `analytics-chart.tsx` has since been rebuilt to bars with vertical-only 1px solid hairline gridlines, tick-lines, no dots and no legend, so this now matches. Two deliberate retentions recorded in the component: we keep y-axis tick LABELS (Buffer renders none and relies entirely on hover, which leaves the chart unreadable without a pointer) and a single-point state; neither adds a gridline, so the measured grid still holds |
+| Recent posts / Top 5 Posts (per-post stats via /analytics/post/:id) | `platform-analytics/recent-posts.tsx` | NEEDS-WORK | **MEASURED 2026-08-13, row answered - and the catalog's 212×179 r12 is CONFIRMED**, the one guess in this section that was already right. Card **212×179**, radius **12px**, `1px #dedcd9`, fill a very faint warm tint **`rgba(51,34,0,0.059)`** (not white). Card header 210×32, padding `0 12px`, gap 8, content `#1` + `10 Reactions`. Body: platform glyph + date, then a **3-line** excerpt. Thumbnail **44×44 r6**. Action buttons **24×24**, up to three (comment, boost, share). A `Reactions | Comments` segmented sits at the section's top right. Five cards in ONE horizontal row. Remaining work: the warm tint fill, the metric toggle, and the 44px thumb. Not adopted: Buffer's "Share as Post" action on an insight - we have no equivalent capability |
+| Channels summary / Performance table | `platform-analytics/channels-summary.tsx` | NEEDS-WORK | **MEASURED 2026-08-13, row answered.** Table width **1108**. Header row height **49px**, `th` padding `12px 16px`, `14px/500`, first cell radius `12px 0 0 0`. Body row height **64px**. Columns: `Channel` · `Posts` · `Reactions` · `Comments` · `Eng. Rate` · a **"Choose columns"** control. **Every metric header is sortable** (chevron affordance), and **every cell carries its own arrow + percentage delta** (e.g. `↗83.3%`, `↘42.7%`). Remaining work: the 49/64px row heights, per-cell deltas, sortable headers, and the column chooser - the last two are capabilities we do not have at all |
 | Analytics skeletons | `platform-analytics/analytics.skeletons.tsx` + `layout/skeleton.tsx` | VERIFIED-PARITY | Shared-skeleton delegation (fc0f3cdf) |
 | Empty state — no channels | `platform.analytics.tsx` | VERIFIED-PARITY | Circle+icon pattern (S2) |
 | Refresh-needed state | `render.analytics.tsx` | VERIFIED-PARITY | S2 |
@@ -1092,10 +1229,10 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Surface | Component/file | Status | Notes |
 |---|---|---|---|
 | Page header (sparkle chip + title + New chat primary; phone icon-only) | `new-layout/page-header.tsx` on `agents/agent.tsx` | VERIFIED-PARITY | Shared `PageHeader`/`PageShell` (48px row replaces the hand-rolled 64px bar); lime New chat kept as the actions slot (Assistant mode only) |
-| [Assistant \| Content] header segmented (admin-only) | `agents/agent.tsx` | POSTIZ-ONLY-KEEP | Launches List\|Calendar anatomy (32px band, 4px inset, hairline r8; active boxFocused/textItemFocused); preselects from ?mode=content; mode written back via history.replaceState |
-| Threads rail ("Chats" header, 32px r8 rows, collapse, empty state) | `agents/agent.tsx` | VERIFIED-PARITY | Fleet; sidePanelRoot width calibrated |
-| Channel toggle bar (composer-style avatar toggles, 40px, ring on-state) | `agents/agent.tsx` AgentList | VERIFIED-PARITY | 7ce47dff + S5 sizing |
-| Chat pane (CopilotKit: Inter inherit, tokened bubbles/input, r12 input) | `agents/agent.chat.tsx`, `agent.styles.scss` | VERIFIED-PARITY | Fleet token pass |
+| [Assistant \| Content] header segmented | `agents/agent.tsx` | POSTIZ-ONLY-KEEP | Launches List\|Calendar anatomy (32px band, 4px inset, hairline r8; active boxFocused/textItemFocused); preselects from ?mode=content; mode written back via history.replaceState. **"admin-only" removed from the title 2026-08-13 - it is gated on `isAdmin`, which is `!!user`, i.e. every authenticated user.** Uses the boxFocused active fill, not filters.tsx's measured 32% green tint - one of the six divergent segmented controls, see the UI-kit toolbar row |
+| Threads rail ("Chats" header, 32px r8 rows, collapse, empty state) | `agents/agent.tsx` `Threads` | VERIFIED-PARITY | Fleet; sidePanelRoot width calibrated. **RETAINED, do not delete (2026-08-13):** this renders only on the pre-hydration `!isAdmin` path and so looks dead to a grep, but it is the sole caller of `/copilot/list`. See the retention note atop `agent.tsx` |
+| Channel toggle bar (composer-style avatar toggles, 40px, ring on-state) | `agents/agent.tsx` AgentList | VERIFIED-PARITY | 7ce47dff + S5 sizing. **RETAINED, do not delete (2026-08-13):** renders only on the pre-hydration `!isAdmin` path, and it is the ONLY producer of `properties` for `PropertiesContext`, which `agent.chat.tsx` reads in three places. An audit proposed deleting it as unreachable; that was rejected - see the retention note atop `agent.tsx` |
+| Chat pane (CopilotKit: Inter inherit, tokened bubbles/input, r12 input) | `agents/agent.chat.tsx`, `agent.styles.scss` | VERIFIED-PARITY | Fleet token pass. **RETAINED (2026-08-13):** the whole CopilotKit cluster (`agent.chat.tsx`, `agent.input.tsx`, `agent.textarea.tsx`, `(site)/agents/[id]/page.tsx`) plus the `.agent` and `.agent-scope` scopes in `agent.styles.scss` render only on the pre-hydration fallback path. They are deliberate: they carry `/copilot/agent` and `/copilot/:thread/list`. `agent.styles.scss` is ALSO imported by `content-agent/content-chat.component.tsx` for the always-live `.cs-chat-textarea` block, so the file itself is unconditionally live |
 | Welcome copy (Cuesoft agent, correct directions) | `agents/agent.chat.tsx` | VERIFIED-PARITY | S3 rewrite |
 | Insert media portal + attachments row | `agents/agent.tsx` MediaPortal + media b2 row | VERIFIED-PARITY | 32px/r8 convergence |
 | Phone stacking (chat + rail columns) | `agents/agent.tsx` | VERIFIED-PARITY | Fleet phone:flex-col |
@@ -1122,9 +1259,9 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 | Shortlink preference (row stacks on phone) | `settings/shortlink-preference.component.tsx` | VERIFIED-PARITY | Fleet |
 | Toggle switch primitive (43×24 r999, check glyph) | `libraries/react-shared-libraries/src/form/slider.tsx` | VERIFIED-PARITY | Measured vs Buffer toggle crops |
 | Teams (invite link, member/invite tables, roles, remove) | `settings/teams.component.tsx`, `cuesoft/dropdown/user-search-dropdown.tsx` | NEEDS-BUFFER-MEASUREMENT | Open Buffer Settings→Team: member row anatomy (avatar, name/email, role select, kebab), invite CTA, pending section — style reference for our table |
-| Webhooks (list + add/edit modal + integrations picker) | `webhooks/webhooks.tsx` | POSTIZ-ONLY-KEEP | Tokenized (settings-table) |
+| Webhooks (list + add/edit modal + integrations picker) | `webhooks/webhooks.tsx` | POSTIZ-ONLY-KEEP | **Note corrected 2026-08-13:** this said "Tokenized (settings-table)", which was never true - `webhooks.tsx:78` still hand-rolls `grid grid-cols-[1fr,1fr,1fr,1fr] w-full gap-y-[10px]` and does not import `cuesoft/settings-table.tsx` (which has zero consumers). The page IS token-clean; it simply is not built on that primitive. Also the source of the one remaining rebrand-adjacent English string on a settings page, now fixed: the webhooks blurb said "when something happens in Postiz" |
 | Autopost (RSS auto-posting list + editor modal) | `autopost/autopost.tsx` | POSTIZ-ONLY-KEEP | |
-| Sets (channel/content sets list + editor) | `sets/sets.tsx` | POSTIZ-ONLY-KEEP | |
+| Templates (list + editor; formerly "Sets") | `sets/sets.tsx` | NEEDS-BUFFER-MEASUREMENT | **Renamed 2026-08-13, and no longer POSTIZ-ONLY.** These are the same rows the composer calls Templates (shared `/sets` route, shared SWR key `'sets'`), and the split name was the whole defect: the composer said Templates, Settings said Sets. User-facing copy changed here: heading `t('templates')`, blurb, "Add a template", "Save as template" dialog title, "Template Name" field, and the saved/deleted toasts. Deliberately unchanged: the route, the SWR key, the Prisma `Sets` model, the settings tab id `sets`, and the modal ids. **Outstanding:** the settings TAB label still reads Sets (`settings.component.tsx:167`, `t('sets', 'Sets')`) — handed off, since that file was outside this pass's ownership. Buffer's own Templates management page is unmeasured |
 | Signatures (list + editor, default flag) | `settings/signatures.component.tsx` | POSTIZ-ONLY-KEEP | |
 | Developers / Public API (key reveal/regenerate) | `public-api/public.component.tsx`, `developer/developer.component.tsx`, `developer.icon.component.tsx` | POSTIZ-ONLY-KEEP | |
 | Approved apps (OAuth grants list + revoke) | `approved-apps/approved-apps.component.tsx` | POSTIZ-ONLY-KEEP | |
@@ -1179,16 +1316,16 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 |---|---|---|---|
 | Icon system (231 inline SVGs ledgered to Lucide family, 16px vb24 stroke 2.2) | `components/ui/icons/index.tsx` + inline | VERIFIED-PARITY | 987a823b + b82cb93a |
 | Empty-state component (hero variant, 64px circle pattern) | `cuesoft/empty-state.tsx` | VERIFIED-PARITY | S2 pattern |
-| Shared page header + page shell (48px band → 56 phone; 40px r10 chip, 20/400 display title, actions slot; pane insets 24/32/20, gap 8) | `new-layout/page-header.tsx` | VERIFIED-PARITY | Cloned from the measured /launches header/pane; adopted by analytics, agents, media, third-party (and plugs) |
-| Loader / LoadingPane / spinner sizes | `cuesoft/loader.tsx`, `layout/loading.tsx` | VERIFIED-PARITY | Spinner call-site sweep complete (fc0f3cdf) |
+| Shared page header + page shell (48px band → 56 phone; 40px r10 chip, 20/400 display title, actions slot; pane insets 24/32/20, gap 8) | `new-layout/page-header.tsx` | VERIFIED-PARITY | Cloned from the measured /launches header/pane; adopted by analytics, agents, media, third-party (and plugs). **TWO `PageHeader` components exist and have DRIFTED (recorded 2026-08-13):** this one vs `launches/filters.tsx:1123`. Differences: phone band (`phone:h-[56px]` here, absent there), title shrink chain (`min-w-0` here, absent there), and the bookmark button (there only). The docblock's old "matches it exactly" claim was false and has been replaced with the diff table. Chip, title type and every `data-cs` DO match |
+| Loader / LoadingPane / spinner sizes | `cuesoft/loader.tsx`, `layout/loading.tsx` | NEEDS-WORK | **Row corrected 2026-08-13 - the "spinner call-site sweep complete" claim was false.** `cuesoft/loader.tsx`'s docblock said it replaced "the six hand-rolled `animate-spin` border-circle divs"; all six are still in the tree and the fork has since added a seventh (`media/media.component.tsx` gained one in e80ee238 "media library: multi-select + bulk delete", which post-dates loader.tsx). Live hand-rolled spinners: `third-parties/third-party.media-library.tsx:174`, `new-launch/manage.modal.tsx:936` + `:997`, `media/media.component.tsx:516` + `:563` + `:633`. The upstream `Spinner` in `layout/loading.tsx` is also still exported and used. `Loader` has 3 adopters (`launches/ai.video.tsx:214`, `billing/main.billing.component.tsx:66`, `analytics/stars.table.component.tsx:200`); **`LoadingPane` has ZERO** - kept because `LoadingComponent`, the thing it supersedes, still has 7 importers. Docblocks corrected; the sweep itself is the remaining work |
 | Skeleton primitives (route + per-surface) | `layout/skeleton.tsx` | VERIFIED-PARITY | bbe94a8c/fc0f3cdf sweep |
-| Data table / settings table | `cuesoft/data-table.tsx`, `settings-table.tsx` | VERIFIED-PARITY | Buffer table specs (12px grid corners 82563526) |
-| Table pagination + pager stepper | `cuesoft/table-pagination.tsx`, `toolbar/pager-stepper.tsx` | VERIFIED-PARITY | 32×32 r8 |
-| Toolbar primitives (row, field, select, input, segmented) | `cuesoft/toolbar/toolbar.tsx` | VERIFIED-PARITY | Measured toolbar anatomy |
+| Data table / settings table | `cuesoft/data-table.tsx`, `settings-table.tsx` | NEEDS-WORK | Buffer table specs (12px grid corners 82563526). **`SettingsTable` has ZERO consumers as of 2026-08-13** - it was extracted and never adopted, and all four hand-rolled copies still stand: `webhooks/webhooks.tsx:78`, `autopost/autopost.tsx:91`, `sets/sets.tsx:201`, `settings/signatures.component.tsx:83`. KEPT (its consolidation target is fully intact, unlike the deleted pager-stepper) with an honest docblock. See also the Webhooks row, which falsely claimed to be tokenized via this primitive |
+| Table pagination | `cuesoft/table-pagination.tsx` | VERIFIED-PARITY | 32×32 r8. One adopter: `admin/admin-errors.component.tsx:416`. **`toolbar/pager-stepper.tsx` was DELETED 2026-08-13**: zero consumers anywhere (no importer, no barrel - `cuesoft/` has no index file - no dynamic reference), AND its entire reason to exist had evaporated. Its docblock described deduplicating "the identical 42px recipe duplicated twice in launches/filters.tsx"; `grep -c 'h-\[42px\]' filters.tsx` now returns **0**, removed in 60890473 "rebuild the interface". Its "BUILD ONLY … do not adopt in filters.tsx yet" note was therefore waiting on a target that no longer exists. `cuesoft/pressables.tsx` `PagerButton` is the live pager primitive. Recoverable from git history if the recipe is ever wanted |
+| Toolbar primitives (row, field, select, input, segmented) | `cuesoft/toolbar/toolbar.tsx` | NEEDS-WORK | Measured toolbar anatomy. Row/Field/Select/Input ARE adopted (`admin/admin-errors.component.tsx`). **`SegmentedControl` has ZERO consumers**, while the segmented control is hand-rolled **six** times with **two different active fills** - `segActive` (32% green tint + newTableTextFocused, the measured one; `filters.tsx:452`) at `filters.tsx:1207`, `filters.tsx:1810`, `analytics-chart.tsx:275`, and `bg-boxFocused text-textItemFocused` at `agent.tsx:291`, `platform.analytics.tsx:287`, `filters.tsx:880`. KEPT, because the six live copies are exactly its job. But its 'pills' geometry is the PRE-measurement recipe (r6 container, `pt-[6px] pb-[5px]` items, boxFocused active) and five of the six copies have moved to the Buffer anatomy (container h-32 p-4 r8, items h-24 px-8 r6, 14/500): **migrating call sites onto the primitive as written would regress them.** Fix the primitive first, and settle on the 32% green tint |
 | Pressables (Chip, ChoiceChipGroup, PagerButton) | `cuesoft/pressables.tsx` | VERIFIED-PARITY | |
-| Button (primary lime/secondary hairline, 32/40 r8) | `libraries/react-shared-libraries/src/form/button.tsx` | VERIFIED-PARITY | Fleet convergence |
-| Input / textarea (32px, r8, 414px settings width) | `.../form/input.tsx`, `textarea.tsx` | VERIFIED-PARITY | Via settings measurements |
-| Checkbox (16px r4) | `.../form/checkbox.tsx` | VERIFIED-PARITY | Measured in channels dialog |
+| Button (primary lime / secondary hairline; authored h-[40px] px-[24px] r6, **renders 32px r6 laddered**) | `libraries/react-shared-libraries/src/form/button.tsx` | NEEDS-WORK | **Row corrected 2026-08-13** - it claimed "32/40 r8". There is no 32/40 pair: there is ONE authored height, `h-[40px]`, with **no `data-cs`**, so it always renders **32px**. The radius is **`rounded-[6px]`, not r8**, and r6 is not on a ladder rung so it ships as written. `px-[24px]` is also not a rung (only `px-[20px]` is), so padding stays 24px. Against Buffer's measured hierarchy this is wrong twice: Buffer's secondary is 32px **r8** padding `0 12px`, and its 40px primary is **r12**. So the shared Button matches Buffer's secondary HEIGHT by accident (via the ladder) while missing its radius and padding, and cannot express the 40px primary at all. Fixing it means either r8 + px-12 for the 32px form, or `data-cs` + r12 for a 40px variant - a call-site-wide change, hence NEEDS-WORK rather than a silent edit |
+| Input / textarea (input authored **h-[36px] r6**, ships as written; textarea min-h-[150px] p-[16px] r6) | `.../form/input.tsx`, `textarea.tsx` | NEEDS-WORK | **Row corrected 2026-08-13** - it claimed "32px, r8, 414px settings width" and all three were wrong. Input is `h-[36px] rounded-[6px]`; 36px is NOT a ladder rung, so 36px is what ships (not 32). Radius is 6px, not 8px. **The "414px settings width" does not exist anywhere in the codebase** - `grep -rn 414px` over apps/ + libraries/ returns only an unrelated `padding-left: 414px` inside the vendored `app/polonto.css`. It appears to have been copied out of that file by mistake; there is no 414px input anywhere. Buffer's own text input was not measured in the 2026-08-13 session; its hover border `#8a8a88` and the composer focus behaviour are recorded on the provider-settings row. Real remaining work: get Buffer's input geometry, then reconcile 36/r6 against it |
+| Checkbox (**24×24 box**, r4, 16px check glyph) | `.../form/checkbox.tsx` | VERIFIED-PARITY | **Row corrected 2026-08-13** - it claimed "16px r4", conflating the glyph with the box. The box is `w-[24px] h-[24px] rounded-[4px]`; the 16px is the inner check SVG. Neither `h-[24px]` nor `rounded-[4px]` is on a ladder rung (r4 is deliberately excluded - see the MECHANISM section), so both ship as written. The measured Buffer channels-dialog checkbox IS **16 r4**, which is what the row was quoting: so our box is 8px larger than Buffer's. Downgraded from a false "verified 16px" to a verified-as-24px statement; whether to shrink it to 16 is a separate decision, tracked on the channels dialog row |
 | Select / custom select / multi-select | `.../form/select.tsx`, `custom.select.tsx`, `multi.select.tsx` | VERIFIED-PARITY | 200px select geometry |
 | Color picker (tag colors) | `.../form/color.picker.tsx` | NEEDS-BUFFER-MEASUREMENT | Rides the Tags-manager measurement (§9): swatch geometry + palette |
 | Canonical/total form helpers | `.../form/canonical.tsx`, `total.tsx` | N/A-INTERNAL | |
@@ -1199,12 +1336,72 @@ pass. Everything below marked measure = one composer session on Buffer (light, 1
 
 ---
 
-## Status totals (2026-08-10)
+## Status totals (2026-08-13)
 
-Counted from the tables above (336 rows):
+Counted mechanically from the tables above - **350 rows**, and the five buckets
+sum to 350 exactly.
 
-- VERIFIED-PARITY: 155
-- NEEDS-WORK: 15
-- NEEDS-BUFFER-MEASUREMENT: 34
-- POSTIZ-ONLY-KEEP: 92
-- N/A-INTERNAL: 40
+| Status | Count | Delta since the last recount |
+|---|---|---|
+| VERIFIED-PARITY | 167 | 0 |
+| NEEDS-WORK | 14 | 0 |
+| NEEDS-BUFFER-MEASUREMENT | 26 | +5 |
+| POSTIZ-ONLY-KEEP | 101 | -3 |
+| N/A-INTERNAL | 42 | 0 |
+
+Recounted 2026-08-13 after the Create Another / Templates / Sets corrections.
+The +2 on the total is two rows that should always have existed and did not:
+**Create Another** and **Templates**, both of which were shipped features the
+catalog described only in the negative ("no Postiz analog", "we have no
+Templates feature to link to"). The -3 on POSTIZ-ONLY-KEEP is the three Sets
+rows: Sets and Buffer's Templates are the same concept over the same rows, so
+calling them Postiz-only was a category error, not a measurement. All five of
+those rows are NEEDS-BUFFER-MEASUREMENT because none of them has had a live
+Buffer pass; nothing here was measured, only reclassified.
+
+### Provenance of the previous recount (kept, and superseded by the table above)
+
+The paragraphs in this subsection describe the FIRST 2026-08-13 recount, whose
+figures were **348 / 167 / 14 / 21 / 104 / 42** with deltas -5 / +12 / -7 / 0 / 0.
+They are kept because the method they argue for is the point, not the numbers.
+
+One row moved after that block was first written: the Undated-drafts row went
+NEEDS-WORK -> NEEDS-BUFFER-MEASUREMENT when the panel was rebuilt against the now
+nullable `publishDate` (2026-08-13). That is the -1/+1 folded into its two Delta
+figures. Its 348 total and its other three buckets were unchanged.
+
+Its Delta column was against the previous *actual* row counts, not against the
+previous block, which had drifted badly: it was dated 2026-08-10 and claimed
+"336 rows / 155 / 15 / 34 / 92 / 40" while the tables at that same commit
+actually held 348 / 172 / **2** / 28 / 104 / 42. Every line of it was wrong, and
+the NEEDS-WORK figure was off by more than 7x, which made the loop look far
+closer to done than it was. Recount mechanically, do not hand-adjust.
+
+Its -7 on NEEDS-BUFFER-MEASUREMENT and +12 on NEEDS-WORK were dominated by one
+event: the 2026-08-13 Buffer session answered nine rows outright, and most answers
+revealed a real divergence, so those rows moved to NEEDS-WORK rather than to
+VERIFIED-PARITY. Measuring a row does not close it. (Both figures then absorbed
+the Undated-drafts move noted above, which pushed one row the other way.)
+
+### Blocked measurement
+
+**Blocked measurement, cannot be cleared on this plan:** Buffer's legacy
+`analyze.buffer.com` is **paywalled** for this account (it redirects to
+`/paywall`), and Buffer's `Custom` date range carries an "Upgrade" marker. Any
+row needing the legacy Analyze surface or a custom window is unmeasurable
+without a paid upgrade - do not keep re-opening those as if they were simply
+unmeasured.
+
+**OWNER DECISION 2026-08-13: stay on the free plan and accept these caps.** So
+this is settled, not pending. Consequences to record rather than rediscover:
+
+- A row that needs the paid surface takes the status **`BLOCKED-BY-PLAN`**, not
+  `NEEDS-BUFFER-MEASUREMENT`. The two are different states and conflating them is
+  what makes an audit spend a day re-proving something unprovable. Add the status
+  to a row the moment you establish the paid surface is the only way to measure it.
+- Relay Insights history stays capped at Buffer's free-plan ceiling of 31 days, so
+  the relay channels' ranges are final at 7 days / 30 days / Month to date. The
+  90-day option is deliberately absent for them, and this is **parity**, not a
+  degradation: Buffer's own free surface offers no 90-day range either.
+- Restoring 90 days for the relays is a one-line change if the plan ever changes.
+  Do not treat its absence as a defect until then.

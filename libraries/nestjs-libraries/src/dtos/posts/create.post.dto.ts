@@ -107,9 +107,26 @@ export class CreatePostDto {
   @IsNumber()
   inter?: number;
 
+  /**
+   * The slot. Required for every type that is about to be queued, optional for
+   * a draft only — an undated draft is a captured idea with no slot committed
+   * yet, which is the whole point of the feature.
+   *
+   * The ValidateIf is what keeps this from becoming a foot-gun: without it,
+   * making `date` optional across the board would let a 'schedule' arrive with
+   * no date, and `dayjs(undefined)` is NOW, so a post meant for next Tuesday
+   * would publish immediately. The condition holds the old contract exactly
+   * (@IsDefined + @IsDateString) for every non-draft type, and also for a draft
+   * that DOES send a date, so a malformed date is still rejected rather than
+   * silently dropped.
+   */
+  @ValidateIf(
+    (o) =>
+      o.type !== 'draft' || (o.date !== undefined && o.date !== null)
+  )
   @IsDefined()
   @IsDateString()
-  date: string;
+  date?: string | null;
 
   @IsArray()
   @IsDefined()

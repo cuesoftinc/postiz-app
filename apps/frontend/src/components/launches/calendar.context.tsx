@@ -31,6 +31,215 @@ import { expandPostsList, expandPosts } from '@gitroom/helpers/utils/posts.list.
 extend(isoWeek);
 extend(weekOfYear);
 
+// ---------------------------------------------------------------------------
+// THE DISPLAY CLOCK
+//
+// One clock runs the whole calendar render layer: the display timezone
+// (Buffer's "<City>" toolbar dropdown, persisted in the `displayTimezone`
+// cookie below, falling back to the app's timezone setting and then the
+// machine zone). It decides which day/hour cell a post is drawn in, which
+// column reads as "today", and which days are washed as past. The grid, the
+// phone sheet and the list view all derive those from the helpers here so they
+// cannot disagree.
+//
+// SCHEDULING IS NOT ON THIS CLOCK. What gets stored is always an INSTANT, and
+// the display zone never changes it. The helpers live here (not in
+// calendar.tsx) because filters.tsx needs the same "today" the grid uses:
+// resolveAnchorDate/setToday and the grid's today column must be the same day
+// or a view switch near midnight lands on the wrong week.
+// ---------------------------------------------------------------------------
+
+/** The value is cookie/localStorage-backed, so validate it (cached) before it
+ *  reaches any zone conversion: a corrupt identifier must never crash a view. */
+const timezoneValidity = new Map<string, boolean>();
+export const toValidTimezone = (
+  tz: string | null | undefined
+): string | undefined => {
+  if (!tz) {
+    return undefined;
+  }
+  let valid = timezoneValidity.get(tz);
+  if (valid === undefined) {
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: tz });
+      valid = true;
+    } catch {
+      valid = false;
+    }
+    timezoneValidity.set(tz, valid);
+  }
+  return valid ? tz : undefined;
+};
+
+/** The display clock, always a usable IANA zone. The machine-zone fallback is
+ *  what the pre-timezone code effectively rendered in, so an unset preference
+ *  renders exactly as it always did. */
+export const resolveDisplayTimezone = (preferred?: string | null): string =>
+  toValidTimezone(preferred) ||
+  (typeof window === 'undefined'
+    ? undefined
+    : toValidTimezone(localStorage.getItem('timezone'))) ||
+  dayjs.tz.guess();
+
+// Both conversions below go through Intl rather than dayjs's `.tz()`, and that
+// is deliberate. dayjs 1.11.19's timezone plugin computes a zone's offset by
+// round-tripping a `toLocaleString` value back through the JS Date parser, i.e.
+// through the MACHINE zone. When the intermediate wall clock lands in the
+// machine zone's own nonexistent hour, that parse normalises forward and the
+// computed offset is an hour out. Measured against Intl over 11,232 instants x
+// 12 display zones: 0 mismatches under TZ=Europe/London, Asia/Tokyo, UTC and
+// others, but 60 under TZ=America/New_York and 78 under America/Los_Angeles,
+// all on those machines' own spring-forward date. Rendering that is bad; but
+// BUCKETING on it would put a post in the wrong hour cell, so the conversion
+// core cannot be built on it. Intl reads the tz database directly and has no
+// machine-zone step, which makes both helpers machine-zone independent
+// (verified: identical results across 7 machine zones).
+
+/** Intl formatters are costly to construct and free to reuse. */
+const zoneFormatters = new Map<string, Intl.DateTimeFormat>();
+const zoneFormatter = (displayTimezone: string) => {
+  let formatter = zoneFormatters.get(displayTimezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: displayTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    zoneFormatters.set(displayTimezone, formatter);
+  }
+  return formatter;
+};
+
+type CivilTime = {
+  y: number;
+  m: number;
+  d: number;
+  h: number;
+  mi: number;
+  s: number;
+};
+
+/** The calendar fields an instant shows as, in the display zone. */
+const civilInZone = (ms: number, displayTimezone: string): CivilTime => {
+  const parts: Record<string, string> = {};
+  for (const part of zoneFormatter(displayTimezone).formatToParts(
+    new Date(ms)
+  )) {
+    parts[part.type] = part.value;
+  }
+  return {
+    y: +parts.year,
+    m: +parts.month,
+    d: +parts.day,
+    // hourCycle h23 still reports midnight as '24' in some environments
+    h: parts.hour === '24' ? 0 : +parts.hour,
+    mi: +parts.minute,
+    s: +parts.second,
+  };
+};
+
+/** READ PATH. An instant, expressed on the display clock as a wall-clock
+ *  CARRIER: a UTC-mode dayjs whose own fields ARE the display zone's wall clock,
+ *  so `.format()` (including locale formats like 'h:mm A' and 'dddd') renders
+ *  exactly what the viewer should read, and a formatted key is the cell
+ *  identity to bucket against.
+ *
+ *  Its timestamp is deliberately NOT the original instant, so never compare one
+ *  of these to a real instant. Formatting and key building only. UTC mode is
+ *  what keeps it honest: building a machine-local Date from these fields would
+ *  reintroduce exactly the normalisation bug described above, this time in the
+ *  machine zone.
+ *
+ *  REQUIRES A REAL VALUE. Post.publishDate is nullable now, and this does not
+ *  tolerate a null: it becomes NaN milliseconds, and civilInZone hands Intl a
+ *  `new Date(NaN)`, which THROWS RangeError rather than formatting to anything.
+ *  Every post-date caller goes through calendar.tsx's formatPostTime, which
+ *  short-circuits on a missing date before reaching here; a new caller has to do
+ *  the same. */
+export const displayWall = (
+  value: string | number | Date,
+  displayTimezone: string
+): dayjs.Dayjs => {
+  const ms =
+    value instanceof Date
+      ? value.getTime()
+      : typeof value === 'number'
+      ? value
+      : dayjs.utc(value).valueOf();
+  const c = civilInZone(ms, displayTimezone);
+  return dayjs.utc(Date.UTC(c.y, c.m - 1, c.d, c.h, c.mi, c.s));
+};
+
+/** Today's date on the display clock. */
+export const displayTodayKey = (displayTimezone: string): string =>
+  displayWall(Date.now(), displayTimezone).format('YYYY-MM-DD');
+
+/** A zone's offset in minutes east of UTC at a given instant. Exported for the
+ *  timezone picker's "GMT+1:00" labels, which must not disagree with the clock
+ *  the calendar actually renders on. */
+export const zoneOffsetMinutes = (
+  ms: number,
+  displayTimezone: string
+): number => {
+  const c = civilInZone(ms, displayTimezone);
+  return Math.round(
+    (Date.UTC(c.y, c.m - 1, c.d, c.h, c.mi, c.s) - ms) / 60000
+  );
+};
+
+/** WRITE PATH. A display-zone wall clock ('YYYY-MM-DD', 'YYYY-MM-DD HH:mm', …)
+ *  back to the real INSTANT it names, as a plain dayjs. This is the only value
+ *  scheduling sees, so it has to be exact.
+ *
+ *  Two-pass offset resolution (Luxon's fixOffset): guess the offset at the wall
+ *  clock read as UTC, correct, and confirm. It never throws.
+ *  - A wall clock that does not exist (02:00 on a spring-forward day) steps
+ *    FORWARD past the gap, because the smaller offset is the one subtracted.
+ *  - One that occurs twice resolves to ONE of its two occurrences, picked
+ *    deterministically by which side of the transition the first guess lands on.
+ *    That is the earlier occurrence for a northern fall-back (New York
+ *    2026-11-01 01:30 gives 05:30Z) and the later one for a southern one
+ *    (Sydney 2026-04-05 02:30 gives 2026-04-04T16:30Z). Either is a true
+ *    reading of that wall clock, both round-trip back to it, and the choice is
+ *    stable, which is all the grid needs.
+ *  Verified over every hour cell of 2026 in 13 zones (113,880 cells) under 7
+ *  machine zones: every existing wall clock round-trips to itself, every
+ *  nonexistent one resolves strictly forward, and the results are byte-identical
+ *  whatever the machine zone is.
+ *
+ *  Cell bucketing never depends on this resolution (it compares wall clocks),
+ *  so a nonexistent hour cell simply holds no posts and an ambiguous one holds
+ *  BOTH occurrences, which is what that wall clock actually means: nothing is
+ *  hidden by the choice above, it only decides where a drop lands. */
+export const displayInstant = (
+  wallClock: string,
+  displayTimezone: string
+): dayjs.Dayjs => {
+  // parsed in UTC mode so the string's fields are taken literally, with no
+  // machine-zone interpretation, then shifted onto the real timeline below
+  const wallMs = dayjs.utc(wallClock).valueOf();
+  const guess = zoneOffsetMinutes(wallMs, displayTimezone);
+  const first = wallMs - guess * 60000;
+  const confirmed = zoneOffsetMinutes(first, displayTimezone);
+  if (guess === confirmed) {
+    return dayjs(first);
+  }
+  const second = wallMs - confirmed * 60000;
+  const settled = zoneOffsetMinutes(second, displayTimezone);
+  if (confirmed === settled) {
+    return dayjs(second);
+  }
+  return dayjs(wallMs - Math.min(confirmed, settled) * 60000);
+};
+
+/** The LIST view's tab vocabulary. 'approvals' is a frontend-only
+ *  pseudo-state: it never reaches the backend as a state, it is sent as
+ *  state=draft + needsApproval=only (see listParams below). */
 export type ListStateFilter =
   | 'all'
   | 'scheduled'
@@ -38,16 +247,29 @@ export type ListStateFilter =
   | 'published'
   | 'approvals';
 
+/** Legal ?state= values. Narrower than ListStateFilter on purpose: ?state=
+ *  is forwarded verbatim to /posts, whose GetPostsDto only accepts
+ *  'all' | 'scheduled' | 'draft' | 'published'. 'approvals' would fail that
+ *  validation and 400 the whole calendar fetch, so it collapses to 'all'. */
 const STATE_FILTER_VALUES: readonly string[] = [
   'all',
   'scheduled',
   'draft',
   'published',
-  'approvals',
 ];
 
-/** Approvals v1: a draft carrying this tag is "awaiting approval". The tag is
- *  a plain org tag (created via the existing tags UI) — no new write surface. */
+/** The org tag the server keeps in step with the approvals gate, so a gated post
+ *  carries a visible label in the tags UI. It is ONLY a label: the gate itself is
+ *  `Post.needsApproval`, and that is what the Approvals tab and its count now
+ *  query (needsApproval=only).
+ *
+ *  This used to be the resolution mechanism: the tab looked the tag up by name
+ *  and filtered on its id, which made the whole approvals view disarmable by any
+ *  user with access to the tags UI: rename the tag and every pending post
+ *  vanishes from the feed while still being blocked from publishing, i.e. an
+ *  approvals queue nobody can see. Kept as a named constant because it is the
+ *  contract with the server's own APPROVAL_TAG_NAME (posts.service.ts), which
+ *  creates and attaches it. */
 export const APPROVAL_TAG_NAME = 'needs-approval';
 
 /** ?state= is user-editable — anything outside the enum collapses to 'all'
@@ -91,6 +313,10 @@ export const CalendarContext = createContext({
    *  never snaps back to the month's first week. */
   anchor: null as string | null,
   customer: null as string | null,
+  /** Channel filter (?integration=, comma-list of integration ids). Provided
+   *  at runtime by the `...filters` spread below; declared here so consumers
+   *  (the list view's tab counts) can read it without casting the context. */
+  integration: null as string | null,
   loading: true,
   sets: [] as { name: string; id: string; content: string[] }[],
   signature: undefined as any,
@@ -151,8 +377,6 @@ export const CalendarContext = createContext({
   state: 'all' as ListStateFilter,
   /** Comma-separated tag-id filter (?tags=), applied to both views. */
   tags: null as string | null,
-  /** The org tag named 'needs-approval' when it exists (Approvals v1). */
-  approvalTag: null as { id: string; name: string } | null,
   /** Presentation-only timezone the calendar renders times in
    *  (cookie-persisted; scheduling stays in the org timezone). */
   displayTimezone: '' as string,
@@ -184,9 +408,19 @@ export interface Integrations {
   };
 }
 
-// Helper function to get start and end dates based on display type
-function getDateRange(display: string, referenceDate?: string) {
-  const date = referenceDate ? newDayjs(referenceDate) : newDayjs();
+// Helper function to get start and end dates based on display type.
+// `displayTimezone` only matters when there is no referenceDate: "the range
+// around today" has to mean today on the DISPLAY clock, or a first load a few
+// minutes either side of midnight opens on the wrong week/month.
+function getDateRange(
+  display: string,
+  referenceDate?: string,
+  displayTimezone?: string
+) {
+  const date = newDayjs(
+    referenceDate ||
+      displayTodayKey(resolveDisplayTimezone(displayTimezone))
+  );
 
   switch (display) {
     case 'day':
@@ -206,7 +440,13 @@ function getDateRange(display: string, referenceDate?: string) {
       // first week through Saturday of the sixth). Consumers derive the
       // display month from the middle of the range, which resolves to the
       // same month for both the exact-month and the grid-extended shapes.
-      const gridStart = date.startOf('month').startOf('week');
+      // Sunday is subtracted EXPLICITLY (.day() is Sunday-based whatever the
+      // locale) instead of via startOf('week'), which follows dayjs's ACTIVE
+      // locale: under a Monday-first locale (fr/de/ru…) the fetched window
+      // started a day after MonthView's Sunday-first first cell, so that cell
+      // held no data and rendered empty.
+      const firstOfMonth = date.startOf('month');
+      const gridStart = firstOfMonth.subtract(firstOfMonth.day(), 'day');
       return {
         startDate: gridStart.format('YYYY-MM-DD'),
         endDate: gridStart.add(41, 'day').format('YYYY-MM-DD'),
@@ -294,7 +534,7 @@ export const CalendarWeekProvider: FC<{
   const initialRange =
     initStartDate && initEndDate
       ? { startDate: initStartDate, endDate: initEndDate }
-      : getDateRange(display);
+      : getDateRange(display, undefined, displayTimezone);
 
   const [filters, setFilters] = useState({
     startDate: initialRange.startDate,
@@ -346,55 +586,89 @@ export const CalendarWeekProvider: FC<{
   }, [filters]);
 
   // Calendar view data fetcher
-  const loadData = useCallback(async () => {
+  // The return is annotated because the `posts` override below narrows the
+  // literal to just that key: `expanded` is `any`, so spreading it contributes
+  // no known properties and `comments` (read at the memo further down, and part
+  // of this payload since long before the display-clock work) fell off the type.
+  const loadData = useCallback(async (): Promise<{
+    posts: any[];
+    comments?: any[];
+  }> => {
+    // The grid buckets posts on the DISPLAY clock, so the fetch window has to
+    // be the display zone's day boundaries. Machine-zone boundaries left the
+    // first and last visible column partly unfetched whenever the two zones
+    // differed, and those two columns are exactly where the near-midnight
+    // posts live. The extra day on each side is pure slack: it absorbs the
+    // backend's inclusive gte/lte edges and keeps the edge columns populated
+    // while a zone change is still revalidating. The backend does no bucketing
+    // of its own (it filters publishDate between two UTC instants), so a wider
+    // window only ever adds rows the render layer then places correctly.
+    const zone = resolveDisplayTimezone(displayTimezone);
+    // pad as DATES first (plain calendar arithmetic on a date string, immune to
+    // any zone), then resolve each padded date's display-zone edge to an instant
+    const paddedStart = newDayjs(filters.startDate)
+      .subtract(1, 'day')
+      .format('YYYY-MM-DD');
+    const paddedEnd = newDayjs(filters.endDate)
+      .add(1, 'day')
+      .format('YYYY-MM-DD');
+    const windowStart = displayInstant(`${paddedStart} 00:00:00`, zone);
+    const windowEnd = displayInstant(`${paddedEnd} 23:59:59`, zone);
     const search = new URLSearchParams({
       display: filters.display,
       customer: filters?.customer?.toString() || '',
       integration: filters?.integration?.toString() || '',
-      startDate: newDayjs(filters.startDate).startOf('day').utc().format(),
-      endDate: newDayjs(filters.endDate).endOf('day').utc().format(),
+      startDate: windowStart.utc().format(),
+      endDate: windowEnd.utc().format(),
     });
     if (filters.state !== 'all') search.set('state', filters.state);
     if (filters.tags) search.set('tags', filters.tags);
     const modifiedParams = search.toString();
 
     const data = await (await fetch(`/posts?${modifiedParams}`)).json();
-    return expandPosts(data);
-  }, [filters, params]);
+    const expanded = expandPosts(data);
+    // The calendar is a view of positions in time, so a post with no date has no
+    // place in it; it is reached through the Undated Drafts panel instead. The
+    // repository already excludes them (an explicit `publishDate: { not: null }`
+    // clause, because the repeating-posts OR branch does not drop nulls the way
+    // the range comparison does), and this is the second layer, here rather than
+    // in each view because ONE filter covers all four of them (month, week, day,
+    // phone sheet) plus the empty-state notices that count off the same array.
+    // Cheap insurance against the day someone relaxes that clause: a null reaching
+    // the grid is not a visible error, it is a card that quietly appears nowhere.
+    return {
+      ...expanded,
+      posts: (expanded.posts || []).filter((post: any) => !!post.publishDate),
+    };
+  }, [filters, params, displayTimezone]);
 
-  // Approvals v1: resolve the org's 'needs-approval' tag (read-path; the tag
-  // itself is created through the existing tags UI)
-  const { data: approvalTagData } = useSWR(
-    // resolved for the whole list view — the tab count pills need it too
-    filters.display === 'list' ? '/posts/tags?approvals' : null,
-    async () => {
-      const data = await (await fetch('/posts/tags')).json();
-      const tags = Array.isArray(data?.tags) ? data.tags : [];
-      return (
-        tags.find(
-          (tag: any) =>
-            (tag.name || '').toLowerCase().trim().replace(/\s+/g, '-') ===
-            APPROVAL_TAG_NAME
-        ) || null
-      );
-    }
-  );
-  const approvalTag = approvalTagData || null;
-
-  // List view data fetcher
+  // List view data fetcher.
+  //
+  // APPROVALS resolves off the FIELD. It used to resolve by looking the
+  // 'needs-approval' tag up by name and filtering on its id, which meant the feed
+  // depended on a row any user can rename or delete from the tags UI: do that and
+  // every pending post silently leaves the Approvals tab while the server goes on
+  // refusing to publish it. `needsApproval=only` reads Post.needsApproval, which
+  // is the same value the server enforces the gate with, so the tab shows exactly
+  // what is gated and nothing in the UI can disarm it.
+  //
+  // It also composes, where the tag filter could not: `tags` was SPENT on the
+  // approval tag before, so the user's own tag filter was silently dropped on this
+  // one tab. The two are independent clauses now and both apply.
   const listParams = useMemo(() => {
     const search = new URLSearchParams({
       page: listPage.toString(),
       limit: '100',
       customer: filters?.customer?.toString() || '',
       integration: filters?.integration?.toString() || '',
-      // Approvals = drafts carrying the needs-approval tag
+      // Approvals are drafts, so the state clause still narrows to DRAFT; the
+      // pseudo-state itself never goes over the wire.
       state: listState === 'approvals' ? 'draft' : listState,
     });
     if (listState === 'approvals') {
-      // unknown id yields an empty (not unfiltered) feed when the tag is absent
-      search.set('tags', approvalTag?.id || '__no-approval-tag__');
-    } else if (filters.tags) {
+      search.set('needsApproval', 'only');
+    }
+    if (filters.tags) {
       search.set('tags', filters.tags);
     }
     return search.toString();
@@ -404,7 +678,6 @@ export const CalendarWeekProvider: FC<{
     filters.integration,
     filters.tags,
     listState,
-    approvalTag?.id,
   ]);
 
   const loadListData = useCallback(async () => {
@@ -418,7 +691,10 @@ export const CalendarWeekProvider: FC<{
     isLoading: calendarIsLoading,
     mutate: mutateCalendar,
   } = useSWR(
-    filters.display !== 'list' ? `/posts-${params}` : null,
+    // the display timezone belongs in the key: it moves the fetch WINDOW
+    // (loadData derives the day boundaries from it), so a zone switch has to
+    // revalidate or the newly-visible edge day stays unfetched
+    filters.display !== 'list' ? `/posts-${params}-${displayTimezone}` : null,
     loadData,
     {
       refreshInterval: 3600000,
@@ -540,6 +816,14 @@ export const CalendarWeekProvider: FC<{
       // ?tab= is list-view-only (Buffer: /schedule/list?tab=sent) — carried
       // while the target view is the list, dropped on the calendar paths.
       const carriedTab = carried.get('tab');
+      // ?undated=1 opens the Undated Drafts panel (filters.tsx). It has to be
+      // carried for the same reason ?integration= does: this rewrite replaces the
+      // whole query string, so any param not named here is DELETED, and a param
+      // whose absence means "closed" would make the panel shut itself the first
+      // time the user changed week or switched view. The panel is not tied to a
+      // range or a display (undated drafts have no position in time), so it
+      // survives every navigation until it is closed.
+      const carriedUndated = carried.get('undated') === '1';
       const keptTab =
         newFilters.display === 'list' &&
         carriedTab &&
@@ -556,10 +840,18 @@ export const CalendarWeekProvider: FC<{
         `endDate=${newFilters.endDate}`,
         carriedAnchor ? `anchor=${carriedAnchor}` : ``,
         newFilters.customer ? `customer=${newFilters.customer}` : ``,
-        newFilters.integration ? `integration=${newFilters.integration}` : ``,
+        // nextIntegration, NOT newFilters.integration: every caller omits
+        // integration ("keep the current channel filter"), so writing the
+        // incoming value dropped ?integration= from the URL, and the
+        // searchParams sync effect above reads its absence as a reset, so a
+        // view or date change silently cleared the channel filter and the
+        // calendar went back to showing every channel. Writing the value the
+        // fetch is about to use keeps the URL and the query in step.
+        nextIntegration ? `integration=${nextIntegration}` : ``,
         carriedState !== 'all' ? `state=${carriedState}` : ``,
         carriedTags ? `tags=${encodeURIComponent(carriedTags)}` : ``,
         keptTab ? `tab=${keptTab}` : ``,
+        carriedUndated ? `undated=1` : ``,
       ].filter((f) => f);
       window.history.replaceState(
         null,
@@ -580,6 +872,16 @@ export const CalendarWeekProvider: FC<{
 
   const changeDate = useCallback(
     (id: string, date: dayjs.Dayjs) => {
+      // An unusable date must not be written into the mirror. `.utc().format()`
+      // on an Invalid Date yields the literal STRING 'Invalid Date', which is
+      // truthy, so it would sail past every `!post.publishDate` guard downstream
+      // and only fail later, inside the render layer: displayWall would hand
+      // Intl a `new Date(NaN)` and throw. Skipping the optimistic update instead
+      // costs only the brief hop until the accompanying PUT's reload arrives,
+      // and the server rejects an invalid date on that route anyway.
+      if (!date?.isValid()) {
+        return;
+      }
       setInternalData((d) =>
         d.map((post: Post) => {
           if (post.id === id) {
@@ -632,7 +934,6 @@ export const CalendarWeekProvider: FC<{
         setListPage,
         listState,
         setListState,
-        approvalTag,
         displayTimezone,
         setDisplayTimezone,
         lastCalendarDisplay,

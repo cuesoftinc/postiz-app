@@ -9,9 +9,11 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  // Cuesoft fork: transactional email is sent synchronously inside HTTP requests
-  // (see EmailService.sendEmail), so an SMTP stall must fail fast instead of
-  // hanging password-reset/invite endpoints until the proxy 504s.
+  // Cuesoft fork: transactional email is sent directly through this transport
+  // rather than via Temporal (see EmailService.sendEmail), so an SMTP stall must
+  // fail fast. Sends now run on EmailService's bounded background queue, where a
+  // hung handshake no longer stalls a request or a publish, but it does hold one
+  // of only two dispatch slots, so every later notification queues behind it.
   connectionTimeout: 10_000,
   greetingTimeout: 10_000,
   socketTimeout: 20_000,

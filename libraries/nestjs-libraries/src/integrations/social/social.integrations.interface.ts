@@ -54,6 +54,39 @@ export interface AnalyticsData {
   label: string;
   data: Array<{ total: string; date: string }>;
   percentageChange: number;
+  /**
+   * Legacy "this metric is a mean, not a sum" flag. It cannot say WHICH unit,
+   * which is why `unit` below exists: youtube.provider set `average` on both
+   * 'Average View Duration' (SECONDS) and 'Average View Percentage' (percent),
+   * and the frontend rendered the duration as "182.00%". Kept for providers
+   * that have not been given a `unit` yet; `unit` wins where both are present.
+   */
+  average?: boolean;
+  /**
+   * The metric's real unit, so the frontend never has to guess it from the
+   * label. 'count' sums across the window, 'percentage' and 'duration' are
+   * means and format as "40.00%" / "3m 2s" respectively.
+   */
+  unit?: 'percentage' | 'duration' | 'count';
+  /**
+   * Absolute total of the COMPARISON window. Buffer's Total Followers tile
+   * shows an absolute delta ("+5") where every other tile shows a percentage,
+   * and an absolute delta cannot be recovered from `percentageChange`, because
+   * every provider rounds that to whole percent: 1000 followers +4 rounds to
+   * 0% and the +4 is gone.
+   */
+  previousTotal?: number;
+  /**
+   * The window figure, when the provider knows it better than the series can
+   * express. Normally the frontend derives it from `data` (sum for counts,
+   * mean for rates), which is exact for a count but WRONG for a rate: a rate's
+   * window value is weighted by each day's denominator, so a plain mean of
+   * daily rates is a different number. The Buffer relay has both a real
+   * per-day series and Buffer's own authoritative window rollup, and this is
+   * how it ships both without one corrupting the other. Providers that leave
+   * it undefined keep the derived behaviour exactly as before.
+   */
+  total?: number;
 }
 
 

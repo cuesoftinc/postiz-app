@@ -13,7 +13,10 @@ import { AddEditModalProps } from '@gitroom/frontend/components/new-launch/add.e
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { PicksSocialsComponent } from '@gitroom/frontend/components/new-launch/picks.socials.component';
-import { EditorWrapper } from '@gitroom/frontend/components/new-launch/editor';
+import {
+  EditorWrapper,
+  useOpenTemplates,
+} from '@gitroom/frontend/components/new-launch/editor';
 import { SelectCurrent } from '@gitroom/frontend/components/new-launch/select.current';
 import { ShowAllProviders } from '@gitroom/frontend/components/new-launch/providers/show.all.providers';
 import { useExistingData } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
@@ -42,9 +45,20 @@ import {
 import { useHasScroll } from '@gitroom/frontend/components/ui/is.scroll.hook';
 import { useShortlinkPreference } from '@gitroom/frontend/components/settings/shortlink-preference.component';
 import dayjs from 'dayjs';
+import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
+import { Checkbox } from '@gitroom/react/form/checkbox';
 import { ModalFooter } from '@gitroom/frontend/components/cuesoft/modal/modal-footer';
 import { supportEmitter } from '@gitroom/frontend/components/layout/support';
+
+/** How long the Create Another slot lookup may take before the composer gives
+ *  up and keeps the date it already has. Not paranoia: `useFetch` returns a
+ *  promise that NEVER RESOLVES when its afterRequest hook declines a response
+ *  (`new Promise((res) => {})` in custom.fetch.func.ts — the 402/406 billing
+ *  interstitials do exactly that), and `/posts/find-slot` itself recurses one
+ *  day per query with no ceiling. Either would otherwise leave the user staring
+ *  at a spinner over a post that already went out. */
+const NEXT_SLOT_TIMEOUT_MS = 4000;
 
 export const ManageModal: FC<AddEditModalProps> = (props) => {
   const t = useT();
@@ -86,6 +100,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     current,
     activateExitButton,
     setHide,
+    createAnother,
+    setCreateAnother,
+    composerGeneration,
+    resetForNextPost,
+    setProvidersRef,
   } = useLaunchStore(
     useShallow((state) => ({
       hide: state.hide,
@@ -102,14 +121,57 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       setSelectedIntegrations: state.setSelectedIntegrations,
       locked: state.locked,
       activateExitButton: state.activateExitButton,
+      createAnother: state.createAnother,
+      setCreateAnother: state.setCreateAnother,
+      composerGeneration: state.composerGeneration,
+      resetForNextPost: state.resetForNextPost,
+      setProvidersRef: state.setProvidersRef,
     }))
   );
+
+  const openTemplates = useOpenTemplates();
 
   useEffect(() => {
     if (hide) {
       setHide(false);
     }
   }, [hide]);
+
+  // Publish the provider handle so the Templates picker can read the LIVE
+  // per-network settings when saving a template. Cleared on unmount so nothing
+  // can hold a handle belonging to a closed composer.
+  useEffect(() => {
+    setProvidersRef(ref);
+    return () => {
+      setProvidersRef(null);
+    };
+  }, []);
+
+  // Buffer's Create Another is a new-post affordance. Editing an existing post
+  // has nothing to create another OF, and a Set composer saves rather than
+  // schedules, so the checkbox is absent in both, and the reset path below is
+  // guarded on the same condition rather than on the flag alone.
+  const canCreateAnother = !addEditSets && !dummy && !existingData?.integration;
+
+  /** May this composer produce an UNDATED draft (a captured idea with no slot
+   *  committed yet)?
+   *
+   *  Deliberately narrow, because the write it authorizes is destructive in the
+   *  wrong place: createOrUpdatePost sets `publishDate` to null unconditionally
+   *  from the payload and its `stateFor` drops a dateless row to DRAFT, so
+   *  sending this for an existing QUEUE post would silently un-schedule a post
+   *  that is already on the calendar. Hence: a brand-new post, or an edit of a
+   *  post that is ALREADY a draft (where there is no schedule to lose).
+   *
+   *  A Set composer is excluded because it saves a reusable template rather than
+   *  a post, and the dummy composer because it only prints an API snippet — its
+   *  Save Draft already emits the canonical dated shape, and a second variant
+   *  there would be surface with no user. */
+  const canSaveUndated =
+    !addEditSets &&
+    !dummy &&
+    (!existingData?.integration ||
+      existingData?.posts?.[0]?.state === 'DRAFT');
 
   // Buffer parity r2 — the floating support launcher (Chatbase/Discord) must
   // never sit over the composer footer CTA. Hide it for the modal's lifetime.
@@ -213,8 +275,70 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     return;
   }, [existingData, mutate, modal]);
 
+  /** Buffer's "Next Available", for the Create Another path only.
+   *
+   *  THE CONTRACT, read rather than assumed. `GET /posts/find-slot` takes no
+   *  body and no parameters — not a date, not a channel list (the per-channel
+   *  variant is a different route, `/find-slot/:id`) — and answers
+   *  `{ date: 'YYYY-MM-DDTHH:mm:00' }`, a naive UTC wall clock with no offset.
+   *  posts.service#findFreeDateTimeRecursive builds it as: of the org's
+   *  configured posting times, the earliest that is still in the future AND has
+   *  no post already on it, walking forward one day per query. So it cannot be
+   *  asked to search from a given date, and it has no "nothing is free" answer —
+   *  it either returns a slot or keeps walking, which is the other half of why
+   *  the call is bounded by a timeout above. Called AFTER the post is created,
+   *  so the slot post one just took is already excluded from the search.
+   *
+   *  SCHEDULE-WHAT-YOU-SEE BOUNDARY (composer). The value that matters is the
+   *  INSTANT: submit sends `date.utc().format('YYYY-MM-DDTHH:mm:ss')`. The
+   *  string is therefore parsed in UTC mode (its fields taken literally, with no
+   *  machine-zone reading), reduced to `.valueOf()`, and re-flavoured onto the
+   *  machine clock with newDayjs — byte for byte what calendar.tsx's
+   *  `toComposerDate` does at the other entry point, and for the same reason:
+   *  the DatePicker edits by reformatting the wall clock and re-parsing it with
+   *  a machine-zone `dayjs()`, so a display-zone-flavoured object recombines a
+   *  display-zone DATE with a machine-zone TIME the moment it is touched. No
+   *  `.tz()` and no `.local()` (which set.timezone patches INTO a `.tz()`) on
+   *  this path, so dayjs 1.11.19's machine-zone-dependent zone conversion is
+   *  never consulted and the wire receives exactly the endpoint's own string. */
+  const nextFreeSlot = useCallback(async (): Promise<dayjs.Dayjs | null> => {
+    try {
+      const response = await Promise.race([
+        fetch('/posts/find-slot'),
+        new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), NEXT_SLOT_TIMEOUT_MS)
+        ),
+      ]);
+
+      if (!response?.ok) {
+        return null;
+      }
+
+      const slot = (await response.json())?.date;
+      const instant = slot ? dayjs.utc(slot) : null;
+
+      // A slot that does not parse must not become the composer's date:
+      // dayjs renders it as the literal 'Invalid Date' in the footer control
+      // and sends the same two words to the wire.
+      return instant?.isValid() ? newDayjs(instant.valueOf()) : null;
+    } catch {
+      // network failure, a non-JSON body, an empty body: all of them mean the
+      // same thing here, and none of them is worth blocking the composer over
+      return null;
+    }
+  }, [fetch]);
+
   const schedule = useCallback(
-    (type: 'draft' | 'now' | 'schedule' | 'update') => async () => {
+    (
+      type: 'draft' | 'now' | 'schedule' | 'update',
+      options?: { undated?: boolean }
+    ) => async () => {
+      // Re-checked here rather than trusted from the call site. The flag only
+      // ever means something for a draft, and only where canSaveUndated holds,
+      // so no other button can grow an undated payload by being handed the
+      // wrong argument.
+      const undated = type === 'draft' && !!options?.undated && canSaveUndated;
+
       if (
         (type === 'now' || type === 'schedule') &&
         (existingData?.posts?.[0]?.state === 'PUBLISHED' ||
@@ -405,7 +529,17 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         ...(repeater ? { inter: repeater } : {}),
         tags,
         shortLink,
-        date: date.utc().format('YYYY-MM-DDTHH:mm:ss'),
+        // The key is OMITTED, not set to null and not to the string 'null'.
+        // JSON.stringify drops an absent key entirely, so the DTO sees
+        // `date === undefined`, which is the one shape CreatePostDto's
+        // ValidateIf lets through for a draft (`o.type !== 'draft' || (o.date
+        // !== undefined && o.date !== null)` skips @IsDefined/@IsDateString
+        // only then). A literal null would also pass that condition, but any
+        // stringified form — 'null', '' — would be handed to @IsDateString and
+        // rejected, so spreading is safer than assigning a maybe-value.
+        ...(undated
+          ? {}
+          : { date: date.utc().format('YYYY-MM-DDTHH:mm:ss') }),
         posts,
       };
 
@@ -436,11 +570,65 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         if (!addEditSets) {
           mutate();
           toaster.show(
-            !existingData.integration
+            // An undated draft lands on no calendar cell, so "Added
+            // successfully" over an unchanged calendar reads as a failure.
+            // Name the panel it actually went to instead.
+            undated
+              ? t(
+                  'draft_saved_without_a_date',
+                  'Saved without a date. Find it under Undated drafts.'
+                )
+              : !existingData.integration
               ? t('added_successfully', 'Added successfully')
               : t('updated_successfully', 'Updated successfully')
           );
         }
+
+        // Buffer's Create Another: the post is away, so instead of tearing the
+        // composer down, empty it and stay. `resetForNextPost` keeps the
+        // channels and bumps the generation that remounts the editor / provider
+        // / tags subtrees below.
+        const keepOpen = canCreateAnother && createAnother;
+
+        if (keepOpen) {
+          // The schedule ADVANCES to the next free slot rather than being
+          // retained, or post two lands on post one's exact timestamp.
+          //
+          // Not for a draft. A draft consumes no queue slot in the user's model
+          // of it, and in this fork it may legitimately carry no slot at all
+          // (undated drafts), so there is nothing to advance PAST — Save Draft
+          // keeps the date it was handed. Post Now does move on: the backend
+          // overwrites the composer's date with its own `dayjs()` for a 'now'
+          // post (posts.service#createPost), so what the control still shows
+          // afterwards is a leftover rather than a choice the user made for the
+          // next post, and refreshing it to the next free slot is the same
+          // answer a freshly opened composer would get.
+          const nextDate = type === 'draft' ? null : await nextFreeSlot();
+
+          // Quiet, non-blocking: the slot lookup is a convenience, and a
+          // composer that refuses to reopen because it failed would be a far
+          // worse trade than a repeated timestamp. Saying so is still better
+          // than a date that silently did not move.
+          if (!nextDate && type !== 'draft') {
+            toaster.show(
+              t(
+                'next_free_slot_unavailable',
+                'Could not find the next free slot, keeping the current time'
+              ),
+              'warning'
+            );
+          }
+
+          resetForNextPost(nextDate ?? undefined);
+          // per-post chrome, not a user preference: a settings pane forced open
+          // by post one's validation error must not greet post two
+          setShowSettings(false);
+          // the only success path that returns to an interactive composer, so
+          // the only one that has to clear the button's spinner itself
+          setLoading(false);
+          return;
+        }
+
         if (customClose) {
           setTimeout(() => {
             customClose();
@@ -452,7 +640,25 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         }
       }
     },
-    [ref, repeater, tags, date, addEditSets, dummy, shortlinkPreferenceData]
+    [
+      ref,
+      repeater,
+      tags,
+      date,
+      addEditSets,
+      dummy,
+      shortlinkPreferenceData,
+      createAnother,
+      canCreateAnother,
+      canSaveUndated,
+      resetForNextPost,
+      nextFreeSlot,
+      // `integrationById` resolves through this array to focus the channel that
+      // failed validation. Without it in the deps the callback keeps the array
+      // from an earlier render, so after a Create Another cycle (or any channel
+      // change) it would focus through detached provider handles.
+      selectedIntegrations,
+    ]
   );
 
   return (
@@ -537,13 +743,23 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
              trigger (launches/helpers, outside this rebuild's file list) into
              the LEFT segment — start-only r12, px 12/8, 14/500 ink, hairline.
              The chevron segment and the lime primary are JSX below, attached
-             in one control; only the outer corners carry the r12. */
+             in one control; only the outer corners carry the r12.
+             Measured left half: 40 tall, radius 12 0 0 12, 1px hairline,
+             transparent, padding 0 8 0 12, gap 8: all held above and in the
+             trigger's own gap-[8px].
+             border-inline-end: 0, because Buffer's left half is ONE bordered box
+             holding glyph + label + chevron. Ours splits the chevron into its
+             own button (so the picker's own open/click-outside logic stays
+             untouched), and that button already drops its start border; without
+             dropping the trigger's end border too, the pair drew a stray 1px
+             divider mid-segment that Buffer does not have. */
           #cs-datetime > div {
             border-color: var(--new-table-border) !important;
             border-start-start-radius: 12px !important;
             border-end-start-radius: 12px !important;
             border-start-end-radius: 0 !important;
             border-end-end-radius: 0 !important;
+            border-inline-end: 0 !important;
             padding-inline: 12px 8px !important;
             cursor: pointer;
           }
@@ -584,17 +800,29 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               max-width: none;
               max-height: none;
               box-shadow: none;
+              /* full-viewport sheet: the dark-mode edge hairline has nothing
+                 left to separate the modal FROM, and would draw as a stray
+                 line along the screen edge */
+              border: 0;
             }
           }
         `}
       </style>
       {/* Buffer dialog geometry: fixed 1100px wide, capped at 813px tall
           (64 header + 675 body + 72 footer + 2 separators), centered in the
-          viewport-minus-80 shell. Edge = layered hairline shadow (ring +
-          1px ambient), not a heavy drop shadow. */}
+          viewport-minus-80 shell. Edge = Buffer's measured four-layer shadow
+          (ring + 1px ambient + two spread-negative lifts), not a heavy drop
+          shadow.
+
+          dark:border is needed because every shadow layer is BLACK-alpha, so on the
+          rgba(0,0,0,0.8) backdrop the largest surface in the app had no
+          discernible edge in dark mode. Same fixup .dropdown-menu carries in
+          its `.dark &` rule (global.scss); border-box keeps the 1100x813
+          geometry unchanged, and the <=1100px full-bleed rule above drops it
+          again along with the radius and the shadow. */}
       <div
         id="cs-composer"
-        className="relative flex w-full max-w-[1100px] phone:min-w-0 phone:max-w-[100vw] h-full max-h-[813px] bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.02)]"
+        className="relative flex w-full max-w-[1100px] phone:min-w-0 phone:max-w-[100vw] h-full max-h-[813px] bg-newBgColorInner rounded-[16px] phone:rounded-none flex-col dark:border dark:border-newTableBorder shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_1px_0_rgba(0,0,0,0.02),0_4px_8px_-4px_rgba(0,0,0,0.04),0_16px_24px_-8px_rgba(0,0,0,0.06)]"
       >
         {/* HEADER — spans the full modal width above both panes. Title is
             18px/500 Inter, the BODY face — measured on Buffer's composer
@@ -632,7 +860,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               id="cs-tags-chip"
               className="flex items-center min-w-0 phone:max-w-[140px]"
             >
+              {/* keyed: the chip copies `initial` into useState once, so a
+                  cleared or template-supplied tag list is invisible to it
+                  without a remount (see composerGeneration in store.ts) */}
               <TagsComponent
+                key={composerGeneration}
                 name="tags"
                 label={t('tags', 'Tags')}
                 initial={tags}
@@ -643,6 +875,38 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           )}
           <div className="flex-1" />
+          {/* Templates: FIRST of Buffer's three header controls (Templates ·
+              AI Assistant, Preview). Buffer renders it as a plain ghost: 32
+              tall, r8, no border, no fill, muted label, with no active state,
+              because it opens a picker rather than toggling a pane, so there is
+              no green wash to map to our lime. Same anatomy as the two ghosts
+              below; the shared Button primitive implements primary/secondary
+              only, so ghosts stay local markup.
+              Second entry point: the editor placeholder chip (editor.tsx). */}
+          <button
+            type="button"
+            data-cs
+            onClick={openTemplates}
+            className="h-[32px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors shrink-0 text-textItemBlur hover:bg-newTableHeader"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="M3 9h18" />
+              <path d="M9 21V9" />
+            </svg>
+            {/* Buffer's phone header shows glyph-only controls */}
+            <span className="phone:hidden">{t('templates', 'Templates')}</span>
+          </button>
           {/* Assistant ghost toggle: same quiet-control anatomy as Preview
               (32px, 14/500, hover wash; lime boxFocused pair while the pane
               is open). Opens the Claude Code bridge slide-over below. */}
@@ -767,7 +1031,18 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                         existing per-platform editor stack. No overflow-hidden:
                         the emoji/mention/delay popovers position out of it. */}
                     <div className="flex-1 flex rounded-[12px] border border-newTableBorder">
-                      {!hide && <EditorWrapper totalPosts={1} value="" />}
+                      {/* keyed: TipTap reads `content` only when the editor is
+                          constructed, and each box owns an uppy instance and a
+                          media list. Remounting is the only way a cleared or
+                          replaced post actually reaches the screen, the same
+                          reason the existing tab switch round-trips `hide`. */}
+                      {!hide && (
+                        <EditorWrapper
+                          key={composerGeneration}
+                          totalPosts={1}
+                          value=""
+                        />
+                      )}
                     </div>
                     <div
                       id="social-empty"
@@ -875,7 +1150,14 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 scrollClasses="!pe-[16px]"
                 className="absolute top-0 p-[16px] pe-[8px] left-0 w-full h-full overflow-x-hidden overflow-y-scroll scrollbar scrollbar-thumb-newColColor scrollbar-track-newTableHeader"
               >
-                <ShowAllProviders ref={ref} />
+                {/* keyed: each provider holds its per-network settings and its
+                    validation errors in a react-hook-form that is UNCONTROLLED
+                    while the store's settings seed is empty, so clearing the
+                    store cannot reach it. Remounting gives post two clean
+                    settings and no inherited error state. React re-attaches
+                    `ref` in the same commit, so the submit path never sees a
+                    null handle. */}
+                <ShowAllProviders key={composerGeneration} ref={ref} />
               </Scrollable>
             </div>
           </div>
@@ -888,6 +1170,29 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             Wraps on phone so nothing runs past the viewport. */}
         <div className="select-none min-h-[72px] py-[12px] px-[24px] phone:px-[12px] border-t border-newTableBorder flex flex-wrap items-center gap-[8px]">
           <div className="flex-1 flex flex-wrap items-center gap-[8px]">
+            {/* Buffer's footer-left Create Another, label 16/400 (measured).
+                Reuses the fork's own Checkbox primitive rather than a local
+                one; `disableForm` is what lets it live outside a FormProvider.
+                The ticked state is store-level and survives composer closes, so
+                batching does not mean re-ticking. */}
+            {canCreateAnother && (
+              <div
+                className="flex items-center text-[16px] font-[400] me-[8px]"
+                data-tooltip-id="tooltip"
+                data-tooltip-content={t(
+                  'create_another_tooltip',
+                  'Keep this composer open after scheduling so you can write the next post to the same channels'
+                )}
+              >
+                <Checkbox
+                  disableForm={true}
+                  name="createAnother"
+                  checked={createAnother}
+                  label={t('create_another', 'Create Another')}
+                  onChange={(e) => setCreateAnother(e.target.value)}
+                />
+              </div>
+            )}
             {/* quiet 40px skin for the repeat control (its class strings live
                 in launches/*, outside this rebuild's file list — see the
                 #cs-repeat scoped style above) */}
@@ -909,24 +1214,74 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-end phone:justify-start gap-[8px]">
-            {/* Save Draft ghost: 40px, r8, 14/500 (Buffer 101x40) */}
+            {/* Save Draft ghost: 40px, r8, 14/500 (Buffer 101x40).
+                Wrapped in the same `group relative` disclosure the primary uses
+                for Post Now, because it carries the same kind of second action:
+                one control, one obvious default, and a SEPARATE, differently
+                labelled button behind a deliberate hover/focus for the variant.
+                That is what keeps "no date" from being reachable by a slip —
+                it is never the thing a click on Save Draft does. */}
             {!addEditSets && (
+              <div className="group relative">
+                <button
+                  data-cs
+                  disabled={
+                    selectedIntegrations.length === 0 || loading || locked
+                  }
+                  onClick={schedule('draft')}
+                  className="relative cursor-pointer disabled:cursor-not-allowed px-[16px] h-[40px] bg-transparent border border-newTableBorder justify-center items-center flex rounded-[8px] text-[14px] font-[500] hover:bg-newTableHeader focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
+                >
+                  {loading && (
+                    <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
+                      <div className="animate-spin h-[20px] w-[20px] border-4 border-textColor border-t-transparent rounded-full" />
+                    </div>
+                  )}
+                  <div className={clsx(loading && 'invisible')}>
+                    {t('save_draft', 'Save Draft')}
+                  </div>
+                </button>
+                {/* Undated draft: the composer's ONLY route to one, and the
+                    reason it exists at all — until now an idea with no slot
+                    could only be created through the API or the agent path.
+                    `bottom-[100%]` is flush with the trigger (no gap to fall
+                    through, same as Post Now), and group-focus-within is what
+                    makes it keyboard-reachable: the panel is display:none until
+                    the trigger is focused, and only then can it be tabbed to.
+                    Hidden at phone, where hover does not exist — the sibling
+                    below is the same action as a plain wrapped footer button. */}
+                {canSaveUndated && (
+                  <button
+                    type="button"
+                    disabled={
+                      selectedIntegrations.length === 0 || loading || locked
+                    }
+                    onClick={schedule('draft', { undated: true })}
+                    className="rounded-[16px] z-[300] disabled:cursor-not-allowed disabled:opacity-80 hidden group-hover:flex group-focus-within:flex phone:!hidden absolute bottom-[100%] -left-[12px] p-[12px] w-[226px] bg-newBgColorInner border border-newTableBorder shadow-menu"
+                  >
+                    <div
+                      data-cs
+                      className="rounded-[12px] border border-newTableBorder h-[40px] w-full flex justify-center items-center text-[14px] font-[500] text-newTextColor hover:bg-newTableHeader"
+                    >
+                      {t('save_without_a_date', 'Save without a date')}
+                    </div>
+                  </button>
+                )}
+              </div>
+            )}
+            {/* phone twin of the disclosure above: a tap is a click, so a
+                hover-revealed panel is unreachable on touch. The footer already
+                wraps, so it takes its own line rather than crowding the row. */}
+            {canSaveUndated && (
               <button
+                type="button"
                 data-cs
                 disabled={
                   selectedIntegrations.length === 0 || loading || locked
                 }
-                onClick={schedule('draft')}
-                className="relative cursor-pointer disabled:cursor-not-allowed px-[16px] h-[40px] bg-transparent border border-newTableBorder justify-center items-center flex rounded-[8px] text-[14px] font-[500] hover:bg-newTableHeader focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
+                onClick={schedule('draft', { undated: true })}
+                className="hidden phone:flex cursor-pointer disabled:cursor-not-allowed px-[16px] h-[40px] bg-transparent border border-newTableBorder justify-center items-center rounded-[8px] text-[14px] font-[500] text-newTextColor hover:bg-newTableHeader focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forth"
               >
-                {loading && (
-                  <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
-                    <div className="animate-spin h-[20px] w-[20px] border-4 border-textColor border-t-transparent rounded-full" />
-                  </div>
-                )}
-                <div className={clsx(loading && 'invisible')}>
-                  {t('save_draft', 'Save Draft')}
-                </div>
+                {t('save_without_a_date', 'Save without a date')}
               </button>
             )}
             {/* Buffer ATTACHED split control (one control, r12 outer corners
@@ -967,7 +1322,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   }
                   onClick={schedule('draft')}
                 >
-                  Save Set
+                  {/* Same rows the composer header calls Templates; this
+                      composer is the settings surface's editor, so it takes the
+                      same word. Route, SWR key and model are untouched. */}
+                  {t('save_template', 'Save Template')}
                 </button>
               )}
               {!addEditSets && (

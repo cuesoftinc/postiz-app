@@ -5,7 +5,11 @@ import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { groupBy, orderBy } from 'lodash';
 import { CalendarWeekProvider } from '@gitroom/frontend/components/launches/calendar.context';
-import { Filters, PageHeader, UndatedDraftsPanel } from '@gitroom/frontend/components/launches/filters';
+import {
+  Filters,
+  PageHeader,
+  UndatedDraftsPanel,
+} from '@gitroom/frontend/components/launches/filters';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import clsx from 'clsx';
@@ -660,9 +664,19 @@ export const LaunchesComponent = () => {
               intrinsic height), so the in-flow drawer used to crush this
               flex-1 pane to ~2px. A viewport-scale min-height makes the
               drawer PUSH the calendar down (page scrolls) like Buffer,
-              never compress it. */}
-          <div className="flex-1 flex phone:min-h-[calc(100dvh-180px)]">
-            <Calendar />
+              never compress it.
+              The Undated Drafts panel is the grid's SIBLING (Buffer's own
+              layout), not a child of it: those posts have no cell to occupy, so
+              nothing about them belongs inside a calendar. min-w-0 on the grid
+              half is what stops the 300px panel from being pushed off. Without
+              it a flex item's min-width:auto pins it at content width and the
+              panel overflows the pane, which is the failure that breaks
+              position:fixed elsewhere on this page. On phone the row stacks so
+              the panel lands under the grid at full width. */}
+          <div className="flex-1 flex phone:min-h-[calc(100dvh-180px)] phone:flex-col">
+            <div className="flex-1 min-w-0 flex">
+              <Calendar />
+            </div>
             <UndatedDraftsPanel />
           </div>
         </div>
