@@ -259,6 +259,11 @@ export abstract class BufferRelayProvider
           prior && prior !== 0
             ? Math.round(((m.value - prior) / prior) * 100)
             : 0,
+        // Rates keep their decimals and their sign: `average` makes the tile
+        // render 59.87% rather than a bare rounded 60, and states the change
+        // in percentage points, which is the only correct unit for a change
+        // in a percentage.
+        ...(m.unit === 'percentage' ? { average: true } : {}),
         data: [
           { total: String(m.value), date: now.format('YYYY-MM-DD') },
         ],

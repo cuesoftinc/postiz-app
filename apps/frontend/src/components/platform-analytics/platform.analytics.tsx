@@ -32,7 +32,17 @@ const allowedIntegrations = [
   'pinterest',
   'threads',
   'x',
+  // The Buffer relay channels. Their numbers come from Buffer rather than the
+  // platform's own API, but they are real and belong on this page like any
+  // other channel — a provider implementing analytics() is invisible here
+  // unless its identifier is in this list.
+  'linkedinbuffer',
+  'tiktokbuffer',
 ];
+
+// Which day ranges a provider can answer for. Buffer accepts any window, so
+// the relays offer all three.
+const RELAYS = ['linkedinbuffer', 'tiktokbuffer'];
 
 /** Buffer Insights bar-chart glyph — shared by the page-header chip (20px)
     and the no-channels empty state (24px). vb24, stroke 2.2, round caps. */
@@ -117,6 +127,7 @@ export const PlatformAnalytics = () => {
         'gmb',
         'x',
         'tiktok',
+        ...RELAYS,
       ].indexOf(currentIntegration.identifier) !== -1
     ) {
       arr.push({
@@ -136,6 +147,7 @@ export const PlatformAnalytics = () => {
         'gmb',
         'x',
         'tiktok',
+        ...RELAYS,
       ].indexOf(currentIntegration.identifier) !== -1
     ) {
       arr.push({
@@ -144,9 +156,15 @@ export const PlatformAnalytics = () => {
       });
     }
     if (
-      ['facebook', 'linkedin-page', 'pinterest', 'youtube', 'x', 'gmb'].indexOf(
-        currentIntegration.identifier
-      ) !== -1
+      [
+        'facebook',
+        'linkedin-page',
+        'pinterest',
+        'youtube',
+        'x',
+        'gmb',
+        ...RELAYS,
+      ].indexOf(currentIntegration.identifier) !== -1
     ) {
       arr.push({
         key: 90,
