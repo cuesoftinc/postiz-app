@@ -1,141 +1,76 @@
-<p align="center">
-  <a href="https://postiz.com/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/765e9d72-3ee7-4a56-9d59-a2c9befe2311">
-    <img alt="Postiz Logo" src="https://github.com/user-attachments/assets/f0d30d70-dddb-4142-8876-e9aa6ed1cb99" width="280"/>
-  </picture>
-  </a>
-</p>
+# Cuesoft Postiz
 
-<p align="center">
-<a href="https://opensource.org/license/agpl-v3">
-  <img src="https://img.shields.io/badge/License-AGPL%203.0-blue.svg" alt="License">
-</a>
-</p>
+Cuesoft's self-hosted social publishing and scheduling app. It is a fork of
+[gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app), rebuilt around how Cuesoft
+actually publishes: one organization, six channels, a weekly content pipeline, and an agent that
+drafts the copy.
 
-<h3 align="center"><strong><a href="https://github.com/gitroomhq/postiz-agent">NEW: check out Postiz agent CLI! perfect for OpenClaw and other agents</a></strong></h3>
-<div align="center">
-  <strong>
-  <h2>Your ultimate AI social media scheduling tool</h2><br />
-  <a href="https://postiz.com">Postiz</a>: An alternative to: Buffer.com, Hypefury, Twitter Hunter, etc...<br /><br />
-  </strong>
-  Postiz offers everything you need to manage your social media posts,<br />build an audience, capture leads, and grow your business.
-</div>
+This is not a distribution. It is the code that runs `postiz.cuesoft.io`, and it is opinionated
+about that. If you want upstream Postiz, use upstream Postiz.
 
-<div class="flex" align="center">
-  <br />
-  <img alt="Instagram" src="https://postiz.com/svgs/socials/Instagram.svg" width="32">
-  <img alt="Youtube" src="https://postiz.com/svgs/socials/Youtube.svg" width="32">
-  <img alt="Dribbble" src="https://postiz.com/svgs/socials/Dribbble.svg" width="32">
-  <img alt="Linkedin" src="https://postiz.com/svgs/socials/Linkedin.svg" width="32">
-  <img alt="Reddit" src="https://postiz.com/svgs/socials/Reddit.svg" width="32">
-  <img alt="TikTok" src="https://postiz.com/svgs/socials/TikTok.svg" width="32">
-  <img alt="Facebook" src="https://postiz.com/svgs/socials/Facebook.svg" width="32">
-  <img alt="Pinterest" src="https://postiz.com/svgs/socials/Pinterest.svg" width="32">
-  <img alt="Threads" src="https://postiz.com/svgs/socials/Threads.svg" width="32">
-  <img alt="X" src="https://postiz.com/svgs/socials/X.svg" width="32">
-  <img alt="Slack" src="https://postiz.com/svgs/socials/Slack.svg" width="32">
-  <img alt="Discord" src="https://postiz.com/svgs/socials/Discord.svg" width="32">
-  <img alt="Mastodon" src="https://postiz.com/svgs/socials/Mastodon.svg" width="32">
-  <img alt="Bluesky" src="https://postiz.com/svgs/socials/Bluesky.svg" width="32">
-</div>
+## What we changed, and why
 
-<p align="center">
-  <br />
-  <a href="https://docs.postiz.com" rel="dofollow"><strong>Explore the docs »</strong></a>
-  <br />
+| Area | What the fork does |
+| --- | --- |
+| Auth | Google SSO through our internal OIDC provider. Registration is disabled; users arrive by invite. |
+| LinkedIn and TikTok | Two providers, `linkedinbuffer` and `tiktokbuffer`, that connect like any other channel and hand the post to Buffer at publish time. Neither platform can be native here: TikTok's developer app was rejected for internal company use, and self-hosted Postiz needs its own credentials. There is exactly **one** gate and it lives in Postiz. |
+| Ace | A web chat backed by fenced Claude Code sessions, for drafting a week's copy in the product instead of a terminal. Sessions are owner-scoped; credentials never enter the child process. |
+| Approvals | Posts can be drafted without a date and released through an approval gate, one week at a time. |
+| Interface | A Buffer-parity pass over the whole app: measured geometry, one shared segmented control, empty states, and a size ladder in `global.scss` that rescales upstream's own utility classes so we do not have to rewrite them and re-conflict on every rebase. |
+| Storage and mail | Cloudflare R2 for media, Brevo over SMTP for transactional mail. |
 
-  <br />
-  <a href="https://youtube.com/@postizofficial" rel="dofollow"><strong>Watch the YouTube Tutorials»</strong></a>
-  <br />
-</p>
+## Tech stack
 
-<p align="center">
-  <a href="https://platform.postiz.com">Register</a>
-  ·
-  <a href="https://discord.postiz.com">Join Our Discord (devs only)</a>
-  ·
-  <a href="https://docs.postiz.com/public-api">Public API</a><br />
-</p>
-<p align="center">
-  <a href="https://www.npmjs.com/package/@postiz/node">NodeJS SDK</a>
-  ·
-  <a href="https://www.npmjs.com/package/n8n-nodes-postiz">N8N custom node</a>
-  ·
-  <a href="https://apps.make.com/postiz">Make.com integration</a>
-</p>
+- **Monorepo** pnpm 10.6.1 workspaces, Node 22.20
+- **Frontend** Next 16.2 (React 19.2), Tailwind 4.3, chart.js
+- **Backend** NestJS 11, Prisma 6.19 against PostgreSQL
+- **Workflows** Temporal, for scheduled publishing
+- **Cache and queue** Redis (ioredis)
+- **Storage** Cloudflare R2
+- **Mail** Brevo (SMTP)
 
-<br /><br />
+Apps live in `apps/` (`frontend`, `backend`, `orchestrator`, `commands`, `extension`, `sdk`) and
+shared code in `libraries/`.
 
-## 🔌 See the leading Postiz features
+## Running it
 
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=BdsCVvEYgHU" target="_blank">
-    <img alt="Postiz" src="https://github.com/user-attachments/assets/8b9b7939-da1a-4be5-95be-42c6fce772de" />
-  </a>
-</p>
+Node is pinned. Use pnpm, never npm or yarn.
 
-## ✨ Features
+```bash
+corepack enable && corepack prepare pnpm@10.6.1 --activate
+pnpm install --frozen-lockfile
+pnpm run dev
+```
 
-| ![Image 1](https://github.com/user-attachments/assets/a27ee220-beb7-4c7e-8c1b-2c44301f82ef) | ![Image 2](https://github.com/user-attachments/assets/eb5f5f15-ed90-47fc-811c-03ccba6fa8a2) |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| ![Image 3](https://github.com/user-attachments/assets/d51786ee-ddd8-4ef8-8138-5192e9cfe7c3) | ![Image 4](https://github.com/user-attachments/assets/91f83c89-22f6-43d6-b7aa-d2d3378289fb) |
+Before opening a PR, run what CI runs:
 
-### Our Sponsors
+```bash
+pnpm test          # security regression tests
+pnpm run lint
+pnpm run typecheck
+pnpm run build
+```
 
-| Sponsor |                                  Logo                                   | Description     |
-|---------|:-----------------------------------------------------------------------:|-----------------|
-| [Hostinger](https://www.hostinger.com/vps/docker/postiz?ref=postiz) | <img src=".github/sponsors/hostinger.png" alt="Hostinger" width="500"/> | Hostinger is on a mission to make online success possible for anyone – from developers to aspiring bloggers and business owners |
-| [Virlo](https://dev.virlo.ai/?ref=postiz) | <img src="https://github.com/user-attachments/assets/25182598-5344-45fc-b9cd-e4cfa16aabfd" alt="Virlo" width="500"/> | Virlo is the #1 social media trend spotting and all-in-one GTM tool for teams leveraging short-form video |
-| [ChatbotX](https://chatbotx.io/?ref=postiz) | <img src="https://github.com/user-attachments/assets/0aa6b058-9a64-46d3-bc26-337abc51737d" alt="ChatbotX" width="500"/> | The ManyChat alternative that you can self-host, white-label, and resell to your clients. Bring your own OpenClaw, Hermes, or Claude agents! |
+## Deployment
 
-![Bronze Tier](https://opencollective.com/postiz/tiers/main-repository-bronze-tier.svg?avatarHeight=36&width=600&button=false)
+The production host **builds the image locally and never pulls it**. Deployment tooling, the
+compose stack, secrets handling and the runbooks live in the
+[design-system](https://github.com/cuesoftinc/design-system) repository under `postiz/`, alongside
+the weekly content pipeline that feeds this app through its public API.
 
-# Intro
+Two things worth knowing before you touch a deploy:
 
-- Schedule all your social media posts (many AI features)
-- Measure your work with analytics.
-- Collaborate with other team members to exchange or buy posts.
-- Invite your team members to collaborate, comment, and schedule posts.
-- At the moment, there is no difference between the hosted version and the self-hosted version
-- Perfect for automation (API) with platforms like N8N, Make.com, Zapier, etc.
+- The container does **not** run `prisma db push` at startup. A schema change needs a deliberate
+  step, or it silently will not apply. Use `postiz/check-schema.sh` to see drift.
+- `POSTIZ_IMAGE` may pin an immutable registry digest, but it is never required, because the
+  local-build host has no registry digest to give.
 
-## Tech Stack
+## Licence and source
 
-- Pnpm workspaces (Monorepo)
-- NextJS (React)
-- NestJS
-- Prisma (Default to PostgreSQL)
-- Temporal
-- Resend (email notifications)
+This repository is a modified version of Postiz and stays under the
+[AGPL-3.0 licence](LICENSE), which is not optional and cannot be relicensed. Section 13 obliges us
+to offer the Corresponding Source to anyone who uses a modified version we serve over a network:
+this repository is that offer.
 
-## Quick Start
-
-To have the project up and running, please follow the [Quick Start Guide](https://docs.postiz.com/quickstart)
-
-## Sponsor Postiz
-
-We now give a few options to Sponsor Postiz:
-- Just a donation: You like what we are building, and want to buy us some coffee so we can build faster.
-- Main repository: Get your logo with a backlink from the main Postiz repository. Postiz has over 7M downloads and 20k views per month.
-
-Link: https://opencollective.com/postiz
-
-## Postiz Compliance
-
-- Postiz is an open-source, self-hosted social media scheduling tool that supports platforms like X (formerly Twitter), Bluesky, Mastodon, Discord, and others.
-- Postiz hosted service uses official, platform-approved OAuth flows.
-- Postiz does not automate or scrape content from social media platforms.
-- Postiz does not collect, store, or proxy API keys or access tokens from users.
-- Postiz never asks users to paste API keys into our hosted product.
-- Postiz users always authenticate directly with the social platform (e.g., X, Discord, etc.), ensuring platform compliance and data privacy.
-
-## License
-
-This repository's source code is available under the [AGPL-3.0 license](LICENSE).
-
-<br /><br />
-
-<p align="center">
-  <img src="https://github.com/snyk-labs/secure-developer-sample-repo/raw/main/badge_full.svg" alt="Secure Developer Badge Full" width="150">
-</p>
+Upstream Postiz is by [Gitroom](https://github.com/gitroomhq/postiz-app). The features listed above
+are ours; everything else is theirs, and the copyright notices in the source say which is which.

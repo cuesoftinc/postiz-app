@@ -12,7 +12,7 @@
   "packageManager": "pnpm@10.6.1",
   "scripts": {
     "test": "TS_NODE_PROJECT=tsconfig.test.json node -r ts-node/register/transpile-only -r tsconfig-paths/register --test tests/security/*.test.cjs",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p apps/frontend/tsconfig.json && tsc --noEmit -p apps/backend/tsconfig.build.json && tsc --noEmit -p apps/orchestrator/tsconfig.build.json",
     "lint": "eslint apps/backend/src apps/orchestrator/src libraries/nestjs-libraries/src --max-warnings=0",
     "dev": "pnpm run --filter ./apps/extension --filter ./apps/orchestrator --filter ./apps/backend --filter ./apps/frontend --parallel dev",
     "dev-backend": "pnpm run --filter ./apps/backend --filter ./apps/frontend --parallel dev",
