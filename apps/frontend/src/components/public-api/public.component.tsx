@@ -174,7 +174,7 @@ const CopyButton = ({
         copy(text);
         toaster.show(`${label} copied to clipboard`, 'success');
       }}
-      className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+      className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
     >
       <svg
         width="16"
@@ -226,7 +226,7 @@ const McpSection = ({
 
   return (
     <div className="bg-newBgColorInner rounded-[12px] border border-newBorder overflow-hidden">
-      <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px]">
+      <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px] phone:flex-col phone:items-stretch phone:gap-[10px]">
         <div>
           <div className="text-[13px] font-[500] text-newTextColor/60">
             {t('mcp_client_configuration', 'MCP Client Configuration')}
@@ -238,9 +238,9 @@ const McpSection = ({
             )}
           </div>
         </div>
-        <div className="flex gap-[6px] shrink-0 pt-[2px]">
+        <div className="flex gap-[6px] shrink-0 pt-[2px] phone:flex-wrap phone:pt-0">
           <a
-            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+            className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
             href="https://docs.postiz.com/mcp/introduction"
             target="_blank"
           >
@@ -254,13 +254,16 @@ const McpSection = ({
           <div className="text-[13px] font-[550] text-textItemBlur">
             {t('auth_method', 'Authentication')}
           </div>
-          <div className="flex gap-[6px]">
+          <div className="flex flex-wrap gap-[6px]">
             {(['header', 'path'] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 className={clsx(
-                  'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] border transition-colors',
+                  // phone: the label may need two lines (the auth-method pair
+                  // carries the longest strings on the page), so the height
+                  // floor replaces the fixed 36 instead of clipping the text.
+                  'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] border transition-colors phone:h-auto phone:min-h-[44px] phone:py-[10px]',
                   method === m
                     ? 'bg-boxFocused border-transparent text-textItemFocused'
                     : 'border-newTableBorder text-textItemBlur hover:bg-newTableBorder hover:text-newTextColor'
@@ -285,7 +288,7 @@ const McpSection = ({
                   key={client}
                   type="button"
                   className={clsx(
-                    'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] border transition-colors',
+                    'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] border transition-colors phone:h-auto phone:min-h-[44px] phone:py-[10px]',
                     activeClient === client
                       ? 'bg-boxFocused border-transparent text-textItemFocused'
                       : 'border-newTableBorder text-textItemBlur hover:bg-newTableBorder hover:text-newTextColor'
@@ -310,11 +313,11 @@ const McpSection = ({
           <pre className="bg-newBgColor border border-newBorder rounded-[8px] p-[16px] text-[13px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.6]">
             {method === 'header' ? maskedConfig : maskedRemoteUrl}
           </pre>
-          <div className="flex gap-[8px]">
+          <div className="flex flex-wrap gap-[8px]">
             <button
               type="button"
               onClick={() => setRevealed(!revealed)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
             >
               <svg
                 width="16"
@@ -415,7 +418,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
 
   return (
     <div className="bg-newBgColorInner rounded-[12px] border border-newBorder overflow-hidden">
-      <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px]">
+      <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px] phone:flex-col phone:items-stretch phone:gap-[10px]">
         <div>
           <div className="text-[13px] font-[500] text-newTextColor/60">
             {t('cli_and_skills', 'CLI & AI Skills')}
@@ -427,9 +430,9 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
             )}
           </div>
         </div>
-        <div className="flex gap-[6px] shrink-0 pt-[2px]">
+        <div className="flex gap-[6px] shrink-0 pt-[2px] phone:flex-wrap phone:pt-0">
           <a
-            className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+            className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
             href="https://docs.postiz.com/cli/introduction"
             target="_blank"
           >
@@ -439,13 +442,13 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
         </div>
       </div>
       <div className="p-[20px] flex flex-col gap-[16px]">
-        <div className="flex gap-[6px]">
+        <div className="flex flex-wrap gap-[6px]">
           {(['local', 'ci'] as const).map((m) => (
             <button
               key={m}
               type="button"
               className={clsx(
-                'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] border transition-colors',
+                'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] border transition-colors phone:h-auto phone:min-h-[44px] phone:py-[10px]',
                 mode === m
                   ? 'bg-boxFocused border-transparent text-textItemFocused'
                   : 'border-newTableBorder text-textItemBlur hover:bg-newTableBorder hover:text-newTextColor'
@@ -468,12 +471,12 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
             </pre>
           </div>
         ))}
-        <div className="flex gap-[8px]">
+        <div className="flex flex-wrap gap-[8px]">
           {mode === 'ci' && (
             <button
               type="button"
               onClick={() => setRevealed(!revealed)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
             >
               <svg
                 width="16"
@@ -572,7 +575,7 @@ const PublicApiContent = () => {
         )}
       </div>
       <div className="bg-newBgColorInner rounded-[12px] border border-newBorder overflow-hidden">
-        <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px]">
+        <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px] phone:flex-col phone:items-stretch phone:gap-[10px]">
           <div>
             <div className="text-[13px] font-[500] text-newTextColor/60">
               {t('api_key', 'API Key')}
@@ -584,9 +587,9 @@ const PublicApiContent = () => {
               )}
             </div>
           </div>
-          <div className="flex gap-[6px] shrink-0 pt-[2px]">
+          <div className="flex gap-[6px] shrink-0 pt-[2px] phone:flex-wrap phone:pt-0">
             <a
-              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
               href="https://docs.postiz.com/public-api"
               target="_blank"
             >
@@ -594,7 +597,7 @@ const PublicApiContent = () => {
             {t('read_the_docs', 'Docs')}
             </a>
             <a
-              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
               href="https://www.npmjs.com/package/n8n-nodes-postiz"
               target="_blank"
             >
@@ -618,11 +621,17 @@ const PublicApiContent = () => {
               )}
             </code>
           </div>
-          <div className="flex gap-[8px]">
+          {/* Reveal / Copy / Rotate Key / Open Wizard: four fixed-width
+              buttons measure ~560px, so as a single nowrap row they set the
+              settings pane's min-content width and dragged the whole card
+              (and with it the settings tab strip) past a 402px viewport.
+              flex-wrap + shrink-0 on each button lets the row fall onto as
+              many lines as it needs; nothing shrinks, nothing clips. */}
+          <div className="flex flex-wrap gap-[8px]">
             <button
               type="button"
               onClick={() => setReveal(!reveal)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
             >
               <svg
                 width="16"
@@ -654,7 +663,7 @@ const PublicApiContent = () => {
             <button
               type="button"
               onClick={rotateKey}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
             >
               <svg
                 width="16"
@@ -683,7 +692,7 @@ const PublicApiContent = () => {
               onClick={() =>
                 window.open(`${frontEndUrl}/modal/dark/all`, '_blank')
               }
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[6px] text-[13px] font-[550] flex items-center gap-[6px] shrink-0"
             >
               <svg
                 width="16"
@@ -731,13 +740,13 @@ export const PublicComponent = () => {
           )}
         </div>
       </div>
-      <div className="flex gap-[6px]">
+      <div className="flex flex-wrap gap-[6px]">
         {(['api', 'developer'] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             className={clsx(
-              'cursor-pointer px-[16px] h-[36px] text-[14px] font-[500] rounded-[8px] border transition-colors',
+              'cursor-pointer px-[16px] h-[36px] text-[14px] font-[500] rounded-[8px] border transition-colors phone:h-[44px]',
               subTab === tab
                 ? 'bg-boxFocused border-transparent text-textItemFocused'
                 : 'border-newTableBorder text-textItemBlur hover:bg-newTableBorder hover:text-newTextColor'

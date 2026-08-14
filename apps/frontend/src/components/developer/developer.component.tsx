@@ -41,7 +41,7 @@ const CopyButton = ({
         copy(text);
         toaster.show(`${label} copied to clipboard`, 'success');
       }}
-      className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
+      className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] shrink-0 bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
     >
       <svg
         width="16"
@@ -229,7 +229,7 @@ export const DeveloperComponent: FC = () => {
           )}
         </div>
         <div className="bg-newBgColorInner rounded-[12px] border border-newBorder overflow-hidden">
-          <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px]">
+          <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px] phone:flex-col phone:items-stretch phone:gap-[10px]">
             <div>
               <div className="text-[13px] font-[500] text-newTextColor/60">
                 {t('oauth_application', 'OAuth Application')}
@@ -241,9 +241,9 @@ export const DeveloperComponent: FC = () => {
                 )}
               </div>
             </div>
-            <div className="flex gap-[6px] shrink-0 pt-[2px]">
+            <div className="flex gap-[6px] shrink-0 pt-[2px] phone:flex-wrap phone:pt-0">
               <a
-                className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
+                className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] shrink-0 bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
                 href="https://docs.postiz.com/public-api/oauth"
                 target="_blank"
               >
@@ -299,7 +299,7 @@ export const DeveloperComponent: FC = () => {
                 {t('app_name', 'App Name')} *
               </label>
               <input
-                className="bg-newBgColor border border-newBorder rounded-[6px] px-[16px] h-[36px] text-[14px] text-newTextColor outline-none focus:border-forth"
+                className="bg-newBgColor border border-newBorder rounded-[6px] px-[16px] h-[36px] phone:h-[44px] w-full min-w-0 text-[14px] text-newTextColor outline-none focus:border-forth"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="My Application"
@@ -337,7 +337,7 @@ export const DeveloperComponent: FC = () => {
                 <button
                   type="button"
                   onClick={openMedia}
-                  className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550]"
+                  className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] shrink-0 bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550]"
                 >
                   {t('choose_image', 'Choose Image')}
                 </button>
@@ -348,13 +348,13 @@ export const DeveloperComponent: FC = () => {
                 {t('redirect_url', 'Redirect URL')} *
               </label>
               <input
-                className="bg-newBgColor border border-newBorder rounded-[6px] px-[16px] h-[36px] text-[14px] text-newTextColor outline-none focus:border-forth"
+                className="bg-newBgColor border border-newBorder rounded-[6px] px-[16px] h-[36px] phone:h-[44px] w-full min-w-0 text-[14px] text-newTextColor outline-none focus:border-forth"
                 value={redirectUrl}
                 onChange={(e) => setRedirectUrl(e.target.value)}
                 placeholder="https://yourapp.com/callback"
               />
             </div>
-            <div className="flex gap-[8px]">
+            <div className="flex flex-wrap gap-[8px]">
               <button
                 type="button"
                 onClick={createApp}
@@ -392,7 +392,7 @@ export const DeveloperComponent: FC = () => {
       </div>
       {/* App details / edit */}
       <div className="bg-newBgColorInner rounded-[12px] border border-newBorder overflow-hidden">
-        <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px]">
+        <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder flex items-start justify-between gap-[12px] phone:flex-col phone:items-stretch phone:gap-[10px]">
           <div>
             <div className="text-[13px] font-[500] text-newTextColor/60">
               {t('oauth_application', 'OAuth Application')}
@@ -404,9 +404,9 @@ export const DeveloperComponent: FC = () => {
               )}
             </div>
           </div>
-          <div className="flex gap-[6px] shrink-0 pt-[2px]">
+          <div className="flex gap-[6px] shrink-0 pt-[2px] phone:flex-wrap phone:pt-0">
             <a
-              className="cursor-pointer px-[16px] h-[36px] bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] shrink-0 bg-btnPrimary hover:bg-[#a9e662] transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
               href="https://docs.postiz.com/public-api/oauth"
               target="_blank"
             >
@@ -423,7 +423,7 @@ export const DeveloperComponent: FC = () => {
                 {t('app_name', 'App Name')} *
               </label>
               <input
-                className="bg-newBgColor border border-newBorder rounded-[6px] px-[16px] h-[36px] text-[14px] text-newTextColor outline-none focus:border-forth"
+                className="bg-newBgColor border border-newBorder rounded-[6px] px-[16px] h-[36px] phone:h-[44px] w-full min-w-0 text-[14px] text-newTextColor outline-none focus:border-forth"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="My Application"
@@ -461,7 +461,7 @@ export const DeveloperComponent: FC = () => {
                 <button
                   type="button"
                   onClick={openMedia}
-                  className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550]"
+                  className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] shrink-0 bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550]"
                 >
                   {t('choose_image', 'Choose Image')}
                 </button>
@@ -472,13 +472,13 @@ export const DeveloperComponent: FC = () => {
                 {t('redirect_url', 'Redirect URL')} *
               </label>
               <input
-                className="bg-newBgColor border border-newBorder rounded-[6px] px-[16px] h-[36px] text-[14px] text-newTextColor outline-none focus:border-forth"
+                className="bg-newBgColor border border-newBorder rounded-[6px] px-[16px] h-[36px] phone:h-[44px] w-full min-w-0 text-[14px] text-newTextColor outline-none focus:border-forth"
                 value={redirectUrl}
                 onChange={(e) => setRedirectUrl(e.target.value)}
                 placeholder="https://yourapp.com/callback"
               />
             </div>
-            <div className="flex gap-[8px]">
+            <div className="flex flex-wrap gap-[8px]">
               <button
                 type="button"
                 onClick={updateApp}
@@ -509,8 +509,8 @@ export const DeveloperComponent: FC = () => {
                   {app.name?.[0]?.toUpperCase() || '?'}
                 </div>
               )}
-              <div>
-                <div className="text-[15px] font-[550]">{app.name}</div>
+              <div className="min-w-0">
+                <div className="text-[15px] font-[550] break-words">{app.name}</div>
                 {app.description && (
                   <div className="text-textItemBlur text-[13px]">
                     {app.description}
@@ -522,13 +522,16 @@ export const DeveloperComponent: FC = () => {
               <div className="text-[13px] text-newTextColor/60">
                 {t('redirect_url', 'Redirect URL')}
               </div>
-              <div className="text-[14px]">{app.redirectUrl}</div>
+              {/* a redirect URL is one unbroken token: without break-all it
+                  sets the pane's min-content width and pushes the whole
+                  settings card past a 402px viewport */}
+              <div className="text-[14px] break-all">{app.redirectUrl}</div>
             </div>
-            <div className="flex gap-[8px]">
+            <div className="flex flex-wrap gap-[8px]">
               <button
                 type="button"
                 onClick={startEditing}
-                className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
+                className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] shrink-0 bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /></svg>
                 {t('edit_app', 'Edit App')}
@@ -573,7 +576,7 @@ export const DeveloperComponent: FC = () => {
               )}
             </div>
           </div>
-          <div className="flex gap-[8px]">
+          <div className="flex flex-wrap gap-[8px]">
             <CopyButton text={app.clientId} label={t('copy_id', 'Copy ID')} />
             {plaintextSecret && (
               <CopyButton
@@ -584,7 +587,7 @@ export const DeveloperComponent: FC = () => {
             <button
               type="button"
               onClick={rotateSecret}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] shrink-0 bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>
               {t('rotate_secret', 'Rotate Secret')}
@@ -592,7 +595,7 @@ export const DeveloperComponent: FC = () => {
             <button
               type="button"
               onClick={deleteApp}
-              className="cursor-pointer px-[16px] h-[36px] bg-red-600 hover:bg-red-700 text-white transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
+              className="cursor-pointer px-[16px] h-[36px] phone:h-[44px] shrink-0 bg-red-600 hover:bg-red-700 text-white transition-colors rounded-[8px] text-[13px] font-[550] flex items-center gap-[6px]"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
               {t('delete_app', 'Delete App')}

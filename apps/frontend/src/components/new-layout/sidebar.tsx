@@ -1188,6 +1188,20 @@ const InsightsNewBadge: FC = () => (
 export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
   const t = useT();
   const { first, second } = useVisibleMenu();
+  // The admin pill is `fixed bottom-[12px]` at the bottom-START corner
+  // (impersonate.tsx documents why: bottom-center covered calendar cells and
+  // chat inputs, bottom-end is the help-bubble slot). That corner is exactly
+  // where this sidebar's org row sits, so for admins the pill painted over the
+  // org name and it read as clipped ("...oft Inc."). Reserve the pill's height
+  // ONLY for admins; everyone else keeps the tight 4px base.
+  // Gate on isSuperAdmin, NOT on `admin`. layout.component.tsx renders the
+  // pill behind `user?.admin`, but its `user` is the raw untyped SWR payload
+  // from /user/self, which serializes `admin: !!user.isSuperAdmin`. Here the
+  // value comes from useUser(), whose context type does not declare `admin`,
+  // so that spelling is a type error even though it is the same boolean at
+  // runtime. isSuperAdmin is what every other useUser() call site in the app
+  // reads (calendar, announcement banner, admin stats).
+  const user = useUser();
 
   // Buffer parity: Publish leads and carries a plain muted scheduled count;
   // the non-Buffer utility rows drop below a hairline at the bottom of the
@@ -1406,7 +1420,12 @@ export const Sidebar: FC<{ inDrawer?: boolean }> = ({ inDrawer }) => {
             <SidebarOrganization collapsed />
           </div>
         ) : (
-          <div className="shrink-0 pb-[4px]">
+          <div
+            className={clsx(
+              'shrink-0',
+              user?.isSuperAdmin ? 'pb-[48px]' : 'pb-[4px]'
+            )}
+          >
             <ChannelsLimitCard />
             {/* utility icon row sits directly above the org card row */}
             <SidebarUtilities inDrawer={inDrawer} />

@@ -285,7 +285,10 @@ export const ChannelsSummarySection: FC<{
           onLoad={onLoad}
         />
       ))}
-      <div className="flex items-start gap-[8px] px-[8px] pt-[8px]">
+      {/* same phone stacking as the Top 5 Posts header: the shrink-0 control
+          beside a min-w-0 title column squeezed the subtitle to three lines at
+          402px. Measured on a real iPhone. */}
+      <div className="flex items-start gap-[8px] px-[8px] pt-[8px] phone:flex-col phone:items-stretch">
         <div className="flex flex-col gap-[2px] min-w-0">
           <div className="text-[16px] font-[550]">
             {t('performance', 'Performance')}
@@ -294,7 +297,7 @@ export const ChannelsSummarySection: FC<{
             {subtitle}
           </div>
         </div>
-        <div className="flex-1" />
+        <div className="flex-1 phone:hidden" />
         {/* Buffer's "Choose columns" control. Contained enough to build here:
             it is local state over the COLUMNS table, no persistence, no
             backend. */}

@@ -61,9 +61,12 @@ export const TiktokPreview: FC<{
       <div className="relative">
         <SliderComponent
           list={renderContent?.[0]?.images.map((image, index) => (
+            // min-w-0: see launches/general.preview.component.tsx — flex
+            // min-width:auto let the media's intrinsic pixel width become the
+            // item's floor, so a 1080px tile overflowed the preview pane.
             <a
               key={`image_${index}`}
-              className="flex-1"
+              className="flex-1 min-w-0"
               href={mediaDir.set(image.path)}
               target="_blank"
             >

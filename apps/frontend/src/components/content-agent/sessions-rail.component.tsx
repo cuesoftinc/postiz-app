@@ -155,13 +155,30 @@ export const SessionsRail: FC<{
       >
         <SidePanelHeader title={t('sessions', 'Sessions')} onToggle={toggle} />
         {/* quiet 32px hairline button — same demotion (S4) as the Threads
-            rail copy; clears the pane to a fresh bridge session */}
+            rail copy; clears the pane to a fresh bridge session.
+
+            phone:!w-auto / phone:!px-[12px] UNDO THE COLLAPSED SHAPE ON A
+            PHONE, and both need the `!`. `collapseMenu` is ONE cookie shared by
+            every side panel, so collapsing any panel on a desktop leaves this
+            rail carrying `group sidebar` on the phone too — while `phone:w-full`
+            still makes it full width, and global.scss hides the collapse chevron
+            below 767px, so there is no way to undo it from the phone. In that
+            state global.scss forces `group-[.sidebar]:hidden` children back to
+            `display: block` (the label is VISIBLE) but has no rule for this
+            button's width, so the label rendered at ~150px nowrap inside a 32px
+            justify-center box and spilled symmetrically off both edges, clipped
+            at x < 0. Measured at 402px: button 32px, label starting at x=-80.
+            A plain `phone:w-auto` cannot win — `group-[.sidebar]:w-[32px]`
+            compiles to `…:is(:where(.group).sidebar *)` (0,2,0) against the
+            variant's (0,1,0) — so the important modifier is load-bearing, not
+            decoration. Result on phone: a full-width 44px button with the label
+            inside it (measured 354px wide, label at x=161). */}
         <button
           type="button"
           onClick={onNewChat}
           title={t('start_a_new_chat', 'Start a new chat')}
           data-cs
-          className="flex items-center justify-center gap-[6px] h-[32px] phone:h-[44px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 outline-none whitespace-nowrap shrink-0 group-[.sidebar]:w-[32px] group-[.sidebar]:px-0 group-[.sidebar]:mx-auto"
+          className="flex items-center justify-center gap-[6px] h-[32px] phone:h-[44px] px-[12px] rounded-[8px] border border-newTableBorder bg-newBgColorInner text-[14px] font-[500] text-newTextColor hover:bg-boxHover transition-colors duration-150 outline-none whitespace-nowrap shrink-0 group-[.sidebar]:w-[32px] group-[.sidebar]:px-0 group-[.sidebar]:mx-auto phone:!w-auto phone:!px-[12px]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -184,15 +201,28 @@ export const SessionsRail: FC<{
         </button>
         {data === undefined ? (
           /* index loading — the Threads rail's skeleton: three bars shaped
-             like the 32px rows below, never a spinner */
-          <div className="flex flex-col gap-[2px] group-[.sidebar]:hidden">
-            {[...new Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center h-[32px] px-[10px]">
-                <Skeleton
-                  className={clsx('h-[14px]', i === 2 ? 'w-[55%]' : 'w-[80%]')}
-                />
-              </div>
-            ))}
+             like the 32px rows below, never a spinner.
+
+             THE HIDE-WHEN-COLLAPSED CLASS SITS ON ITS OWN WRAPPER, and so does
+             the empty state's below, for the same reason the button above needs
+             `!`: global.scss turns every `group-[.sidebar]:hidden` child back
+             into `display: block !important` on a phone, which flattened this
+             `flex flex-col` (and left the empty state's 64px circle hugging the
+             left edge, measured x=36 in a 354px pane instead of centred at
+             x=169). A bare wrapper has no layout of its own to lose, so the
+             override lands somewhere harmless. Beating that rule in place is
+             not an option — it is !important at (0,3,0) and utilities are
+             emitted before this file's rules. */
+          <div className="group-[.sidebar]:hidden">
+            <div className="flex flex-col gap-[2px]">
+              {[...new Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center h-[32px] px-[10px]">
+                  <Skeleton
+                    className={clsx('h-[14px]', i === 2 ? 'w-[55%]' : 'w-[80%]')}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         ) : data === null ? (
           /* proxy said the bridge is unreachable — same wording as the pane */
@@ -201,30 +231,34 @@ export const SessionsRail: FC<{
           </div>
         ) : !data.length ? (
           /* S2 empty state — 64px muted circle + 24px stroke icon +
-             16/600 heading + muted subline (Threads rail shell) */
-          <div className="flex flex-col items-center text-center gap-[4px] px-[12px] mt-[40px] group-[.sidebar]:hidden">
-            <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60 mb-[8px]">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-              </svg>
-            </div>
-            <div className="text-[16px] font-[600] text-newTextColor">
-              {t('no_sessions_yet', 'No sessions yet')}
-            </div>
-            <div className="text-[14px] text-newTextColor/60">
-              {t(
-                'no_sessions_yet_description',
-                'Start a conversation and it will show up here.'
-              )}
+             16/600 heading + muted subline (Threads rail shell). The
+             hide-when-collapsed class is on the wrapper, not on the flex
+             column — see the skeleton above for why. */
+          <div className="group-[.sidebar]:hidden">
+            <div className="flex flex-col items-center text-center gap-[4px] px-[12px] mt-[40px]">
+              <div className="w-[64px] h-[64px] rounded-full bg-newTextColor/5 flex items-center justify-center text-newTextColor/60 mb-[8px]">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                </svg>
+              </div>
+              <div className="text-[16px] font-[600] text-newTextColor">
+                {t('no_sessions_yet', 'No sessions yet')}
+              </div>
+              <div className="text-[14px] text-newTextColor/60">
+                {t(
+                  'no_sessions_yet_description',
+                  'Start a conversation and it will show up here.'
+                )}
+              </div>
             </div>
           </div>
         ) : (

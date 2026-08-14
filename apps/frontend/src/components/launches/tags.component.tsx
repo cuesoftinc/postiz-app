@@ -171,9 +171,21 @@ export const TagsComponentInner: FC<{
         isOpen ? 'border-forth' : 'border-newTextColor/10'
       )}
     >
+      {/* justify-start + overflow-hidden, not justify-center: the composer
+          header squeezes this chip (it is the only shrinkable item in that
+          row), and once the row runs out of width the icon + chevron + padding
+          are an irreducible ~62px floor. Under `justify-center` a flex line
+          that overflows its box spills EQUALLY on both sides, so the tag glyph
+          painted to the LEFT of the chip's border and landed on top of the
+          "Create Post" title. Starting the line means any residual overflow
+          goes one way only, and overflow-hidden clips it instead of painting
+          it over a neighbour. Nothing moves when the chip is at its natural
+          width: the row is `flex-1` inside a content-sized chip, so start and
+          center resolve to the same place. The dropdown is a SIBLING of this
+          div, not a child, so the clip cannot reach it. */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="px-[16px] justify-center flex gap-[8px] items-center h-full select-none flex-1 min-w-0"
+        className="px-[16px] justify-start flex gap-[8px] items-center h-full select-none flex-1 min-w-0 overflow-hidden"
       >
         <div className="cursor-pointer">
           <TagIcon />

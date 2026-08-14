@@ -326,9 +326,15 @@ export const LinkedinPreview: FC<{
       {!!renderContent?.[0]?.images?.length && (
         <div className="max-h-[585px] -mx-[15px] overflow-hidden flex">
           {renderContent?.[0]?.images.map((image, index) => (
+            // min-w-0: a flex item's automatic minimum size is min-content,
+            // and the img's `w-full` resolves to `auto` for intrinsic sizing,
+            // so min-content here is the file's own pixel width. A 1080px
+            // tile therefore measured 1080px inside a 379px pane and the
+            // wrapper's overflow-hidden sliced it. See the same note in
+            // launches/general.preview.component.tsx.
             <a
               key={`image_${index}`}
-              className="flex-1"
+              className="flex-1 min-w-0"
               href={mediaDir.set(image.path)}
               target="_blank"
             >

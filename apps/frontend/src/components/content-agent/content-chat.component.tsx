@@ -659,7 +659,20 @@ export const ContentChatComponent: FC<{
     <div
       // px/pb: the pane's seam lines must never touch the composer box (the
       // messages align to the same inset)
-      className="flex flex-col flex-1 min-h-0 px-[16px] pb-[12px] phone:h-[65dvh] phone:px-[4px]"
+      //
+      // min-w-0 IS WHAT KEEPS THIS PANE INSIDE THE PHONE. It is a flex item of
+      // agent.tsx's `flex flex-1 min-w-0` row, so without it `min-width: auto`
+      // resolves to this column's min-content width — and the composer sets
+      // that floor, because the textarea below is `flex-1` with the same
+      // automatic minimum (a bare <textarea> has an intrinsic cols-based
+      // width). Measured at a 402px viewport: the pane refused to shrink below
+      // 501px inside a 378px parent, so the document scrolled to 513px, the
+      // self-end user bubble ended at x=509 (clipped off the right edge) and
+      // every markdown table went with it — the table's own scroll container
+      // was working, it was just off-screen. Both min-w-0 are required: this
+      // one lets the pane shrink, the textarea's lets the composer shrink
+      // inside it. With them the pane measures 378px and nothing overflows.
+      className="flex flex-col flex-1 min-w-0 min-h-0 px-[16px] pb-[12px] phone:h-[65dvh] phone:px-[4px]"
       data-cs
     >
       {/* messages — scrollbar chrome matches the sibling kit panes (Threads
@@ -855,15 +868,27 @@ export const ContentChatComponent: FC<{
                       </code>
                     );
                   },
-                  pre: (props) => <pre className="my-[8px] max-w-full overflow-x-auto" {...props} />,
+                  pre: (props) => (
+                    <pre
+                      className="my-[8px] max-w-full overflow-x-auto overscroll-x-contain"
+                      {...props}
+                    />
+                  ),
                   blockquote: (props) => (
                     <blockquote className="border-s-[3px] border-newTableBorder ps-[10px] my-[6px] text-newTextColor/70" {...props} />
                   ),
                   hr: () => <div className="h-[1px] bg-newTableBorder my-[10px]" />,
                   // GFM tables on kit tokens: hairline borders, header wash,
-                  // 14px cells; wide tables scroll inside the bubble
+                  // 14px cells; wide tables scroll inside the bubble. Ace
+                  // answers with tables routinely, so on a phone this is the
+                  // common path, not an edge case: a four-column table needs
+                  // ~493px of min-content against a ~315px bubble, and the only
+                  // reason it used to be cut off instead of scrolling was that
+                  // the whole pane sat off-screen (see min-w-0 on the root).
+                  // overscroll-x-contain keeps a swipe that runs out of table
+                  // from turning into a page scroll.
                   table: (props) => (
-                    <div className="my-[6px] max-w-full overflow-x-auto">
+                    <div className="my-[6px] max-w-full overflow-x-auto overscroll-x-contain">
                       <table className="w-full border-collapse text-[14px]" {...props} />
                     </div>
                   ),
@@ -909,7 +934,11 @@ export const ContentChatComponent: FC<{
           ) : (
             <div
               key={i}
-              className="self-center text-[13px] text-newTextColor/60"
+              // system lines carry bridge wording verbatim, which can include a
+              // session id or a URL with no break opportunity in it — same
+              // wrapping contract as the two bubbles above so one of those
+              // cannot widen the list
+              className="self-center max-w-full text-center text-[13px] text-newTextColor/60 break-words [overflow-wrap:anywhere]"
             >
               {m.text}
             </div>
@@ -948,7 +977,11 @@ export const ContentChatComponent: FC<{
           // pins `.copilotKitInput > textarea { min-height: 56px }`, which
           // does not reach this pane. cs-chat-textarea = the shared overflow
           // scrollbar chrome (same file), matching the copilot textarea.
-          className="cs-chat-textarea flex-1 resize-none bg-transparent outline-none text-[14px] leading-[24px] text-newTextColor placeholder:text-textItemBlur p-[4px] min-h-[56px]"
+          //
+          // min-w-0: a textarea's `min-width: auto` is its cols-based intrinsic
+          // width (~420px as measured here), so `flex-1` alone cannot shrink it
+          // and it set the whole pane's minimum — see the note on the pane root.
+          className="cs-chat-textarea flex-1 min-w-0 resize-none bg-transparent outline-none text-[14px] leading-[24px] text-newTextColor placeholder:text-textItemBlur p-[4px] min-h-[56px]"
         />
         {/* Intentional asymmetry with agent.input.tsx: no Stop affordance
             here. A client-side abort cannot stop the headless bridge turn

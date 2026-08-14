@@ -833,10 +833,21 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             and overflow-x:hidden forces overflow-y:auto, so the panel was
             clipped at the header's box and read as buried under the content.
             min-w-0 on the tags chip keeps the row itself shrinkable. */}
-        <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] ps-[32px] pe-[24px] phone:ps-[16px] phone:pe-[16px] phone:max-w-full">
+        {/* phone:gap-[6px] — WIDTH BUDGET, measured at 402px CSS (iPhone 16
+            Pro). Inside 16+16 padding there are 370px for: the title (~97px
+            at 18px, unshrinkable because it is nowrap), the tags chip
+            (~95px), four 40px controls, and seven 12px gaps. That is 428px,
+            so the row overflowed by ~25px even after the chip had been
+            crushed past its icon+chevron floor — the close button sat off the
+            right edge (reported as "the modal extends past the viewport") and
+            the crushed chip painted over the title. 6px gaps + a 16px title +
+            36px-wide controls bring the natural row to ~371px, which fits
+            with the chip's "Tags" label still legible, and still clears a
+            360px phone by shrinking the chip rather than overflowing. */}
+        <div className="min-h-[64px] border-b border-newTableBorder flex items-center gap-[12px] phone:gap-[6px] ps-[32px] pe-[24px] phone:ps-[16px] phone:pe-[16px] phone:max-w-full">
           <div
             data-cs
-            className="text-[18px] font-[500] leading-[22.5px] text-newTextColor whitespace-nowrap"
+            className="text-[18px] phone:text-[16px] font-[500] leading-[22.5px] text-newTextColor whitespace-nowrap shrink-0"
           >
             {t('create_post_title', 'Create Post')}
           </div>
@@ -887,7 +898,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             type="button"
             data-cs
             onClick={openTemplates}
-            className="h-[32px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors shrink-0 text-textItemBlur hover:bg-newTableHeader"
+            className="h-[32px] px-[12px] phone:h-[40px] phone:px-[10px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors shrink-0 text-textItemBlur hover:bg-newTableHeader"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -915,7 +926,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             data-cs
             onClick={() => setShowAssistant(!showAssistant)}
             className={clsx(
-              'h-[32px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors shrink-0',
+              // phone: 36x40 glyph-only (the labels are phone:hidden below).
+              // Taller for the touch target, narrower so four controls plus
+              // the title and the tags chip fit inside 402px.
+              'h-[32px] px-[12px] phone:h-[40px] phone:px-[10px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors shrink-0',
               showAssistant
                 ? 'bg-boxFocused text-textItemFocused'
                 : 'text-textItemBlur hover:bg-newTableHeader'
@@ -955,7 +969,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               setShowPreview(!showPreview);
             }}
             className={clsx(
-              'h-[32px] px-[12px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors shrink-0',
+              // phone: 36x40 glyph-only (the labels are phone:hidden below).
+              // Taller for the touch target, narrower so four controls plus
+              // the title and the tags chip fit inside 402px.
+              'h-[32px] px-[12px] phone:h-[40px] phone:px-[10px] rounded-[8px] flex items-center gap-[6px] text-[14px] font-[500] transition-colors shrink-0',
               showPreview
                 ? 'bg-boxFocused text-textItemFocused'
                 : 'text-textItemBlur hover:bg-newTableHeader',
@@ -986,7 +1003,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           <div
             data-cs
             onClick={askClose}
-            className="cursor-pointer flex items-center justify-center w-[32px] h-[32px] rounded-[8px] hover:bg-newTableHeader transition-colors shrink-0"
+            className="cursor-pointer flex items-center justify-center w-[32px] h-[32px] phone:w-[40px] phone:h-[40px] rounded-[8px] hover:bg-newTableHeader transition-colors shrink-0"
           >
             <CloseIcon className="text-textItemBlur" />
           </div>

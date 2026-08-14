@@ -125,7 +125,12 @@ export const EmptyState: FC<{
       <div
         className={clsx('flex flex-1 items-center justify-center', className)}
       >
-        <div className="flex flex-col items-center gap-[12px] text-center">
+        {/* max-w + px are load-bearing, not decoration: without them the
+            description takes the full container width, which at 393px left a
+            1px gutter on each side and ran the copy into both screen edges
+            (measured on the deployed build). The cap also keeps the line
+            length readable on a wide desktop card. */}
+        <div className="flex flex-col items-center gap-[12px] text-center max-w-[420px] px-[24px]">
           {image}
           {icon}
           <div

@@ -90,7 +90,15 @@ export const GeneralPreviewComponent: FC<{
                 <div className="flex-1 w-[1px] h-[calc(100%-10px)] bg-newTableBorder absolute top-[10px] z-[1]" />
               )}
             </div>
-            <div className="flex-1 flex flex-col gap-[4px]">
+            {/* min-w-0: this column is a flex item, so its automatic minimum
+                size is min-content — and min-content here is driven by the
+                attachment below, whose <img> reports its INTRINSIC width
+                (a 1080x1350 tile reports 1080). Without this the column
+                measured 1080px inside a 379px preview pane (347px at phone),
+                the Scrollable's overflow-x-hidden clipped it, and the tile
+                rendered at full desktop scale with its right-hand text sliced
+                mid-word. Same reason the <a> below carries it. */}
+            <div className="flex-1 min-w-0 flex flex-col gap-[4px]">
               <div className="flex">
                 <div className="h-[22px] text-[14px] font-[600] text-newTextColor">
                   {current === 'global' ? 'Global Edit' : integration?.name}
@@ -129,15 +137,25 @@ export const GeneralPreviewComponent: FC<{
                       : 'flex gap-[4px]'
                   )}
                 >
+                  {/* min-w-0 on the anchor is what makes `flex-1` (and the
+                      grid track in the 4+ branch) actually cap the media: both
+                      flex and grid items default to min-width:auto =
+                      min-content, and the media's `w-full` resolves to `auto`
+                      for intrinsic sizing, so min-content is the file's own
+                      pixel width. With the floor removed, width:100% + auto
+                      height scales the whole tile down proportionally instead
+                      of overflowing into the clip. */}
                   {value.images.map((image, index) => (
                     <a
                       key={`image_${index}`}
-                      className="flex-1"
+                      className="flex-1 min-w-0"
                       href={mediaDir.set(image.path)}
                       target="_blank"
                     >
                       <VideoOrImage
                         autoplay={true}
+                        imageClassName="max-w-full"
+                        videoClassName="max-w-full"
                         src={mediaDir.set(image.path)}
                       />
                     </a>

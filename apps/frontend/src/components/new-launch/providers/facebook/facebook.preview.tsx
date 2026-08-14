@@ -170,9 +170,12 @@ export const FacebookPreview: FC<{
       {!!renderContent?.[0]?.images?.length && (
         <div className="max-h-[585px] -mx-[15px] overflow-hidden flex">
           {renderContent?.[0]?.images.map((image, index) => (
+            // min-w-0: see launches/general.preview.component.tsx — flex
+            // min-width:auto let the media's intrinsic pixel width become the
+            // item's floor, so a 1080px tile overflowed the preview pane.
             <a
               key={`image_${index}`}
-              className="flex-1"
+              className="flex-1 min-w-0"
               href={mediaDir.set(image.path)}
               target="_blank"
             >
@@ -309,9 +312,10 @@ export const FacebookPreview: FC<{
                     {!!value.images?.length && (
                       <div className="max-h-[100px] mt-[12px] -mx-[15px] overflow-hidden flex">
                         {value.images.map((image, index) => (
+                          // min-w-0: same intrinsic-width floor as above
                           <a
                             key={`image_${index}`}
-                            className="flex-1"
+                            className="flex-1 min-w-0"
                             href={mediaDir.set(image.path)}
                             target="_blank"
                           >

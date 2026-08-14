@@ -419,7 +419,12 @@ export const RecentPostsSection: FC<{
           onLoad={onLoad}
         />
       ))}
-      <div className="flex items-start gap-[8px] px-[8px] pt-[8px]">
+      {/* phone stacks this row. The toggle is `shrink-0` and measured 344px
+          against 344px of available width, so in a row it consumed everything
+          and the title column (which carries min-w-0) collapsed to width 0
+          rather than overflowing — the heading then wrapped one word per line.
+          Measured at 402px on a real iPhone. */}
+      <div className="flex items-start gap-[8px] px-[8px] pt-[8px] phone:flex-col phone:items-stretch">
         <div className="flex flex-col gap-[2px] min-w-0">
           <div className="text-[16px] font-[550]">
             {t('top_5_posts', 'Top 5 Posts')}
@@ -428,7 +433,9 @@ export const RecentPostsSection: FC<{
             {subtitle}
           </div>
         </div>
-        <div className="flex-1" />
+        {/* the spacer only makes sense in a row; in the phone column it would
+            just add an empty gap between the title and the toggle */}
+        <div className="flex-1 phone:hidden" />
         {/* Buffer's ranking toggle, top right of the section: same segmented
             anatomy as the range and metric pickers */}
         {metricLabels.length > 1 && (
