@@ -5,7 +5,7 @@ All notable changes to this repository are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 This repository is **not versioned yet**. It ships from the `cuesoft/customizations` branch, which
-is the default branch and what deploys, so everything shipped so far sits under Unreleased. When a
+is the default branch and what deploys. Releases are tagged from it. When a
 release is tagged, entries move into a dated section then.
 
 There are no inherited tags left to confuse that. The Postiz tags this repository carried at fork
@@ -20,7 +20,14 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
-Covers the fork from its first commit on 2026-08-07 to 2026-08-14.
+## [1.0.0] - 2026-08-14
+
+The first release that is ours. Covers the fork from its first commit on 2026-08-07.
+
+Numbered 1.0.0 rather than continuing Postiz's numbering because the inherited tags were deleted
+when this repository detached from upstream, so the `v*` namespace starts here. It is not a claim
+that the code is newer or better than Postiz 2.23.0; it is the first version of THIS codebase that
+anyone tagged.
 
 ### Added
 
