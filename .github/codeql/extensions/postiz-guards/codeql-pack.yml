@@ -1,0 +1,32 @@
+# CodeQL model pack: teaches the JavaScript queries about guards this
+# repository wrote itself.
+#
+# Why this exists (14 Aug 2026): the first CodeQL scan of this fork produced 63
+# alerts and 40 were dismissed by hand the same day. The largest cluster was not
+# defects. CodeQL ships models for library sanitizers it knows, and has no model
+# for ours, so a call that is correctly guarded reads as unguarded and fires.
+#
+# Dismissing that by hand every week is the failure mode we are avoiding: it
+# trains the reviewer to click "false positive", and a real finding eventually
+# goes through with the noise. Today's single genuine SSRF was found by
+# js/request-forgery, the same rule that produced most of the false positives,
+# so the rule has to stay on and stay believable. Modelling the guards is how
+# both happen.
+#
+# `library: true` because a model pack contains no queries, only data.
+# `extensionTargets` names the pack whose extensible predicates we add rows to;
+# the rows themselves live in models/ and are listed by `dataExtensions`.
+#
+# This is picked up by CODE SCANNING DEFAULT SETUP with no workflow change,
+# because it sits under `.github/codeql/extensions/`. That path matters: an
+# advanced workflow was deleted from this repo on 14 Aug 2026 (commit 14077b3d)
+# because GitHub rejects SARIF from an advanced workflow while default setup is
+# enabled, so a model pack that needed `packs:` in a workflow config would be
+# unusable here. This one does not.
+name: cuesoftinc/postiz-guards
+version: 0.0.1
+library: true
+extensionTargets:
+  codeql/javascript-all: '*'
+dataExtensions:
+  - models/**/*.model.yml

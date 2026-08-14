@@ -1,0 +1,103 @@
+# Barriers for the guards this repository wrote itself.
+#
+# Motivated by the first CodeQL scan of this fork, 14 Aug 2026. Alert numbers
+# below are that scan's, in cuesoftinc/postiz-app.
+#
+# A barrier row says: taint stops at this value. `barrierModel` takes
+# `type; path; kind`, and the JavaScript queries consume it per vulnerability
+# class, so `kind` has to be the exact string the query asks for. The ones used
+# here were read out of the CodeQL 2.26.3 library rather than guessed:
+#   log-injection   LogInjectionQuery.qll                 SanitizerFromModel
+#   html-injection  DomBasedXssCustomizations.qll,        SanitizerFromModel
+#                   ReflectedXssCustomizations.qll
+# There is NO validation of barrier kinds (KindValidation in ApiGraphModels.qll
+# covers sources, sinks and summaries only), so a typo here fails silently
+# rather than erroring. Change these strings only against the library source.
+#
+# Each guard is listed twice on purpose, and neither line is redundant:
+#
+#   `file:<repo-relative path>` binds through the RESOLVED import, which is the
+#   form that survives someone changing how the module is spelled. It only
+#   works if CodeQL resolved the `@gitroom/*` tsconfig alias to the real file
+#   (RawFilePathEntryPoint matches `Import.getImportedFile()`).
+#
+#   `'@gitroom/helpers/utils/...'` binds on the literal import specifier
+#   instead, and covers the case where the alias did not resolve. The quotes
+#   are load-bearing: the type column is split on `.`, so an unquoted
+#   `@gitroom/helpers/utils/sanitize.log` would parse as the package
+#   `@gitroom/helpers/utils/sanitize` with a member `log` and match nothing.
+#
+# Both forms bind only where the guard is IMPORTED. A guard called in the same
+# file that defines it is invisible to this mechanism; see the note at the
+# bottom of this file for the ones that hit that wall.
+
+extensions:
+  - addsTo:
+      pack: codeql/javascript-all
+      extensible: barrierModel
+    data:
+      # sanitizeForLog strips CR, LF and every other control character and caps
+      # the length, which is the whole of what log forging needs. Its return
+      # value is safe to interpolate into a log line.
+      #
+      # Suppresses alerts 72 and 73 (media.service.ts:51 and :124) and 74
+      # (wordpress.provider.ts:151), all js/log-injection, all dismissed as
+      # false positives on 14 Aug 2026 because the call at the alert location
+      # already went through this function.
+      - ["file:libraries/helpers/src/utils/sanitize.log.ts", "Member[sanitizeForLog].ReturnValue", "log-injection"]
+      - ["'@gitroom/helpers/utils/sanitize.log'", "Member[sanitizeForLog].ReturnValue", "log-injection"]
+
+      # escapeHtml escapes & < > " ' in one pass, so its return value cannot
+      # open a tag or an attribute. Kind `html-injection` is honoured by both
+      # the DOM-based and the reflected XSS queries.
+      #
+      # This one suppresses NONE of the 14 Aug alerts. The two XSS alerts that
+      # were dismissed that day (18, js/xss-through-exception on
+      # posts.controller.ts:322, and 22, js/xss-through-dom on
+      # media.settings.component.tsx:395) are unrelated to this function, and
+      # js/xss-through-exception does not consult model barriers at all: it
+      # barriers on Xss::Shared::Sanitizer, which has no SanitizerFromModel.
+      # The row is here so that the guard is understood the first time a
+      # request value reaches an HTML sink through it, rather than after the
+      # alert has already been triaged by hand.
+      - ["file:libraries/helpers/src/utils/escape.html.ts", "Member[escapeHtml].ReturnValue", "html-injection"]
+      - ["'@gitroom/helpers/utils/escape.html'", "Member[escapeHtml].ReturnValue", "html-injection"]
+
+# Deliberately NOT modelled, recorded so nobody adds them believing they work.
+#
+# htmlToPlainText (libraries/helpers/src/utils/html.to.plain.text.ts). Its two
+# alerts, 75 and 76, are js/incomplete-multi-character-sanitization, which is a
+# syntactic query about the shape of a replace call. It has no taint
+# configuration and therefore no barrier to extend, so no data extension of any
+# kind can affect it. Beyond that, modelling this function as an html-injection
+# barrier would be a lie: its own contract says the output is TEXT and must
+# never be interpolated back into an HTML document, so claiming it as an XSS
+# barrier would mask a real bug the day someone does exactly that. Alerts 24,
+# 71 and 77 are the same class of syntactic query.
+#
+# The SSRF dispatcher (getSsrfSafeDispatcher / ssrfSafeDispatcher). Not
+# expressible. A data extension names an API endpoint by module and access
+# path; it cannot say "this fetch is safe because a SIBLING ARGUMENT is a
+# pinned dispatcher". The guard here never touches the tainted URL, it is
+# passed alongside it, and there is no token in the access path vocabulary that
+# conditions one argument on another. That leaves alerts 2, 3, 9, 12, 13, 65
+# and 70 (and 1, 44, 45, 46, 47, 48) unmodellable by this pack. The only
+# extensible predicate anywhere near them is neutralModel with kind `sink`,
+# which would have to be aimed at global `fetch` and would switch off SSRF
+# detection for the entire codebase, including the one real SSRF this rule
+# caught on 14 Aug. That trade is not worth making.
+#
+# safeGraphId (instagram.provider.ts:30), safeGmbLocationName (gmb.provider.ts:48)
+# and safeGmbResourceId (gmb.provider.ts:76). These three ARE the right shape:
+# they throw unless the value matches a strict charset with no URL
+# metacharacters, and return it otherwise, so their return value is a genuine
+# request-forgery barrier. They are left out because they cannot bind. Both
+# type forms above reach a module across an import boundary, and all four
+# alerts (66 and 67 in gmb.provider.ts, 68 and 69 in instagram.provider.ts)
+# call the guard inside the file that defines it, where no import exists for
+# the model to attach to. Move the three validators into their own module and
+# import them, and these rows start working as written:
+#
+#   - ["file:libraries/nestjs-libraries/src/integrations/social/safe.ids.ts", "Member[safeGraphId].ReturnValue", "request-forgery"]
+#   - ["file:libraries/nestjs-libraries/src/integrations/social/safe.ids.ts", "Member[safeGmbLocationName].ReturnValue", "request-forgery"]
+#   - ["file:libraries/nestjs-libraries/src/integrations/social/safe.ids.ts", "Member[safeGmbResourceId].ReturnValue", "request-forgery"]
