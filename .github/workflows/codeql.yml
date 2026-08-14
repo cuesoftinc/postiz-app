@@ -4,6 +4,9 @@ name: "Code Quality Analysis"
 on:
   push:
     branches:
+      # Our work lives on cuesoft/customizations, which is the default branch.
+      # main only tracks upstream, so scanning it alone scanned nothing of ours.
+      - cuesoft/customizations
       - main
     paths:
       - apps/**
@@ -17,6 +20,13 @@ jobs:
 
     runs-on: 'ubuntu-latest'
     permissions:
+      # Once ANY permissions block exists every unlisted scope becomes `none`,
+      # so security-events alone left contents at none and both checkout and
+      # codeql-action/init would fail. That went unnoticed because this workflow
+      # triggers on `main` while the default branch moved to
+      # cuesoft/customizations, so it effectively stopped running (2026-08-14).
+      contents: read
+      actions: read
       security-events: write
 
     strategy:

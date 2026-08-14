@@ -1,0 +1,36 @@
+# GitHub reads this file ONLY at .github/dependabot.yml, lowercase. It sat here
+# as Dependabot.yml until 2026-08-14, which meant version updates never ran at
+# all: the failing "Dependabot Updates" jobs on this branch were SECURITY
+# updates, which come from repository settings and ignore this file entirely.
+version: 2
+updates:
+  # The workspace root holds every dependency; apps/* and libraries/* have no
+  # independent lockfile, so one npm entry covers the monorepo.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    # One PR per ecosystem beats fifteen. Majors stay separate because they are
+    # the ones that need a human.
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # Pinned deliberately and upgraded as a unit; see the commit that moved
+      # them. A drive-by bump here would desync the client from the CLI that
+      # runs `db push` on a database holding real scheduled posts.
+      - dependency-name: "prisma"
+      - dependency-name: "@prisma/client"
+
+  # Without this, every action pin in .github/workflows/ is frozen forever. The
+  # pins are SHAs with the version in a trailing comment, which is the form
+  # Dependabot reads and bumps; nothing else will.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ["*"]
