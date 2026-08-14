@@ -117,13 +117,21 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
 
     try {
       const user = await (
-        await fetch(body.service + `/api/v3/user?username=${body.identifier}`, {
-          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-          dispatcher: getSsrfSafeDispatcher(),
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-          },
-        })
+        // `identifier` is base64 in the OAuth `code` and decoded above, so it is
+        // caller-supplied and needs encoding before it joins a query string; the
+        // host cannot be moved from here (that is `service`, and the dispatcher
+        // below covers it), but an unencoded `&` would append parameters.
+        await fetch(
+          body.service +
+            `/api/v3/user?username=${encodeURIComponent(body.identifier)}`,
+          {
+            // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+            dispatcher: getSsrfSafeDispatcher(),
+            headers: {
+              Authorization: `Bearer ${jwt}`,
+            },
+          }
+        )
       ).json();
 
       return {

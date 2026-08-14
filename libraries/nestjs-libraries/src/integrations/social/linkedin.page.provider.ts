@@ -179,7 +179,13 @@ export class LinkedinPageProvider
   }
 
   async fetchPageInformation(accessToken: string, params: { page: string }) {
-    const pageId = params.page;
+    // `params.page` comes from the request body of
+    // POST /integrations/provider/:id/connect, which is typed `any`. The host
+    // is pinned to api.linkedin.com by the template, so this is path injection
+    // rather than SSRF: unencoded, a `?` or `#` in the id rewrites the
+    // projection this bearer token is spent on. Organization ids are numeric,
+    // so encoding costs nothing.
+    const pageId = encodeURIComponent(params.page);
     const data = await (
       await fetch(
         `https://api.linkedin.com/v2/organizations/${pageId}?projection=(id,localizedName,vanityName,logoV2(original~:playableStreams))`,

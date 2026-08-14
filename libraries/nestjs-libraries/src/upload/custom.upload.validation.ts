@@ -67,6 +67,12 @@ export function getMaxSize(mimeType: string): number {
     return 1024 * 1024 * 1024; // 1 GB
   } else if (mimeType === 'application/pdf') {
     return 100 * 1024 * 1024; // 100 MB — LinkedIn's document upload cap
+  } else if (mimeType.startsWith('audio/')) {
+    // The storage providers accept audio (music beds); the upload validators
+    // do not, and reject it by allow-list BEFORE reaching here, so this branch
+    // widens nothing. It exists so uploadSimple can cap audio rather than
+    // throw "Unsupported file type" on a file its own allow-list permitted.
+    return 100 * 1024 * 1024; // 100 MB
   } else {
     throw new BadRequestException('Unsupported file type.');
   }

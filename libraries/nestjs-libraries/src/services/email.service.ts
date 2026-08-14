@@ -5,6 +5,8 @@ import { EmptyProvider } from '@gitroom/nestjs-libraries/emails/empty.provider';
 import { NodeMailerProvider } from '@gitroom/nestjs-libraries/emails/node.mailer.provider';
 import { TemporalService } from 'nestjs-temporal-core';
 import { timer } from '@gitroom/helpers/utils/timer';
+import { sanitizeForLog } from '@gitroom/helpers/utils/sanitize.log';
+import { escapeHtml } from '@gitroom/helpers/utils/escape.html';
 
 // Per-attempt wall clock for one SMTP/API send. The nodemailer transport
 // already fails fast on its own socket timeouts, so this only catches a
@@ -101,7 +103,9 @@ export class EmailService {
   ) {
     if (this._queue.length >= SEND_QUEUE_MAX) {
       console.error(
-        `Email queue full (${SEND_QUEUE_MAX}), dropping email to ${to}: ${subject}`
+        `Email queue full (${SEND_QUEUE_MAX}), dropping email to ${sanitizeForLog(
+          to
+        )}: ${sanitizeForLog(subject)}`
       );
       return;
     }
@@ -125,6 +129,13 @@ export class EmailService {
     }
   }
 
+  // `subject` is escaped centrally where it is interpolated into the <h1>
+  // below, because every caller passes plain text and several build it from
+  // user-controlled values (an invite subject is
+  // `${user.name} invited you to join "${org.name}"`). `html` is deliberately
+  // NOT escaped: callers pass real markup and the template wraps it, so
+  // escaping here would render every templated email as source. Callers that
+  // interpolate user values into `html` must escape those values themselves.
   async sendEmailSync(
     to: string,
     subject: string,
@@ -165,7 +176,7 @@ export class EmailService {
                 margin-bottom: 1.5rem;
                 text-align: left;
                 color: #1f2937;
-            ">${subject}</h1>
+            ">${escapeHtml(subject)}</h1>
             
             <div style="
                 margin-bottom: 2rem;
@@ -209,7 +220,10 @@ export class EmailService {
             replyTo
           )
         );
-        console.log(sends);
+        // The provider echoes the recipient and subject back in its response,
+        // and both start life in a request body, so a newline in either would
+        // otherwise let a caller forge log lines.
+        console.log('Email sent', sanitizeForLog(sends));
         return;
       } catch (err) {
         lastErr = err;
@@ -219,7 +233,10 @@ export class EmailService {
         }
       }
     }
-    console.log(`Email to ${to} failed after 3 attempts:`, lastErr);
+    console.log(
+      `Email to ${sanitizeForLog(to)} failed after 3 attempts:`,
+      lastErr
+    );
   }
 
   /** Caps one provider call by wall clock. A rejected race counts as a failed

@@ -1,7 +1,34 @@
 import { HttpException } from '@nestjs/common';
 
 // e.g. "400 Your request was rejected by the safety system, safety_violations=[sexual]"
-const SAFETY_VIOLATIONS_REGEX = /safety_violations=\[([^\]]*)\]/i;
+const SAFETY_VIOLATIONS_START = /safety_violations=\[/i;
+
+/**
+ * Reads the flagged categories out of a provider error message.
+ *
+ * This used to be `/safety_violations=\[([^\]]*)\]/i` in one shot, which is
+ * quadratic on a hostile message: for every position that starts the marker
+ * and is never closed, `[^\]]*` scans to the end of the string and then gives
+ * up. The message can be long and carries text the caller influenced (the
+ * rejected prompt is echoed back), so a message built out of repeated
+ * `safety_violations=[` with no `]` would burn CPU on the event loop. Finding
+ * the marker with a literal pattern and then looking for the closing bracket
+ * costs one linear scan and cannot backtrack.
+ */
+const extractSafetyCategories = (message: string): string | undefined => {
+  const start = SAFETY_VIOLATIONS_START.exec(message);
+  if (!start) {
+    return undefined;
+  }
+
+  const from = start.index + start[0].length;
+  const end = message.indexOf(']', from);
+  if (end === -1) {
+    return undefined;
+  }
+
+  return message.slice(from, end).trim() || undefined;
+};
 
 // Match genuine content-safety rejections by message, NOT by a bare 400 status:
 // a 400 can just as easily be an invalid-parameter error, which must not be
@@ -28,7 +55,7 @@ export function generationError(err: any): HttpException {
     err?.error?.message || err?.message || String(err || '');
 
   if (SAFETY_MESSAGE_REGEX.test(message)) {
-    const categories = message.match(SAFETY_VIOLATIONS_REGEX)?.[1]?.trim();
+    const categories = extractSafetyCategories(message);
     const detail = categories ? ` Flagged categories: ${categories}.` : '';
     return new HttpException(
       `Your request was rejected by the AI safety system.${detail} Please adjust your prompt and try again.`,

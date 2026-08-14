@@ -1043,7 +1043,12 @@ export const Impersonate = () => {
     <div className="fixed bottom-[12px] inset-x-0 z-[199] flex flex-col items-start gap-[8px] pointer-events-none ps-[12px]">
       {open && (
         <>
-          {/* click-away layer — painted under the panel/pill (source order) */}
+          {/* Click-away layer. It is `fixed`, so it paints in the positioned
+              layer of the strip's stacking context, ABOVE any static sibling —
+              source order does not decide this. The panel and the pill below
+              are therefore `relative z-[1]` so they paint above it; without
+              that, this layer covered them and swallowed every click, so the
+              admin chips and Stop did nothing but close the panel. */}
           <div
             className="fixed inset-0 pointer-events-auto"
             onClick={() => {
@@ -1051,7 +1056,7 @@ export const Impersonate = () => {
               setPhoneExpanded(false);
             }}
           />
-          <div className="pointer-events-auto w-[560px] max-w-[calc(100vw-24px)]">
+          <div className="relative z-[1] pointer-events-auto w-[560px] max-w-[calc(100vw-24px)]">
             <DropdownPanel className="!static w-full p-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
               {user?.impersonate ? (
                 <div className="flex flex-col gap-[12px]">
@@ -1138,7 +1143,7 @@ export const Impersonate = () => {
       <div
         data-cs
         className={clsx(
-          'pointer-events-auto flex items-center h-[32px] rounded-full bg-forth text-white shadow-[0_4px_12px_rgba(0,0,0,0.18)] overflow-hidden phone:h-[28px] phone:max-w-[calc(100vw-24px)]',
+          'relative z-[1] pointer-events-auto flex items-center h-[32px] rounded-full bg-forth text-white shadow-[0_4px_12px_rgba(0,0,0,0.18)] overflow-hidden phone:h-[28px] phone:max-w-[calc(100vw-24px)]',
           !phoneExpanded && 'phone:hidden'
         )}
       >

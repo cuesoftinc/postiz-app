@@ -28,6 +28,33 @@ import { TemporalService } from 'nestjs-temporal-core';
 
 dayjs.extend(utc);
 
+const CLOUDFLARE_IMAGES_HOST = 'imagedelivery.net';
+
+/**
+ * True only when the avatar URL really is served by Cloudflare Images, in
+ * which case it is stored as-is instead of being re-uploaded.
+ *
+ * The test used to be `picture.indexOf('imagedelivery.net') > -1`, which any
+ * host can satisfy: the avatar URL comes back from the social provider's
+ * profile response, so `https://attacker.example/imagedelivery.net/x.png`
+ * (or a subdomain like `imagedelivery.net.attacker.example`) skipped the
+ * upload and was written to the integration record, leaving a third party in
+ * control of a URL the app renders and re-requests. Compare the parsed
+ * hostname instead, and require https.
+ */
+const isCloudflareImageUrl = (picture: string): boolean => {
+  try {
+    const { protocol, hostname } = new URL(picture);
+    return (
+      protocol === 'https:' &&
+      (hostname === CLOUDFLARE_IMAGES_HOST ||
+        hostname.endsWith(`.${CLOUDFLARE_IMAGES_HOST}`))
+    );
+  } catch {
+    return false;
+  }
+};
+
 @Injectable()
 export class IntegrationService {
   private storage = UploadFactory.createStorage();
@@ -111,7 +138,7 @@ export class IntegrationService {
     customInstanceDetails?: string
   ) {
     const uploadedPicture = picture
-      ? picture?.indexOf('imagedelivery.net') > -1
+      ? isCloudflareImageUrl(picture)
         ? picture
         : await this.storage.uploadSimple(picture).catch((err) => {
             console.log('Failed to upload profile picture:', picture, err);

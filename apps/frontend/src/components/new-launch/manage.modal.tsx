@@ -28,6 +28,7 @@ import { TagsComponent } from '@gitroom/frontend/components/launches/tags.compon
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { htmlEntityDecoder } from '@gitroom/helpers/utils/decode.html.entities';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { capitalize } from 'lodash';
@@ -1436,21 +1437,44 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   );
 };
 
+const decodeEditorEntities = htmlEntityDecoder([
+  'nbsp',
+  'amp',
+  'lt',
+  'gt',
+  'quot',
+  '#39',
+]);
+
+const TAG = /<[^>]+>/g;
+
 /** Editor values are HTML; the bridge prefix wants plain text. Block/br
  *  boundaries become newlines so a thread reads as separate lines. */
-const stripHtml = (html: string) =>
-  html
+const stripHtml = (html: string) => {
+  // Entities decode FIRST. Decoding last is what let markup out: `&lt;script&gt;`
+  // sails through the tag pass untouched and then decodes into a literal
+  // `<script>` on the way out, so the strip never saw the thing it exists to
+  // remove (measured: input `&lt;script&gt;alert(1)&lt;/script&gt;` returned
+  // `<script>alert(1)</script>`; it now returns `alert(1)`). Decoding first
+  // turns an entity-encoded tag into a real tag in time to be stripped.
+  //
+  // decodeEditorEntities is ONE left-to-right pass, so `&amp;lt;` decodes to
+  // `&lt;` and stops rather than double-decoding down to `<`. Chained
+  // `.replace()` calls are what made that reachable before.
+  //
+  // One strip pass is enough, and a fixpoint loop here was dead code:
+  // `/<[^>]+>/g` is idempotent because `[^>]+` is greedy, so a match always
+  // runs to the FIRST `>` and no residue can pair with a later one. Verified
+  // exhaustively over all 1,398,100 strings from {<,>,a,b} of length 1..10:
+  // zero cases where a second pass changed anything. (`<scr<a>ipt>` becomes
+  // `ipt>`, not `<script>`.)
+  return decodeEditorEntities(html)
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/g, "'")
+    .replace(TAG, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+};
 
 /** Assistant slide-over: hosts the Claude Code bridge chat ('assistant'
  *  profile) with a context prefix built from the LIVE composer state

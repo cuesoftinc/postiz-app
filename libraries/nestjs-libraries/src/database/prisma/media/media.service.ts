@@ -8,6 +8,7 @@ import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/sa
 import { VideoManager } from '@gitroom/nestjs-libraries/videos/video.manager';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
+import { sanitizeForLog } from '@gitroom/helpers/utils/sanitize.log';
 import {
   AuthorizationActions,
   Sections,
@@ -45,7 +46,9 @@ export class MediaService {
         async () => {
           if (generatePromptFirst) {
             prompt = await this._openAi.generatePromptForPicture(prompt);
-            console.log('Prompt:', prompt);
+            // The prompt is the caller's text, rewritten by the model: strip
+            // control characters so it cannot forge log entries.
+            console.log('Prompt:', sanitizeForLog(prompt));
           }
           return this._openAi.generateImage(prompt);
         }
@@ -112,9 +115,10 @@ export class MediaService {
         );
       }
 
-      console.log(body.customParams);
+      // customParams is raw request body: serialise and strip control
+      // characters rather than logging the object as-is.
+      console.log('Video params:', sanitizeForLog(body.customParams));
       await video.instance.processAndValidate(body.customParams);
-      console.log('no err');
 
       return await this._subscriptionService.useCredit(
         org,

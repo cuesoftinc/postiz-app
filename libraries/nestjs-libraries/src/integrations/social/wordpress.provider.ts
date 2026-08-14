@@ -14,6 +14,7 @@ import slugify from 'slugify';
 import axios from 'axios';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
+import { sanitizeForLog } from '@gitroom/helpers/utils/sanitize.log';
 import { string } from 'yup';
 
 export class WordpressProvider
@@ -141,9 +142,15 @@ export class WordpressProvider
       } catch (err) {
         // Non-JSON error body (e.g. an HTML page from a security plugin).
       }
+      // The domain comes from the connect form and the body from a stranger's
+      // server, so neither may be spliced into the format string: pass them as
+      // arguments and strip control characters first, or a crafted value could
+      // forge log lines (or eat the next argument with its own `%s`).
       console.log(
-        `WordPress auth failed for ${domain} (HTTP ${response.status})`,
-        JSON.stringify({
+        'WordPress auth failed for %s (HTTP %s) %s',
+        sanitizeForLog(domain),
+        response.status,
+        sanitizeForLog({
           code: wpCode,
           message: wpMessage,
           ...(wpCode ? {} : { body: errorBody.slice(0, 500) }),

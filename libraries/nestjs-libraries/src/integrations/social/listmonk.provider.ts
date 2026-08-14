@@ -79,7 +79,9 @@ export class ListmonkProvider extends SocialAbstract implements SocialProvider {
     const body: { url: string; username: string; password: string } =
       JSON.parse(Buffer.from(params.code, 'base64').toString());
 
-    console.log(body);
+    // Deliberately not logged: `body` is the decoded connect payload and holds
+    // the Listmonk username and password in clear text, plus whatever the user
+    // typed into the URL field, which would forge log lines on a newline.
     try {
       const basic = Buffer.from(body.username + ':' + body.password).toString(
         'base64'

@@ -1,5 +1,30 @@
 import striptags from 'striptags';
 import { parseFragment, serialize } from 'parse5';
+import { htmlEntityDecoder } from '@gitroom/helpers/utils/decode.html.entities';
+
+/** Every entity this file understands, decoded in a single pass. */
+const decodeAllEntities = htmlEntityDecoder([
+  'amp',
+  'lt',
+  'gt',
+  'nbsp',
+  'quot',
+  '#39',
+]);
+
+/**
+ * The entities that are safe to decode BEFORE striptags runs: none of them
+ * produces a `&`, a `<` or a `>`, so decoding them can neither feed a later
+ * decode nor conjure a tag that the stripper has already walked past.
+ */
+const decodeTextEntities = htmlEntityDecoder(['nbsp', 'quot', '#39']);
+
+/**
+ * The entities that must wait until AFTER striptags. `&lt;`/`&gt;` decode to
+ * markup characters, and `&amp;` decodes to the `&` that starts every other
+ * entity, so both have to happen once, last, in the same pass.
+ */
+const decodeMarkupEntities = htmlEntityDecoder(['amp', 'lt', 'gt']);
 
 const bold = {
   a: '𝗮',
@@ -146,92 +171,75 @@ export const stripHtmlValidation = (
   const value = serialize(parseFragment(val));
 
   if (type === 'none') {
-    return striptags(value)
-      .replace(/&gt;/gi, '>')
-      .replace(/&lt;/gi, '<')
-      .replace(/&amp;/gi, '&')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&quot;/gi, '"')
-      .replace(/&#39;/gi, "'");
+    return decodeAllEntities(striptags(value));
   }
 
   if (type === 'html') {
-    return striptags(convertMention(value, convertMentionFunction), [
-      'ul',
-      'li',
-      'h1',
-      'h2',
-      'h3',
-      'p',
-      'strong',
-      'u',
-      'a',
-    ])
-      .replace(/&gt;/gi, '>')
-      .replace(/&lt;/gi, '<')
-      .replace(/&amp;/gi, '&')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&quot;/gi, '"')
-      .replace(/&#39;/gi, "'");
+    return decodeAllEntities(
+      striptags(convertMention(value, convertMentionFunction), [
+        'ul',
+        'li',
+        'h1',
+        'h2',
+        'h3',
+        'p',
+        'strong',
+        'u',
+        'a',
+      ])
+    );
   }
 
   if (type === 'markdown') {
-    return striptags(
-      convertMention(
-        value
-          .replace(/<h1>([.\s\S]*?)<\/h1>/g, (match, p1) => {
-            return `<h1># ${p1}</h1>\n`;
-          })
-          .replace(/&amp;/gi, '&')
-          .replace(/&nbsp;/gi, ' ')
-          .replace(/&quot;/gi, '"')
-          .replace(/&#39;/gi, "'")
-          .replace(/<h2>([.\s\S]*?)<\/h2>/g, (match, p1) => {
-            return `<h2>## ${p1}</h2>\n`;
-          })
-          .replace(/<h3>([.\s\S]*?)<\/h3>/g, (match, p1) => {
-            return `<h3>### ${p1}</h3>\n`;
-          })
-          .replace(/<u>([.\s\S]*?)<\/u>/g, (match, p1) => {
-            return `<u>__${p1}__</u>`;
-          })
-          .replace(/<strong>([.\s\S]*?)<\/strong>/g, (match, p1) => {
-            return `<strong>**${p1}**</strong>`;
-          })
-          .replace(/<li.*?>([.\s\S]*?)<\/li.*?>/gm, (match, p1) => {
-            return `<li>- ${p1.replace(/\n/gm, '')}</li>`;
-          })
-          .replace(/<p>([.\s\S]*?)<\/p>/g, (match, p1) => {
-            return `<p>${p1}</p>\n`;
-          })
-          .replace(
-            /<a.*?href="([.\s\S]*?)".*?>([.\s\S]*?)<\/a>/g,
-            (match, p1, p2) => {
-              return `<a href="${p1}">[${p2}](${p1})</a>`;
-            }
-          ),
-        convertMentionFunction
+    return decodeMarkupEntities(
+      striptags(
+        convertMention(
+          decodeTextEntities(
+            value.replace(/<h1>([.\s\S]*?)<\/h1>/g, (match, p1) => {
+              return `<h1># ${p1}</h1>\n`;
+            })
+          )
+            .replace(/<h2>([.\s\S]*?)<\/h2>/g, (match, p1) => {
+              return `<h2>## ${p1}</h2>\n`;
+            })
+            .replace(/<h3>([.\s\S]*?)<\/h3>/g, (match, p1) => {
+              return `<h3>### ${p1}</h3>\n`;
+            })
+            .replace(/<u>([.\s\S]*?)<\/u>/g, (match, p1) => {
+              return `<u>__${p1}__</u>`;
+            })
+            .replace(/<strong>([.\s\S]*?)<\/strong>/g, (match, p1) => {
+              return `<strong>**${p1}**</strong>`;
+            })
+            .replace(/<li.*?>([.\s\S]*?)<\/li.*?>/gm, (match, p1) => {
+              return `<li>- ${p1.replace(/\n/gm, '')}</li>`;
+            })
+            .replace(/<p>([.\s\S]*?)<\/p>/g, (match, p1) => {
+              return `<p>${p1}</p>\n`;
+            })
+            .replace(
+              /<a.*?href="([.\s\S]*?)".*?>([.\s\S]*?)<\/a>/g,
+              (match, p1, p2) => {
+                return `<a href="${p1}">[${p2}](${p1})</a>`;
+              }
+            ),
+          convertMentionFunction
+        )
       )
-    )
-      .replace(/&gt;/gi, '>')
-      .replace(/&lt;/gi, '<');
+    );
   }
 
   if (value.indexOf('<p>') === -1 && !none) {
     return value;
   }
 
-  const html = (value || '')
-    .replace(/&amp;/gi, '&')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
+  const html = decodeTextEntities(value || '')
     .replace(/^<p[^>]*>/i, '')
     .replace(/<p[^>]*>/gi, '\n')
     .replace(/<\/p>/gi, '');
 
   if (none) {
-    return striptags(html).replace(/&gt;/gi, '>').replace(/&lt;/gi, '<');
+    return decodeMarkupEntities(striptags(html));
   }
 
   if (replaceBold) {
@@ -253,19 +261,20 @@ export const stripHtmlValidation = (
       convertMentionFunction
     );
 
-    return striptags(processedHtml)
-      .replace(/&gt;/gi, '>')
-      .replace(/&lt;/gi, '<')
-      .replace(/&𝗹𝘁;/gi, '<')
-      .replace(/&𝗴𝘁;/gi, '>')
-      .replace(/&g̲t̲;/gi, '>')
-      .replace(/&l̲t̲;/gi, '<');
+    // There used to be four more replaces here turning `&𝗹𝘁;` and friends
+    // back into `<` and `>`. They existed only because convertToAscii bolded
+    // the letters inside an entity reference; it now steps over the whole
+    // reference, so `&lt;` reaches the decode above intact. They are gone
+    // rather than left inert because each was a SECOND decode of the same
+    // string: `&amp;lt;` (an author typing the literal text `&lt;`) decoded
+    // to `&lt;` and then to a real `<`, which is the double unescape this
+    // whole file was flagged for. convertToAscii is not exported anywhere
+    // else, so nothing can still be carrying the bolded forms.
+    return decodeMarkupEntities(striptags(processedHtml));
   }
 
   // Strip all other tags
-  return striptags(html, ['ul', 'li', 'h1', 'h2', 'h3'])
-    .replace(/&gt;/gi, '>')
-    .replace(/&lt;/gi, '<');
+  return decodeMarkupEntities(striptags(html, ['ul', 'li', 'h1', 'h2', 'h3']));
 };
 
 export const convertMention = (
@@ -284,22 +293,29 @@ export const convertMention = (
   );
 };
 
+/**
+ * One entity reference, or one single character. Splitting on characters
+ * alone turned `&amp;` into `&𝗮𝗺𝗽;`, which no decoder can read back, so an
+ * ampersand inside bold or underlined text was lost. Matching the whole
+ * reference first steps over it untouched and leaves it for the entity decode
+ * that runs after striptags.
+ */
+const ENTITY_OR_CHARACTER =
+  /&(?:[a-zA-Z][a-zA-Z0-9]*|#[0-9]+|#[xX][0-9a-fA-F]+);|[\s\S]/g;
+
+const mapCharacters = (text: string, map: Record<string, string>): string =>
+  text.replace(ENTITY_OR_CHARACTER, (token) =>
+    token.length === 1 ? map[token] || token : token
+  );
+
 export const convertToAscii = (value: string): string => {
   return value
     .replace(/<strong>(.+?)<\/strong>/gi, (match, p1) => {
-      const replacer = p1.split('').map((char: string) => {
-        // @ts-ignore
-        return bold?.[char] || char;
-      });
-
-      return match.replace(p1, replacer.join(''));
+      // A function replacement, so a `$&` in the text is not read as a
+      // replacement pattern.
+      return match.replace(p1, () => mapCharacters(p1, bold));
     })
     .replace(/<u>(.+?)<\/u>/gi, (match, p1) => {
-      const replacer = p1.split('').map((char: string) => {
-        // @ts-ignore
-        return underlineMap?.[char] || char;
-      });
-
-      return match.replace(p1, replacer.join(''));
+      return match.replace(p1, () => mapCharacters(p1, underlineMap));
     });
 };
