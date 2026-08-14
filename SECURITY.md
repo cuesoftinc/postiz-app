@@ -1,8 +1,9 @@
 # Security Policy
 
-This is `cuesoftinc/postiz-app`, Cuesoft's fork of
-[gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app). It is the code that runs
-`postiz.cuesoft.io`.
+This is `cuesoftinc/postiz-app`, a modified version of
+[gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app) (Postiz, by Gitroom). It is the
+code that runs `postiz.cuesoft.io`. It is maintained as a standalone codebase and is no longer
+synced with Gitroom's repository, which matters for triage: see Scope below.
 
 Treat it as sensitive. A running instance holds live OAuth access and refresh tokens for real
 social accounts, so a bug that crosses an organization boundary, leaks a token, or lets an
@@ -28,7 +29,7 @@ Please include:
 - steps to reproduce, ideally against a local instance,
 - the affected surface (frontend, backend, orchestrator, Ace, publishing) and file paths if you
   have them,
-- the commit you tested, since this fork is not versioned by tags.
+- the commit you tested, since builds here are identified by commit rather than by a version.
 
 We aim to acknowledge within 3 business days. Please give us time to ship a fix before disclosing
 publicly.
@@ -39,7 +40,7 @@ successful proof there is a real post on a real channel. Run a local instance in
 
 ## Scope
 
-**In scope: this fork's own code and its deployment.** These are the parts we wrote or changed,
+**In scope: this repository's code and its deployment.** These are the parts we wrote or changed,
 and the parts we can actually fix:
 
 - Google SSO authentication and the invite-only user flow (registration is disabled).
@@ -55,9 +56,13 @@ and the parts we can actually fix:
 
 **Out of scope here, but still worth reporting somewhere:**
 
-- Unmodified upstream Postiz code. We rebase on upstream, so we cannot be the authority on it.
-  Report it to [gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app/security) and, if it
-  affects our deployment too, tell us the advisory id so we can track the rebase.
+- Code we have not modified, which came from Postiz. We are not the authority on it, so report it to
+  [gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app/security), where the fix reaches
+  every Postiz user and not only us. That routing is still correct. What has changed is what happens
+  next: we no longer sync with Gitroom's repository, so we cannot promise to pick up their fix, and
+  a bug in inherited code that runs on our instance is ours to assess and patch here. **So tell us
+  the advisory id too** if it affects our deployment. Reporting it there and telling us are not
+  alternatives.
 - Third-party services we call: Buffer, LinkedIn, TikTok, Google, Cloudflare R2, Brevo. Report to
   the vendor.
 - Volumetric denial of service, automated scanner output with no demonstrated impact, and reports
@@ -65,10 +70,14 @@ and the parts we can actually fix:
 
 ## Supported versions
 
-This fork ships from a branch, not a release. `cuesoft/customizations` is the default branch and
-the one that is deployed; fixes land there. `main` tracks upstream and is not where our fixes go,
-and the version tags in this repository are upstream's, inherited by the fork. Deployed
-environments are expected to track `cuesoft/customizations`.
+This repository ships from a branch, not a release. `cuesoft/customizations` is the default branch
+and the one that is deployed; fixes land there, and deployed environments are expected to track it.
+`main` is frozen inherited history and is not where our fixes go.
+
+There are no version tags. The Postiz tags this repository once carried were deleted, because they
+described Gitroom's releases and never ours, so nothing in the tag namespace can be read as a
+statement about this code. If a release is tagged here it will be ours and it will say what it
+covers; until then, identify a build by its commit.
 
 ## Handling of secrets
 
@@ -92,4 +101,4 @@ environments are expected to track `cuesoft/customizations`.
 
 Security regressions are pinned by tests in `tests/security/`, run by `pnpm test` in CI on every
 push and pull request. A fix for a reported vulnerability should come with a test there that fails
-without the fix, so the hole cannot reopen on a later rebase.
+without the fix, so the hole cannot reopen on a later change.

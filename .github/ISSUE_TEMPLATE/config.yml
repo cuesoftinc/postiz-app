@@ -3,6 +3,6 @@ contact_links:
   - name: Security vulnerability
     url: https://github.com/cuesoftinc/postiz-app/security/advisories/new
     about: Report privately through the Security tab. Never as a public issue. See SECURITY.md.
-  - name: Upstream Postiz issue
+  - name: Postiz issue (the project this code came from)
     url: https://github.com/gitroomhq/postiz-app/issues
-    about: This is a fork. Bugs in unmodified upstream code belong with Gitroom, not here.
+    about: A bug in code we did not change is Gitroom's to fix. We do not pull their changes, so file it here too if it affects this app.

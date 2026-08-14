@@ -6,10 +6,10 @@ labels: [enhancement]
 ---
 
 <!--
-This fork exists to run postiz.cuesoft.io, and it stays close to upstream so we can keep rebasing
-on it. A general improvement to Postiz is better sent to https://github.com/gitroomhq/postiz-app,
-where everyone gets it and we inherit it on the next merge. Ask for it here when it is something
-Cuesoft specifically needs.
+This repository exists to run postiz.cuesoft.io. It is a modified version of Postiz, maintained on
+its own: we do not merge from Gitroom's repository, so nothing lands here by inheritance. A general
+improvement to Postiz is still worth sending to https://github.com/gitroomhq/postiz-app so everyone
+gets it. Ask for it here when Cuesoft needs it here.
 -->
 
 ## Problem
@@ -20,7 +20,8 @@ Cuesoft specifically needs.
 
 ## Alternatives considered
 
-<!-- Including: could upstream do this instead? Could it be done without touching upstream files? -->
+<!-- Including: does something already in the app do this? Would it be better as a change to Postiz
+itself, for everyone? -->
 
 ## Which surface?
 

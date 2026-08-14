@@ -8,8 +8,10 @@ labels: [bug]
 <!--
 Security vulnerabilities do NOT go here. See SECURITY.md and use the Security tab.
 
-This repository is a fork. If the bug also happens in upstream Postiz and is not in code we
-changed, it probably belongs at https://github.com/gitroomhq/postiz-app instead.
+This repository is a modified version of Postiz, maintained on its own. If the bug is in code we
+did not change and also happens in Postiz, https://github.com/gitroomhq/postiz-app is the right
+place for the fix. Open it here too if it affects this app: we do not pull their changes, so a fix
+there does not reach us on its own.
 -->
 
 ## Description

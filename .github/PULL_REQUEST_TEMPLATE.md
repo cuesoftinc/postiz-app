@@ -1,4 +1,4 @@
-<!-- Base this PR on `cuesoft/customizations`. Never on `main`: main tracks upstream. -->
+<!-- Base this PR on `cuesoft/customizations`. Never on `main`: main is frozen inherited history. -->
 
 ## Summary
 
@@ -15,7 +15,7 @@
 - [ ] Refactor / chore
 - [ ] Documentation
 - [ ] Security fix
-- [ ] Upstream rebase / merge
+- [ ] Removal of dead code
 
 ## Affected surface
 
@@ -42,8 +42,8 @@ Run what CI runs, all four:
 
 - [ ] Base branch is `cuesoft/customizations`.
 - [ ] Commits follow Conventional Commits (`feat:`, `fix:`, `chore:`, ...).
-- [ ] If this deletes or rewrites an upstream file, the PR says what that buys, because it costs a
-      conflict on every future merge.
+- [ ] If this deletes code, the PR shows how you know it is unused: no importers, no route that
+      reaches it, no configuration that switches it on.
 - [ ] No secrets, credentials, or `.env` files are committed.
 - [ ] Prisma schema changed? Flagged here, with the migration step, because the container does not
       run `prisma db push` at startup.

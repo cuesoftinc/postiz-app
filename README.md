@@ -1,12 +1,16 @@
 # Cuesoft Postiz
 
-Cuesoft's self-hosted social publishing and scheduling app. It is a fork of
-[gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app), rebuilt around how Cuesoft
-actually publishes: one organization, six channels, a weekly content pipeline, and an agent that
-drafts the copy.
+Cuesoft's self-hosted social publishing and scheduling app. It is a modified version of
+[Postiz](https://github.com/gitroomhq/postiz-app), rebuilt around how Cuesoft actually publishes:
+one organization, six channels, a weekly content pipeline, and an agent that drafts the copy.
 
 This is not a distribution. It is the code that runs `postiz.cuesoft.io`, and it is opinionated
-about that. If you want upstream Postiz, use upstream Postiz.
+about that. If you want Postiz itself, use Postiz.
+
+It is a **standalone codebase**. Postiz is where this code came from and the attribution and the
+AGPL-3.0 licence below are permanent, but we no longer track Gitroom's repository: there is no
+`upstream` remote and nothing here is merged or rebased from theirs. Their fixes do not reach us
+automatically, and ours do not reach them unless we send them.
 
 ## What we changed, and why
 
@@ -16,7 +20,7 @@ about that. If you want upstream Postiz, use upstream Postiz.
 | LinkedIn and TikTok | Two providers, `linkedinbuffer` and `tiktokbuffer`, that connect like any other channel and hand the post to Buffer at publish time. Neither platform can be native here: TikTok's developer app was rejected for internal company use, and self-hosted Postiz needs its own credentials. There is exactly **one** gate and it lives in Postiz. |
 | Ace | A web chat backed by fenced Claude Code sessions, for drafting a week's copy in the product instead of a terminal. Sessions are owner-scoped; credentials never enter the child process. |
 | Approvals | Posts can be drafted without a date and released through an approval gate, one week at a time. |
-| Interface | A Buffer-parity pass over the whole app: measured geometry, one shared segmented control, empty states, and a size ladder in `global.scss` that rescales upstream's own utility classes so we do not have to rewrite them and re-conflict on every rebase. |
+| Interface | A Buffer-parity pass over the whole app: measured geometry, one shared segmented control, empty states, and a size ladder in `global.scss` that rescales roughly 370 of Postiz's own arbitrary utility classes, so the authored class and the painted value differ. `apps/frontend/PARITY-CATALOG.md` explains it before you audit a size. |
 | Storage and mail | Cloudflare R2 for media, Brevo over SMTP for transactional mail. |
 
 ## Tech stack
@@ -72,5 +76,6 @@ This repository is a modified version of Postiz and stays under the
 to offer the Corresponding Source to anyone who uses a modified version we serve over a network:
 this repository is that offer.
 
-Upstream Postiz is by [Gitroom](https://github.com/gitroomhq/postiz-app). The features listed above
-are ours; everything else is theirs, and the copyright notices in the source say which is which.
+Postiz is by [Gitroom](https://github.com/gitroomhq/postiz-app). The features listed above are
+ours; everything else is theirs, and the copyright notices in the source say which is which. That
+is true regardless of whether we track their repository, and we no longer do.

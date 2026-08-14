@@ -2,7 +2,8 @@
 name: Build and Push (cuesoft/customizations)
 
 # Runs on every merge into cuesoft/customizations, which is this fork's DEFAULT
-# branch. `main` only tracks upstream Postiz and nothing ships from it.
+# branch. `main` is frozen inherited Postiz history: nothing ships from it and
+# nothing merges into it.
 #
 # Shape: gate first, then build and push one immutable tag per commit.
 #   sha-<full commit sha>   the only tag this workflow writes

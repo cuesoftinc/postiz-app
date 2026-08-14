@@ -1,18 +1,22 @@
 # Changelog
 
-All notable changes to this fork are documented here.
+All notable changes to this repository are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-This fork is **not versioned**. It ships from the `cuesoft/customizations` branch, which is the
-default branch and what deploys. The version tags in this repository (`v2.23.0` and earlier) are
-upstream Postiz's, inherited when we forked, and none of them describe our changes. Everything we
-have shipped therefore sits under Unreleased. If we ever tag this fork, entries move into a dated
-section then.
+This repository is **not versioned yet**. It ships from the `cuesoft/customizations` branch, which
+is the default branch and what deploys, so everything shipped so far sits under Unreleased. When a
+release is tagged, entries move into a dated section then.
 
-Upstream's own release notes live at
-[gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app/releases). Only changes that are
-ours are listed below.
+There are no inherited tags left to confuse that. The Postiz tags this repository carried at fork
+time (`v2.23.0` and earlier) described Gitroom's releases, never ours, and they have been deleted:
+the `v*` namespace here is ours alone, and the first release tagged in it will be our own semantic
+version starting from scratch. No number and no date are promised here until one is cut.
+
+Postiz's own release notes live at
+[gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app/releases) and cover the history this
+code is derived from, up to the last sync we took. We do not merge from them any more, so nothing
+in their later releases is reflected below. Only changes that are ours are listed.
 
 ## [Unreleased]
 
@@ -51,6 +55,19 @@ Covers the fork from its first commit on 2026-08-07 to 2026-08-14.
 
 ### Changed
 
+- **Detached from upstream.** This is now a standalone codebase. The `upstream` remote is gone, the
+  195 Postiz release tags inherited at fork time were deleted from our remote, and we will not merge
+  or rebase from [gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app) again, because the
+  tree is too diverged for that to pay. Two consequences are worth stating plainly. First, the rule
+  that governed every deletion made here, that removing an inherited file costs a conflict on every
+  future merge, is **retired**: dead code should now be deleted rather than preserved, and
+  `CONTRIBUTING.md` says so instead of the opposite. Second, a fix in code we did not change no
+  longer reaches us by inheritance, so `SECURITY.md` still routes genuine Postiz bugs to Gitroom but
+  no longer implies we will pick their fix up. **The licence does not move.** This is still a
+  modified version of Gitroom's AGPL-3.0 work: `LICENSE` is untouched, the attribution in the README
+  and in `SECURITY.md` stays, and section 13 still obliges us to offer the Corresponding Source to
+  anyone using this version over a network. Detaching a git remote does not make this code ours to
+  claim.
 - **Tailwind 4.3.3 replaces 3.4.17.** The v3 JS config is kept and loaded through `@config` rather
   than ported to `@theme`, because every colour is a passthrough to an app variable that would
   collide with v4's namespace and because screen declaration order carries real precedence.
@@ -101,11 +118,12 @@ Covers the fork from its first commit on 2026-08-07 to 2026-08-14.
 
 ### Removed
 
-- **Upstream SaaS surface this fork does not use**: 59 files and roughly 40 dependencies. The rule
-  applied throughout was that deleting an upstream file is not free, it is a conflict on every
-  future merge, so anything that merely looked unused was left alone. That is why the 25
+- **Postiz SaaS surface this app does not use**: 59 files and roughly 40 dependencies. The rule
+  applied at the time was that deleting an inherited file is not free, because it becomes a conflict
+  on every future merge, so anything that merely looked unused was left alone. That is why the 25
   unconnected social providers, the browser extension, the SDK and the commands app are all still
-  here.
+  here. **That rule is retired** as of the detachment above, so those four are now removable: it is
+  available work rather than a thing to avoid, and each one is a scoped decision of its own.
 - **Upstream's contribution funnel**, which pointed contributors and, worse, vulnerability reports
   at Gitroom rather than at us: the CLA pair, upstream's `CONTRIBUTING.md` and pull request
   template, upstream's `SECURITY.md`, its code of conduct, funding and sponsor assets, its issue

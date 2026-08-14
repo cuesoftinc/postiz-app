@@ -1,19 +1,25 @@
 # Contributing
 
-This repository is Cuesoft's fork of [Postiz](https://github.com/gitroomhq/postiz-app). It is not
-a distribution and it is not upstream: it is the code that runs `postiz.cuesoft.io`, kept
-deliberately close to upstream so we can keep rebasing on it.
+This repository is a modified version of [Postiz](https://github.com/gitroomhq/postiz-app),
+licensed under AGPL-3.0. It is not a distribution: it is the code that runs `postiz.cuesoft.io`.
+
+It is also a **standalone codebase**. We no longer track Gitroom's repository: there is no
+`upstream` remote and we will not merge or rebase from it again, because this tree is too diverged
+for that to be useful. Postiz is still the origin of this code, and the licence and the
+attribution to Gitroom stay exactly as they are. What ended is the syncing, not the lineage.
 
 Contributions here should be changes **we** need. If your change is a general improvement to
-Postiz, send it to [gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app) instead, where
-everyone gets it. We have no CLA and we do not use upstream's contribution funnel.
+Postiz, send it to [gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app) as well, so
+everyone gets it. Send it here too if we need it: we do not pull their commits any more, so a fix
+that lands there will never arrive here on its own. We have no CLA and we do not use Gitroom's
+contribution funnel.
 
 ## Branches
 
 | Branch | What it is |
 | --- | --- |
 | `cuesoft/customizations` | The default branch. Everything we build targets it, and it is what deploys. |
-| `main` | Tracks upstream. Protected. Features never go here; it exists so we can rebase. |
+| `main` | Frozen history. It holds the inherited Postiz tree as it stood at the last sync we ever took. Protected. Nothing ships from it and nothing merges into it. |
 
 Branch from `cuesoft/customizations` and open the pull request back into it:
 
@@ -22,20 +28,36 @@ git fetch origin
 git switch -c feat/short-description origin/cuesoft/customizations
 ```
 
-Never open a pull request against `main`, and never merge fork work into it. `main` moves only
-when we pull upstream. Maintainers can push directly to `cuesoft/customizations`, but a pull
-request is the normal route because that is where review and the CI gate happen.
+Never open a pull request against `main`, and never merge work into it. It is kept as a record of
+where this code came from and it does not move any more. Maintainers can push directly to
+`cuesoft/customizations`, but a pull request is the normal route because that is where review and
+the CI gate happen.
 
-## The rebase rule (read this before deleting anything)
+## Deleting code (this rule has changed)
 
-We merge upstream regularly, so **deleting or reformatting an upstream file is not free**: it
-becomes a conflict on every future merge, forever. Before you remove upstream code because it
-looks unused, be sure it buys something other than bytes. That is why 25 unconnected social
-providers, the browser extension, the SDK and the commands app are all still in the tree.
+Earlier versions of this file told you that **deleting or reformatting an inherited file was not
+free**, because it became a conflict on every future merge from upstream. There is no upstream to
+merge from now, so that cost does not exist, and the rule has been retired. Keeping it would only
+protect dead code in exchange for a benefit we no longer receive.
 
-For the same reason, prefer additive changes over rewrites in upstream files. The size ladder in
-`apps/frontend/src/app/global.scss` is the pattern: it rescales upstream's own utility classes
-through attribute selectors so we never have to rewrite them.
+So: if code is genuinely unused, **delete it**. Prove it is unused before you do, and put the
+proof in the pull request: no importers, no route that reaches it, no configuration that switches
+it on. "It looks unused" is how a working feature gets removed, and that risk is unchanged.
+Reformatting a file you are not otherwise touching is still noise in a diff, but it is only noise
+now, not a debt.
+
+This unlocks real work that used to be off limits. Things kept only to avoid the old merge cost
+are now removable: roughly 25 social providers nothing here connects to, the browser extension
+(`apps/extension`), the client SDK (`apps/sdk`) and the commands app (`apps/commands`). **Do not
+remove any of them on your own initiative.** Each one is a maintainer's call, wants its own pull
+request, and needs the capability question answered first. Ask before you start.
+
+One artefact of the old era survives because it is load-bearing on its own merits: the size ladder
+in `apps/frontend/src/app/global.scss` rescales roughly 370 of Postiz's arbitrary Tailwind values
+through attribute selectors, so an authored class and the value the browser paints are not the
+same number. It is no longer there to avoid rewriting files. It is there because the whole
+interface was measured against it. Read the MECHANISM section of `apps/frontend/PARITY-CATALOG.md`
+before you change a size or report a size regression, or you will chase a phantom.
 
 ## Getting set up
 
@@ -59,8 +81,8 @@ apps/
   backend/        NestJS 11 API, controllers under src/api/routes
   orchestrator/   Temporal workflows and activities, the publishing path
   commands/       CLI entrypoints
-  extension/      Browser extension (upstream, kept for rebase safety)
-  sdk/            Published client SDK (upstream)
+  extension/      Browser extension, inherited from Postiz, nothing here uses it
+  sdk/            Client SDK, inherited from Postiz, nothing here uses it
 libraries/
   nestjs-libraries/          Prisma schema, database services, integrations, chat
   helpers/                   Shared runtime helpers
@@ -99,7 +121,7 @@ Also:
 
 - Do not commit secrets, credentials, or `.env` files. Push protection is on and will stop you.
 - If you fix a security bug, add a test in `tests/security/` that fails without your fix. That
-  directory exists so a hole cannot silently reopen on a later rebase.
+  directory exists so a hole cannot silently reopen on a later change.
 - If you change the Prisma schema, say so in the pull request. The production container does
   **not** run `prisma db push` at startup, so a schema change needs a deliberate migration step or
   it will simply not apply.
@@ -117,16 +139,18 @@ Do not open an issue or a pull request for a vulnerability. Follow [SECURITY.md]
 
 ## Licence
 
-This project is licensed under **AGPL-3.0**, inherited from upstream Postiz. That licence is not
-ours to change and cannot be relicensed.
+This project is licensed under **AGPL-3.0**, inherited from Postiz, the work it is derived from.
+That licence is not ours to change and cannot be relicensed. Detaching from Gitroom's repository
+changed nothing here: this is still a modified version of their AGPL-3.0 work, and no git
+operation can alter that.
 
 By contributing, you agree your contribution is licensed under AGPL-3.0 and that you have the
 right to license it that way. Practically:
 
 - Do not paste in code you cannot license under AGPL-3.0, including code from a
   proprietary codebase or from a permissively-licensed source whose notices you have stripped.
-- Leave existing copyright and licence headers alone. They record which parts are upstream's and
-  which are ours.
+- Leave existing copyright and licence headers alone, and never delete one. They record which
+  parts came from Postiz and which are ours.
 - Section 13 obliges us to offer the Corresponding Source to anyone who uses this modified version
   over a network. This repository is that offer, which is why our changes are published here
   rather than kept private.
