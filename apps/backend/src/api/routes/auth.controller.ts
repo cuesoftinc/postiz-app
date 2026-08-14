@@ -24,6 +24,27 @@ import { UserAgent } from '@gitroom/nestjs-libraries/user/user.agent';
 import { Provider } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 
+/**
+ * The sign-in and sign-up forms read a failed auth response with
+ * `response.text()` and compare it to known strings, so the body has to stay a
+ * bare string. `res.send(string)` defaults the content type to text/html,
+ * which would let any part of the message that echoes what the user typed
+ * render as markup when the response lands in a top-level document (a
+ * cross-site form POST is enough). Pin it to plain text, forbid sniffing, and
+ * drop the characters that could open a tag.
+ */
+const sendPlainTextError = (response: Response, message?: string) => {
+  response
+    .status(400)
+    .header('Content-Type', 'text/plain; charset=utf-8')
+    .header('X-Content-Type-Options', 'nosniff')
+    .send(
+      String(message ?? 'Bad Request')
+        .replace(/</g, '')
+        .replace(/>/g, '')
+    );
+};
+
 @ApiTags('Auth')
 @Controller('/auth')
 export class AuthController {
@@ -95,7 +116,7 @@ export class AuthController {
         register: true,
       });
     } catch (e: any) {
-      response.status(400).send(e.message);
+      sendPlainTextError(response, e?.message);
     }
   }
 
@@ -145,7 +166,7 @@ export class AuthController {
         login: true,
       });
     } catch (e: any) {
-      response.status(400).send(e.message);
+      sendPlainTextError(response, e?.message);
     }
   }
 

@@ -34,6 +34,49 @@ export class ThirdPartyManager {
     return { ...thirdParty, instance: this._moduleRef.get(thirdParty.target) };
   }
 
+  /**
+   * Resolves a provider method by name, or `undefined` if the name is not one
+   * the provider class itself declares.
+   *
+   * The name arrives as a raw URL segment and the resolved function is called
+   * with the DECRYPTED api key as its first argument, so an unchecked lookup
+   * puts every own AND inherited property in range - `constructor`, anything
+   * on `Object.prototype`, and any service Nest injected onto the instance.
+   * Walking the prototype chain and stopping at `ThirdPartyAbstract` limits
+   * the answer to the provider's own methods, and reading the property
+   * descriptor rather than the property means a getter is never triggered by
+   * the lookup itself.
+   */
+  getProviderFunction(
+    instance: ThirdPartyAbstract,
+    functionName: string
+  ): ((apiKey: string, data?: any) => Promise<any>) | undefined {
+    if (functionName === 'constructor') {
+      return undefined;
+    }
+
+    for (
+      let prototype = Object.getPrototypeOf(instance);
+      prototype &&
+      prototype !== ThirdPartyAbstract.prototype &&
+      prototype !== Object.prototype;
+      prototype = Object.getPrototypeOf(prototype)
+    ) {
+      if (!Object.prototype.hasOwnProperty.call(prototype, functionName)) {
+        continue;
+      }
+
+      const value = Object.getOwnPropertyDescriptor(
+        prototype,
+        functionName
+      )?.value;
+
+      return typeof value === 'function' ? value : undefined;
+    }
+
+    return undefined;
+  }
+
   deleteIntegration(org: string, id: string) {
     return this._thirdPartyService.deleteIntegration(org, id);
   }

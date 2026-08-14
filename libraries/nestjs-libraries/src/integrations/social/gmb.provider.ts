@@ -14,6 +14,7 @@ import {
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
 import * as process from 'node:process';
 import dayjs from 'dayjs';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { GmbSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/gmb.settings.dto';
 
@@ -32,6 +33,55 @@ const clientAndGmb = () => {
     });
 
   return { client, oauth2 };
+};
+
+// `locationName` reaches fetchPageInformation straight from the request body of
+// POST /integrations/provider/:id/connect, which is typed `any` and validated
+// nowhere, and it is spliced raw into the request path. The host is pinned to
+// googleapis.com by the template, so this is not SSRF, but a value carrying
+// `?`, `#` or a `..` segment still rewrites the path and query the token is
+// spent on. encodeURIComponent is not usable here because the legitimate shape
+// contains a slash, so the shape itself is the check: accept exactly
+// `locations/{id}` over an id charset that has no URL metacharacters in it.
+const GMB_LOCATION_NAME = /^locations\/[A-Za-z0-9_-]+$/;
+
+export const safeGmbLocationName = (locationName: string): string => {
+  if (!GMB_LOCATION_NAME.test(locationName ?? '')) {
+    throw new HttpException(
+      'Invalid Google My Business location name',
+      HttpStatus.BAD_REQUEST
+    );
+  }
+
+  return locationName;
+};
+
+// `data.id` is the SECOND untrusted field on the same request body, and it is
+// the more dangerous one: `locationName` is spent on one request during connect,
+// but `id` is RETURNED and persisted as `internalId` (integration.service.ts),
+// then spliced into a URL on every publish (`/v4/${id}/localPosts`) and every
+// analytics load. Validating only `locationName` left the identical injection
+// one field over, stored rather than transient.
+//
+// Shape, not encoding: the legitimate value contains slashes, so the check is
+// that it is exactly `accounts/{a}/locations/{l}` over a charset with no URL
+// metacharacters. That closes `?`, `#` and `..`, which is the whole harm here
+// (the host stays pinned to googleapis.com either way).
+//
+// Deliberately NOT done: cross-checking the triple against `pages()`. That
+// would defend a different thing (connecting a location you can already mint a
+// token for) at the cost of an extra Google round trip on every connect.
+const GMB_RESOURCE_ID = /^accounts\/[A-Za-z0-9_-]+\/locations\/[A-Za-z0-9_-]+$/;
+
+export const safeGmbResourceId = (id: string): string => {
+  if (!GMB_RESOURCE_ID.test(id ?? '')) {
+    throw new HttpException(
+      'Invalid Google My Business location id',
+      HttpStatus.BAD_REQUEST
+    );
+  }
+
+  return id;
 };
 
 @Rules(
@@ -330,8 +380,13 @@ export class GmbProvider extends SocialAbstract implements SocialProvider {
     // data.id is the full resource path: accounts/{accountId}/locations/{locationId}
     // data.locationName is the v1 API format: locations/{locationId}
     // Fetch location details using the v1 API format
+    const locationName = safeGmbLocationName(data.locationName);
+    // Validated here rather than at the sink because this is where it enters:
+    // the value is returned below and stored, so a later sink has no idea the
+    // string came from a request body.
+    const resourceId = safeGmbResourceId(data.id);
     const locationResponse = await fetch(
-      `https://mybusinessbusinessinformation.googleapis.com/v1/${data.locationName}?readMask=name,title,storefrontAddress,metadata`,
+      `https://mybusinessbusinessinformation.googleapis.com/v1/${locationName}?readMask=name,title,storefrontAddress,metadata`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -344,7 +399,7 @@ export class GmbProvider extends SocialAbstract implements SocialProvider {
     let photoUrl = '';
     try {
       const mediaResponse = await fetch(
-        `https://mybusinessbusinessinformation.googleapis.com/v1/${data.locationName}/media`,
+        `https://mybusinessbusinessinformation.googleapis.com/v1/${locationName}/media`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -370,7 +425,7 @@ export class GmbProvider extends SocialAbstract implements SocialProvider {
 
     return {
       // Return the full resource path as id (for v4 Local Posts API)
-      id: data.id,
+      id: resourceId,
       name: locationData.title || 'Unnamed Location',
       access_token: accessToken,
       picture: photoUrl,

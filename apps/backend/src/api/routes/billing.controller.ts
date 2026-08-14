@@ -11,6 +11,7 @@ import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/n
 import { Request } from 'express';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
+import { escapeHtml } from '@gitroom/helpers/utils/escape.html';
 
 @ApiTags('Billing')
 @Controller('/billing')
@@ -135,10 +136,18 @@ export class BillingController {
     @GetUserFromRequest() user: User,
     @Body() body: { feedback: string }
   ) {
+    // The body of this notification is sent as `html` by the mailer, and both
+    // values are typed by a user: the cancellation reason comes straight off
+    // the request and the organisation name is whatever it was named. Escape
+    // them, or markup and links land in the operator's inbox.
     await this._notificationService.sendEmail(
       process.env.EMAIL_FROM_ADDRESS,
       'Subscription Cancelled',
-      `Organization ${org.name} has cancelled their subscription because: ${body.feedback}`,
+      `Organization ${escapeHtml(
+        org.name
+      )} has cancelled their subscription because: ${escapeHtml(
+        body.feedback
+      )}`,
       user.email
     );
 
@@ -243,7 +252,9 @@ export class BillingController {
       await this._notificationService.sendEmail(
         process.env.EMAIL_FROM_ADDRESS,
         'Refund issued from Chatbase',
-        `Organization ${org.name} received a refund of ${refund.amount} ${refund.currency} and their subscription was cancelled`,
+        `Organization ${escapeHtml(
+          org.name
+        )} received a refund of ${refund.amount} ${refund.currency} and their subscription was cancelled`,
         user.email
       );
     }

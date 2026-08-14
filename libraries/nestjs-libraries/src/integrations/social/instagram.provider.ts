@@ -8,6 +8,7 @@ import {
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { timer } from '@gitroom/helpers/utils/timer';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import dayjs from 'dayjs';
 import {
   BadBody,
@@ -19,6 +20,20 @@ import { Integration } from '@prisma/client';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+
+// Graph object ids are opaque decimal strings. Requiring that shape is lossless
+// for every legitimate value (they come from `pages()`, i.e. Graph itself) and
+// it removes the whole class of path and query rewriting, rather than encoding
+// around it one metacharacter at a time.
+const GRAPH_ID = /^[0-9]{1,32}$/;
+
+export const safeGraphId = (id: string): string => {
+  if (!GRAPH_ID.test(String(id ?? ''))) {
+    throw new HttpException('Invalid Instagram account id', HttpStatus.BAD_REQUEST);
+  }
+
+  return id;
+};
 
 @Rules(
   "Instagram should have at least one attachment, if it's a story, it can have only one picture"
@@ -575,15 +590,31 @@ export class InstagramProvider
     data: { pageId: string; id: string }
   ) {
     const [accessToken, userToken] = token.split('___');
+    // Both ids arrive from the request body of
+    // POST /integrations/provider/:id/connect, which is typed `any`. The host
+    // is pinned to graph.facebook.com by the template so this is not SSRF, but
+    // an unencoded id can still close the path segment with `?` or `#` and
+    // rewrite the query the access token is attached to.
+    //
+    // Validate the SHAPE, do not just encode. encodeURIComponent alone was not
+    // enough on two counts: it throws URIError on a lone surrogate (a body of
+    // {"pageId":"\ud800"} is valid JSON and reaches here), and nothing catches
+    // it on this path, so a malformed id became an opaque HTTP 500 instead of
+    // the connect error the UI knows how to show. It also passes `.` through,
+    // so `..` still rewrote the path. Graph ids are opaque digits, so requiring
+    // digits is lossless for every legitimate value.
+    const pageId = safeGraphId(data.pageId);
+    const igId = safeGraphId(data.id);
+
     const { access_token, ...all } = await (
       await fetch(
-        `https://graph.facebook.com/v20.0/${data.pageId}?fields=access_token,name,picture.type(large)&access_token=${accessToken}`
+        `https://graph.facebook.com/v20.0/${pageId}?fields=access_token,name,picture.type(large)&access_token=${accessToken}`
       )
     ).json();
 
     const { id, name, profile_picture_url, username } = await (
       await fetch(
-        `https://graph.facebook.com/v20.0/${data.id}?fields=username,name,profile_picture_url&access_token=${accessToken}`
+        `https://graph.facebook.com/v20.0/${igId}?fields=username,name,profile_picture_url&access_token=${accessToken}`
       )
     ).json();
 

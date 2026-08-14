@@ -8,6 +8,7 @@ import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
+import { escapeHtml } from '@gitroom/helpers/utils/escape.html';
 import { Organization, ShortLinkPreference, User } from '@prisma/client';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
 
@@ -82,13 +83,24 @@ export class OrganizationService {
       process.env.FRONTEND_URL +
       `/?org=${AuthService.signJWT({ ...body, orgId: org.id, timeLimit, id })}`;
     if (body.sendEmail) {
+      // Every value here is attacker-controlled and the recipient is too:
+      // `org.name` is the signup company name (only length-validated),
+      // `user.name` is the signup fullname, and `body.email` is whoever the
+      // sender names. Unescaped, signing up as
+      // `"><a href="https://evil">Accept</a>` put attacker markup beside a
+      // genuine invite link in a Postiz-branded email sent to a stranger.
+      // The subject is escaped centrally in EmailService; the body is not,
+      // because bodies are real HTML, so it is escaped here.
+      const inviterName = escapeHtml(user.name);
+      const inviterEmail = escapeHtml(user.email);
+      const orgName = escapeHtml(org.name);
       const inviter = user.name
-        ? `${user.name} (${user.email})`
-        : user.email;
+        ? `${inviterName} (${inviterEmail})`
+        : inviterEmail;
       await this._notificationsService.sendEmail(
         body.email,
         `${user.name || user.email} invited you to join "${org.name}"`,
-        `${inviter} has invited you to join the "${org.name}" team.<br /><a href="${url}">Accept the invitation</a> to get started.<br />The link will expire in 2 days.`
+        `${inviter} has invited you to join the "${orgName}" team.<br /><a href="${url}">Accept the invitation</a> to get started.<br />The link will expire in 2 days.`
       );
     }
     return { url };

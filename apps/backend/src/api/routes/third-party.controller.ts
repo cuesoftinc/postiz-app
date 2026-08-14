@@ -116,7 +116,21 @@ export class ThirdPartyController {
       throw new HttpException('Invalid identifier', 400);
     }
 
-    return thirdPartyInstance?.instance?.[functionName](
+    // `functionName` is a raw URL segment. Resolve it against the provider's
+    // own declared methods before anything is called, so the decrypted api
+    // key below cannot be handed to `constructor`, to an `Object.prototype`
+    // member, or to an injected service that happens to be callable.
+    const providerFunction = this._thirdPartyManager.getProviderFunction(
+      thirdPartyInstance.instance,
+      functionName
+    );
+
+    if (!providerFunction) {
+      throw new HttpException('Invalid function', 400);
+    }
+
+    return providerFunction.call(
+      thirdPartyInstance.instance,
       AuthService.fixedDecryption(thirdParty.apiKey),
       data
     );

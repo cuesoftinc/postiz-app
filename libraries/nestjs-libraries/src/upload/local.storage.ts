@@ -3,6 +3,7 @@ import { mkdirSync, unlink, writeFileSync } from 'fs';
 import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
 import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { parseDataUrl } from '@gitroom/nestjs-libraries/upload/data.url';
+import { getMaxSize } from '@gitroom/nestjs-libraries/upload/custom.upload.validation';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { fromBuffer } = require('file-type');
 
@@ -37,6 +38,16 @@ export class LocalStorage implements IUploadProvider {
         // @ts-ignore — undici option, not in lib.dom fetch types
         dispatcher: ssrfSafeDispatcher,
       });
+      // The SSRF checks above bound WHERE we fetch from, not HOW MUCH we
+      // buffer, so an allowed host could still stream until the process dies.
+      // Same guard the public API's upload-from-url already applies: the type
+      // is not known yet, so the pre-check uses the largest cap and the real
+      // size is re-checked against the sniffed type below. content-length is
+      // advisory only, since it can be absent or simply wrong.
+      const declaredSize = Number(loadImage.headers.get('content-length'));
+      if (declaredSize && declaredSize > getMaxSize('video/mp4')) {
+        throw new Error('File is too large.');
+      }
       body = Buffer.from(await loadImage.arrayBuffer());
     }
 
@@ -48,6 +59,9 @@ export class LocalStorage implements IUploadProvider {
     const detected = await fromBuffer(body);
     if (!detected || !LOCAL_STORAGE_ALLOWED_MIME.has(detected.mime)) {
       throw new Error('Unsupported file type.');
+    }
+    if (body.length > getMaxSize(detected.mime)) {
+      throw new Error('File is too large.');
     }
     const findExtension = detected.ext;
 

@@ -301,6 +301,10 @@ export class PostsController {
     @Res({ passthrough: false }) res: Response
   ) {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    // The body is newline-delimited JSON read by a fetch reader, never a
+    // document: keep a browser from ever sniffing it into something it can
+    // render, since the error event below carries a server-side message.
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     try {
       for await (const event of this._agentGraphService.start(org.id, body)) {
         res.write(JSON.stringify(event) + '\n');

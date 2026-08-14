@@ -136,35 +136,59 @@ export async function createMultipartUpload(req: Request, res: Response) {
   }
 }
 
+// S3 multipart part numbers, per the API contract. Anything outside this is
+// not a part number, it is a property name.
+const MIN_PART_NUMBER = 1;
+const MAX_PART_NUMBER = 10000;
+
 export async function prepareUploadParts(req: Request, res: Response) {
   const { partData } = req.body;
 
-  const parts = partData.parts;
+  const parts = partData?.parts;
 
-  const response = {
-    presignedUrls: {},
-  };
+  if (!Array.isArray(parts)) {
+    return res.status(400).json({ source: { status: 400 } });
+  }
+
+  // `Object.create(null)` has no prototype, so a part number cannot reach
+  // `__proto__` or any other inherited slot even before the range check below.
+  const presignedUrls: Record<number, string> = Object.create(null);
 
   for (const part of parts) {
+    // The part number is written straight back as a property name and is read
+    // from the request body, so it has to be a real part number and nothing
+    // else - not '__proto__', not 'constructor', not a string at all.
+    const partNumber = Number(part?.number);
+    if (
+      !Number.isInteger(partNumber) ||
+      partNumber < MIN_PART_NUMBER ||
+      partNumber > MAX_PART_NUMBER
+    ) {
+      return res.status(400).json({ source: { status: 400 } });
+    }
+
     try {
       const params = {
         Bucket: CLOUDFLARE_BUCKETNAME,
         Key: partData.key,
-        PartNumber: part.number,
+        PartNumber: partNumber,
         UploadId: partData.uploadId,
       };
       const command = new UploadPartCommand({ ...params });
       const url = await getSignedUrl(R2, command, { expiresIn: 3600 });
 
-      // @ts-ignore
-      response.presignedUrls[part.number] = url;
+      presignedUrls[partNumber] = url;
     } catch (err) {
+      // Never echo the raw error: S3/R2 SDK errors serialise bucket names,
+      // request ids and stack frames. Log it server side and answer with the
+      // same minimal shape createMultipartUpload uses (Uppy reads
+      // `source.status` for its retry logic).
       console.log('Error', err);
-      return res.status(500).json(err);
+      return res.status(500).json({ source: { status: 500 } });
     }
   }
 
-  return res.status(200).json(response);
+  return res.status(200).json({ presignedUrls: { ...presignedUrls } });
 }
 
 export async function listParts(req: Request, res: Response) {
@@ -182,7 +206,7 @@ export async function listParts(req: Request, res: Response) {
     return res.status(200).json(response['Parts']);
   } catch (err) {
     console.log('Error', err);
-    return res.status(500).json(err);
+    return res.status(500).json({ source: { status: 500 } });
   }
 }
 
@@ -238,7 +262,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
     return response;
   } catch (err) {
     console.log('Error', err);
-    return res.status(500).json(err);
+    return res.status(500).json({ source: { status: 500 } });
   }
 }
 
@@ -257,7 +281,7 @@ export async function abortMultipartUpload(req: Request, res: Response) {
     return res.status(200).json(response);
   } catch (err) {
     console.log('Error', err);
-    return res.status(500).json(err);
+    return res.status(500).json({ source: { status: 500 } });
   }
 }
 

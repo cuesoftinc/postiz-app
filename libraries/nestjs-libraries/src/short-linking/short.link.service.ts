@@ -7,6 +7,15 @@ import { Kutt } from './providers/kutt';
 import { LinkDrip } from './providers/linkdrip';
 import { uniq } from 'lodash';
 import striptags from 'striptags';
+import { htmlEntityDecoder } from '@gitroom/helpers/utils/decode.html.entities';
+
+/**
+ * Editor content arrives entity-encoded; URLs have to be decoded before the
+ * link matcher can see their query strings. One pass, so `&amp;quest;` (a
+ * literal `&quest;` in the text) does not decode twice into a `?` and move
+ * the end of somebody's URL.
+ */
+const decodeUrlEntities = htmlEntityDecoder(['amp', 'quest', 'num']);
 
 const getProvider = (): ShortLinking => {
   if (process.env.DUB_TOKEN) {
@@ -56,12 +65,7 @@ export class ShortLinkService {
       return messagesList;
     }
 
-    const messages = messagesList.map((text) => {
-      return text
-        .replace(/&amp;/g, '&')
-        .replace(/&quest;/g, '?')
-        .replace(/&num;/g, '#');
-    });
+    const messages = messagesList.map((text) => decodeUrlEntities(text));
 
     const urlRegex =
       /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))/gm;
