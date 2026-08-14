@@ -15,6 +15,7 @@ import { PostResponse } from '@gitroom/nestjs-libraries/integrations/social/soci
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { TimeoutFailure, TypedSearchAttributes } from '@temporalio/common';
 import { postId as postIdSearchParam } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
+import { mayPublishPost } from './post.workflow.guard';
 
 const proxyTaskQueue = (taskQueue: string) => {
   return proxyActivities<PostActivity>({
@@ -160,6 +161,14 @@ export async function postWorkflowV106({
 
   if (!post) {
     await changeState(postId, 'ERROR', 'No Post');
+    return;
+  }
+
+  // The row is mutable during the sleep above. A queued post edited under the
+  // approvals gate is pulled back to DRAFT and marked needsApproval; completing
+  // this old workflow would otherwise publish the unapproved revision. Do not
+  // mark it ERROR: approval deliberately starts a fresh workflow.
+  if (!mayPublishPost(postNow, post)) {
     return;
   }
 

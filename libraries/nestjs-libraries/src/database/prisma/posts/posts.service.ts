@@ -970,11 +970,9 @@ export class PostsService {
       return { requireApproval, type: body.type };
     }
 
-    // 'update' keeps its type because it edits an existing post, whose state
-    // must be left alone — reverting a PUBLISHED post to DRAFT over a typo fix
-    // would destroy the record of it having gone out. The repository still
-    // refuses to let the 'update' path CREATE a live row (see stateFor there),
-    // so this is not a hole.
+    // 'update' keeps its type so published history is not rewritten. The
+    // repository distinguishes the existing state: a queued revision is pulled
+    // back to DRAFT, while a PUBLISHED post remains PUBLISHED.
     const type = body.type === 'update' ? body.type : ('draft' as const);
 
     // Keep the tag in step with the field. The field is what the server

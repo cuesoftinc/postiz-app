@@ -21,3 +21,30 @@ dist
 .git
 .github
 reports
+
+# Credentials and local configuration must never enter the build context.
+.env
+.env.*
+**/.env
+**/.env.*
+*.env
+**/*.env
+*.pem
+**/*.pem
+*.key
+**/*.key
+*.p12
+**/*.p12
+*.pfx
+**/*.pfx
+id_rsa*
+**/id_rsa*
+*credentials*.json
+**/*credentials*.json
+*secret*.json
+**/*secret*.json
+
+# Documentation-only templates are safe and useful to image consumers.
+!.env.example
+!**/.env.example
+!**/*.env.example

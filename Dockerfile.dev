@@ -1,36 +1,59 @@
-FROM node:22.20-bookworm-slim
+# syntax=docker/dockerfile:1.7
+
+FROM node:22.20-bookworm-slim AS base
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+RUN npm --no-update-notifier --no-fund --global install pnpm@10.6.1 pm2@6.0.8
+
+FROM base AS build
+
 ARG NEXT_PUBLIC_VERSION
 ENV NEXT_PUBLIC_VERSION=$NEXT_PUBLIC_VERSION
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     make \
-    python3-pip \
-    bash \
-    nginx \
-&& rm -rf /var/lib/apt/lists/*
-
-RUN addgroup --system www \
- && adduser --system --ingroup www --home /www --shell /usr/sbin/nologin www \
- && mkdir -p /www \
- && chown -R www:www /www /var/lib/nginx
-
-
-RUN npm --no-update-notifier --no-fund --global install pnpm@10.6.1 pm2
+    python3 \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
 COPY . /app
-COPY var/docker/nginx.conf /etc/nginx/nginx.conf
 
-# The pnpm store persists in a BuildKit cache mount, so a source-only rebuild
-# resolves everything store-first (~4 min warm) instead of re-downloading the
-# full dependency set. Chosen over the layer-split (`pnpm fetch`) pattern,
-# which was proven to work but costs +2.6GB per image: the store layer and
-# node_modules cannot share hardlinks across overlayfs layers, so deps ship
-# twice. A cache mount adds nothing to the image.
-# NOTE for reclaiming disk: `docker builder prune -af` flushes this store and
-# the next build runs cold — prefer `--keep-storage 5GB` when pruning.
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm install
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
-CMD ["sh", "-c", "nginx && pnpm run pm2"]
+# Keep the runtime image free of compilers and development-only packages.
+# CI=true is load-bearing, not decoration: `pnpm prune` asks "The modules
+# directories will be removed and reinstalled from scratch. Proceed? (Y/n)" and
+# a docker build has no TTY to answer it, so without this the build hangs here
+# forever rather than failing (observed: 6+ minutes, no output, killed by hand).
+RUN CI=true pnpm prune --prod --ignore-scripts
+
+FROM base AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    ca-certificates \
+    nginx \
+ && rm -rf /var/lib/apt/lists/* \
+ && addgroup --system www \
+ && adduser --system --ingroup www --home /home/www --shell /usr/sbin/nologin www \
+ && mkdir -p /home/www /tmp/nginx/client_body /tmp/nginx/proxy \
+    /tmp/nginx/fastcgi /tmp/nginx/uwsgi /tmp/nginx/scgi /tmp/pm2 /uploads \
+ && chown -R www:www /home/www /tmp/nginx /tmp/pm2 /uploads
+
+ENV NODE_ENV=production
+ENV HOME=/home/www
+ENV PM2_HOME=/tmp/pm2
+
+WORKDIR /app
+COPY --from=build --chown=www:www /app /app
+COPY var/docker/nginx.conf /etc/nginx/nginx.conf
+
+USER www
+
+EXPOSE 5000
+CMD ["sh", "-c", "nginx && exec pnpm run pm2"]

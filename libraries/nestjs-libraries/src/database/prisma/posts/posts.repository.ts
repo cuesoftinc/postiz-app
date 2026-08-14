@@ -1,5 +1,5 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Post as PostBody } from '@gitroom/nestjs-libraries/dtos/posts/create.post.dto';
 import {
   APPROVED_SUBMIT_FOR_ORDER,
@@ -754,7 +754,10 @@ export class PostsRepository {
     const posts: Post[] = [];
     const uuid = uuidv4();
 
-    const stateFor = (type: 'create' | 'update') => {
+    const stateFor = (
+      type: 'create' | 'update',
+      existingState?: State
+    ) => {
       // No date implies not queued, in every case including an edit. The publish
       // workflow's first act is to sleep until publishDate, so a queued row with
       // a null date is not "published early", it is undefined behaviour. This
@@ -774,19 +777,40 @@ export class PostsRepository {
         };
       }
 
-      // For a real edit of an existing row the state is deliberately left alone:
-      // flipping a PUBLISHED post back to DRAFT because someone fixed a typo
-      // would destroy the record of it having gone out. But the 'update' path
-      // also CREATES a row whenever the caller passes no id — the upsert below
-      // falls through to a fresh uuid — and such a row would take the schema
-      // default of QUEUE, walking straight past the gate. So the create half
-      // always states a state explicitly.
-      return type === 'create' && requireApproval
-        ? { state: 'DRAFT' as const }
+      if (type === 'create') {
+        return requireApproval ? { state: State.DRAFT } : {};
+      }
+
+      // A queued post already has a sleeping workflow. An edit behind the
+      // approvals gate is a new revision, so pull it back to DRAFT before the
+      // workflow wakes. Published history remains published; drafts remain
+      // drafts. The workflow repeats the gate immediately before publishing as
+      // defense in depth against a concurrent edit.
+      return requireApproval && existingState === State.QUEUE
+        ? { state: State.DRAFT }
         : {};
     };
 
     for (const value of body.value) {
+      // Never use a caller-supplied id as an unscoped upsert key. Besides
+      // overwriting another tenant's row, the old upsert reconnected that row
+      // to this organization. A missing or foreign id is intentionally the
+      // same 404 response.
+      const existingPost = value.id
+        ? await this._post.model.post.findFirst({
+            where: {
+              id: value.id,
+              organizationId: orgId,
+              deletedAt: null,
+            },
+            select: { id: true, state: true },
+          })
+        : null;
+
+      if (value.id && !existingPost) {
+        throw new NotFoundException('Post not found');
+      }
+
       const updateData = (type: 'create' | 'update') => ({
         publishDate: date ? dayjs(date).toDate() : null,
         // The gate is a field, not a tag: a tag named 'needs-approval' can be
@@ -825,7 +849,7 @@ export class PostsRepository {
         intervalInDays: inter ? +inter : null,
         approvedSubmitForOrder: APPROVED_SUBMIT_FOR_ORDER.NO,
         ...(type === 'create' ? { creationMethod } : {}),
-        ...stateFor(type),
+        ...stateFor(type, existingPost?.state),
         image: JSON.stringify(value.image),
         settings: JSON.stringify(body.settings),
         organization: {
@@ -836,21 +860,29 @@ export class PostsRepository {
       });
 
       posts.push(
-        await this._post.model.post.upsert({
-          where: {
-            id: value.id || uuidv4(),
-          },
-          create: { ...updateData('create') },
-          update: {
-            ...updateData('update'),
-            lastMessage: {
-              disconnect: true,
-            },
-            submittedForOrder: {
-              disconnect: true,
-            },
-          },
-        })
+        value.id
+          ? await this._post.model.post.update({
+              where: {
+                id: value.id,
+                organizationId: orgId,
+                deletedAt: null,
+              },
+              data: {
+                ...updateData('update'),
+                lastMessage: {
+                  disconnect: true,
+                },
+                submittedForOrder: {
+                  disconnect: true,
+                },
+              },
+            })
+          : await this._post.model.post.create({
+              data: {
+                id: uuidv4(),
+                ...updateData('create'),
+              },
+            })
       );
 
       if (posts.length === 1) {
@@ -897,6 +929,7 @@ export class PostsRepository {
           await this._post.model.post.findFirst({
             where: {
               group: body.group,
+              organizationId: orgId,
               deletedAt: null,
               parentPostId: null,
             },
@@ -911,6 +944,7 @@ export class PostsRepository {
       await this._post.model.post.updateMany({
         where: {
           group: body.group,
+          organizationId: orgId,
           deletedAt: null,
         },
         data: {

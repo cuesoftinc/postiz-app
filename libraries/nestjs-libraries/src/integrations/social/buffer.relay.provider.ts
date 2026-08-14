@@ -10,6 +10,7 @@ import {
 import dayjs from 'dayjs';
 import { Integration } from '@prisma/client';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
+import { mayRetryBufferGraphql } from './buffer.relay.retry';
 
 /**
  * Buffer relay providers.
@@ -363,14 +364,10 @@ export abstract class BufferRelayProvider
   }
 
   /**
-   * Transport classification for `this.fetch`'s retry layer. A 429 or a 5xx
-   * means Buffer never ran the mutation, so retrying it cannot double-post, and
-   * the base class only retries a bare 500 on its own, not 502/503/504.
-   * Everything else is Buffer refusing the request on its merits, which must
-   * stay non-retryable: BadBody is a non-retryable Temporal failure and
-   * `postSocialPending` runs with maximumAttempts 1, so a misclassification in
-   * either direction is the difference between one honest error and a post that
-   * dies on a rate limit.
+   * Transport classification for `this.fetch`'s retry layer. Queries may retry
+   * 429/5xx responses. `createPost(mode: shareNow)` explicitly disables this
+   * layer because any response after dispatch can be ambiguous: Buffer may have
+   * committed the post before a proxy returned 5xx.
    */
   public override handleErrors(body: string, status: number) {
     if (status === 429) {
@@ -393,7 +390,11 @@ export abstract class BufferRelayProvider
     };
   }
 
-  private async graphql<T>(query: string, variables?: any): Promise<T> {
+  private async graphql<T>(
+    query: string,
+    variables?: any,
+    operation: 'query' | 'mutation' = 'query'
+  ): Promise<T> {
     // this.fetch, not the global one: it is the layer that waits and retries a
     // 429 or a 5xx (see handleErrors). It also keeps every non-2xx away from
     // res.json(): a rate limit arrives as an HTML body and parsing it as JSON
@@ -408,7 +409,11 @@ export abstract class BufferRelayProvider
         },
         body: JSON.stringify({ query, ...(variables ? { variables } : {}) }),
       },
-      this.identifier
+      this.identifier,
+      0,
+      false,
+      '',
+      mayRetryBufferGraphql(operation)
     );
 
     // Buffer answers 200 with an `errors` array for most failures.
@@ -1044,9 +1049,11 @@ export abstract class BufferRelayProvider
 
       let data: BufferCreatePostResponse | undefined;
       try {
-        data = await this.graphql<BufferCreatePostResponse>(CREATE_POST, {
-          input,
-        });
+        data = await this.graphql<BufferCreatePostResponse>(
+          CREATE_POST,
+          { input },
+          'mutation'
+        );
       } catch (err: any) {
         // Buffer's free plan rejects first comments. Losing the comment is far
         // better than losing the post, so retry without it and say so.
@@ -1055,9 +1062,11 @@ export abstract class BufferRelayProvider
           /first comment requires a paid plan/i.test(err?.message || '')
         ) {
           delete input.metadata.linkedin;
-          data = await this.graphql<BufferCreatePostResponse>(CREATE_POST, {
-            input,
-          });
+          data = await this.graphql<BufferCreatePostResponse>(
+            CREATE_POST,
+            { input },
+            'mutation'
+          );
           console.warn(
             `[${this.identifier}] Buffer's plan rejected the first comment, so the post was published WITHOUT it. Add it by hand.`
           );

@@ -383,7 +383,8 @@ export abstract class SocialAbstract {
     identifier = '',
     totalRetries = 0,
     ignoreConcurrency = false,
-    message = ''
+    message = '',
+    allowRetries = true
   ): Promise<Response> {
     const request = await fetch(url, {
       ...options,
@@ -411,10 +412,11 @@ export abstract class SocialAbstract {
     const handleError = this.handleErrors(json || '{}', request.status);
 
     if (
-      request.status === 429 ||
-      (request.status === 500 && !handleError) ||
-      json.includes('rate_limit_exceeded') ||
-      json.includes('Rate limit')
+      allowRetries &&
+      (request.status === 429 ||
+        (request.status === 500 && !handleError) ||
+        json.includes('rate_limit_exceeded') ||
+        json.includes('Rate limit'))
     ) {
       await timer(5000);
       return this.fetch(
@@ -423,11 +425,12 @@ export abstract class SocialAbstract {
         identifier,
         totalRetries + 1,
         ignoreConcurrency,
-        handleError?.value || 'Unknown Error'
+        handleError?.value || 'Unknown Error',
+        allowRetries
       );
     }
 
-    if (handleError?.type === 'retry') {
+    if (allowRetries && handleError?.type === 'retry') {
       await timer(5000);
       return this.fetch(
         url,
@@ -435,7 +438,8 @@ export abstract class SocialAbstract {
         identifier,
         totalRetries + 1,
         ignoreConcurrency,
-        handleError?.value || 'Unknown Error'
+        handleError?.value || 'Unknown Error',
+        allowRetries
       );
     }
 
