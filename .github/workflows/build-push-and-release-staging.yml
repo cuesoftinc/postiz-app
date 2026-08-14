@@ -93,6 +93,12 @@ jobs:
           file: ./Dockerfile.dev
           platforms: linux/arm64
           push: true
+          # Consume what the metadata step computed. Without these the action
+          # builds and then fails with "tag is needed when pushing to
+          # registry": metadata-action produced the right tags and nothing
+          # read them (caught by the first release run, 2026-08-14).
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           # BuildKit attaches both of these to the image index in GHCR, so they
           # travel with the image and need no GitHub API to read:
           #   docker buildx imagetools inspect <ref> --format '{{json .Provenance}}'
