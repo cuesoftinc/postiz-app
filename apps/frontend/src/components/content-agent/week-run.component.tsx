@@ -117,6 +117,22 @@ type WeekRunPayload = {
     pushedFor: string | null;
     inSchedule: boolean;
   }[];
+  /** The weaker sibling of `orphanedPushes`: a row whose state entry does NOT
+   *  prove a post was created. A `failed` row with no postizId may have been a
+   *  pre-flight refusal (missing caption, past datetime) that never left the
+   *  machine, or a create whose answer never arrived, and `lastError` is the
+   *  only thing that tells a human which. Deliberately NOT part of `complete`:
+   *  "this may have created nothing" is a different sentence from "this is live
+   *  in Postiz", and conflating them is how a verification field starts crying
+   *  wolf. */
+  uncertainPushes?: {
+    id: string;
+    status: string;
+    postizId: string | null;
+    pushedFor: string | null;
+    inSchedule: boolean;
+    lastError: string | null;
+  }[];
   handoffs: { id: string; platform: string | null; kind: string; detail: string }[];
   verification: {
     complete: boolean;
@@ -139,6 +155,8 @@ type WeekRunPayload = {
       /** the same number as `orphanedPushCount`, carried in the push block
        *  because that block is the push summary a reviewer reads */
       orphaned?: number;
+      /** same number as `uncertainPushes.length` */
+      uncertain?: number;
     };
   };
   account: {
@@ -563,6 +581,11 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
   // list, so the pill, the banner, the check and the table cannot disagree.
   const orphaned = run.orphanedPushes || [];
   const orphanCount = orphaned.length;
+  // Kept SEPARATE from `orphaned` on purpose. An orphan is a post we know is
+  // live in Postiz with nobody watching it; an uncertain row may have created
+  // nothing at all. Merging them would make the count louder and less true, and
+  // this section is only worth having if a red number means one specific thing.
+  const uncertain = run.uncertainPushes || [];
 
   return (
     <div className="flex flex-col gap-[16px] p-[20px] phone:px-[16px]">
@@ -1163,6 +1186,77 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
                                   'no_postiz_id',
                                   'none recorded, pushed before ids were captured'
                                 )}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Uncertain pushes. Deliberately amber, not red, and worded as a
+              question rather than a statement: the whole point of the field is
+              that we do NOT know whether these created anything. `lastError` is
+              the only thing that separates "refused before it left the machine"
+              from "the create may have landed and the answer never came back",
+              so it is shown verbatim rather than summarised. */}
+          {!!uncertain.length && (
+            <div>
+              <div className="text-[13px] font-[600] text-yellow-500 mb-[2px]">
+                {t('uncertain_pushes', 'May have been pushed, unconfirmed')} (
+                {uncertain.length})
+              </div>
+              <div className="text-[12px] text-newTextColor/50 mb-[6px]">
+                {t(
+                  'uncertain_pushes_hint',
+                  'These runs failed or stopped without recording a Postiz id. Some never sent anything; others may have created a post whose answer never arrived. Check Postiz before re-pushing them.'
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-[13px]">
+                  <thead>
+                    <tr className="text-newTextColor/60">
+                      <th className="border border-newTableBorder px-[10px] py-[6px] text-start font-[550] whitespace-nowrap">
+                        {t('pushed_for_column', 'Pushed for')}
+                      </th>
+                      <th className="border border-newTableBorder px-[10px] py-[6px] text-start font-[550]">
+                        {t('post', 'Post')}
+                      </th>
+                      <th className="border border-newTableBorder px-[10px] py-[6px] text-start font-[550]">
+                        {t('last_error', 'Last error')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uncertain.map((u) => {
+                      const day = dayOf(u.pushedFor);
+                      return (
+                        <tr key={u.id}>
+                          <td className="border border-newTableBorder px-[10px] py-[6px] align-top whitespace-nowrap">
+                            {timeOf(u.pushedFor)}
+                            {!!day && (
+                              <div className="text-[12px] text-newTextColor/50">
+                                {prettyDay(day)}
+                              </div>
+                            )}
+                          </td>
+                          <td className="border border-newTableBorder px-[10px] py-[6px] align-top">
+                            <div className="font-[550] break-all">{u.id}</div>
+                            <div className="text-[12px] text-newTextColor/50">
+                              {u.status} ·{' '}
+                              {u.inSchedule
+                                ? t('uncertain_in_schedule', 'still in the schedule')
+                                : t('uncertain_not_in_schedule', 'no longer in the schedule')}
+                            </div>
+                          </td>
+                          <td className="border border-newTableBorder px-[10px] py-[6px] align-top break-all text-newTextColor/70">
+                            {u.lastError || (
+                              <span className="text-[12px] text-newTextColor/40">
+                                {t('no_error_recorded', 'no error recorded')}
                               </span>
                             )}
                           </td>
