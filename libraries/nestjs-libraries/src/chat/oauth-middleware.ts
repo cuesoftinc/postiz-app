@@ -102,44 +102,50 @@ export function createOAuthMiddleware(options: OAuthMiddlewareOptions) {
     }
 
     // Validate the token
+    let validationResult: TokenValidationResult;
+
     if (oauth.validateToken) {
       logger?.debug?.('OAuth middleware: Validating token');
-      const validationResult = await oauth.validateToken(token, oauth.resource);
-
-      if (!validationResult.valid) {
-        logger?.debug?.(`OAuth middleware: Token validation failed: ${validationResult.error}`);
-        res.writeHead(401, {
-          'Content-Type': 'application/json',
-          'WWW-Authenticate': generateWWWAuthenticateHeader({
-            resourceMetadataUrl,
-            additionalParams: {
-              error: validationResult.error || 'invalid_token',
-              ...(validationResult.errorDescription && {
-                error_description: validationResult.errorDescription,
-              }),
-            },
-          }),
-        });
-        res.end(
-          JSON.stringify({
-            error: validationResult.error || 'invalid_token',
-            error_description: validationResult.errorDescription || 'Token validation failed',
-          }),
-        );
-        return { proceed: false, handled: true, tokenValidation: validationResult };
-      }
-
-      logger?.debug?.('OAuth middleware: Token validated successfully');
-      return { proceed: true, handled: false, tokenValidation: validationResult };
+      validationResult = await oauth.validateToken(token, oauth.resource);
+    } else {
+      // Missing validator is a misconfiguration, and the only safe default for
+      // auth is deny. This branch used to return proceed:true with a synthetic
+      // {valid:true}, so a config that ever lost validateToken would have
+      // authenticated every caller off any non-empty bearer string instead of
+      // failing where someone would notice.
+      logger?.debug?.('OAuth middleware: No token validation configured, refusing token');
+      validationResult = {
+        valid: false,
+        error: 'server_error',
+        errorDescription: 'No token validation configured',
+      };
     }
 
-    // If no validateToken function provided, accept the token
-    logger?.debug?.('OAuth middleware: No token validation configured, accepting token');
-    return {
-      proceed: true,
-      handled: false,
-      tokenValidation: { valid: true },
-    };
+    if (!validationResult.valid) {
+      logger?.debug?.(`OAuth middleware: Token validation failed: ${validationResult.error}`);
+      res.writeHead(401, {
+        'Content-Type': 'application/json',
+        'WWW-Authenticate': generateWWWAuthenticateHeader({
+          resourceMetadataUrl,
+          additionalParams: {
+            error: validationResult.error || 'invalid_token',
+            ...(validationResult.errorDescription && {
+              error_description: validationResult.errorDescription,
+            }),
+          },
+        }),
+      });
+      res.end(
+        JSON.stringify({
+          error: validationResult.error || 'invalid_token',
+          error_description: validationResult.errorDescription || 'Token validation failed',
+        }),
+      );
+      return { proceed: false, handled: true, tokenValidation: validationResult };
+    }
+
+    logger?.debug?.('OAuth middleware: Token validated successfully');
+    return { proceed: true, handled: false, tokenValidation: validationResult };
   };
 }
 

@@ -79,7 +79,7 @@ export class MediaService {
   async generateVideoAllowed(org: Organization, type: string) {
     const video = this._videoManager.getVideoByName(type);
     if (!video) {
-      throw new Error(`Video type ${type} not found`);
+      throw new HttpException(`Video type ${type} not found`, 404);
     }
 
     if (!video.trial && org.isTrailing) {
@@ -105,7 +105,11 @@ export class MediaService {
 
       const video = this._videoManager.getVideoByName(body.type);
       if (!video) {
-        throw new Error(`Video type ${body.type} not found`);
+        // HttpException, not Error: generationError() below re-raises an
+        // HttpException untouched but rewrites a bare Error into a generic
+        // 500, which would hide an unknown video type behind "AI generation
+        // failed, please try again later".
+        throw new HttpException(`Video type ${body.type} not found`, 404);
       }
 
       if (!video.trial && org.isTrailing) {
@@ -141,7 +145,10 @@ export class MediaService {
   async videoFunction(identifier: string, functionName: string, body: any) {
     const video = this._videoManager.getVideoByName(identifier);
     if (!video) {
-      throw new Error(`Video with identifier ${identifier} not found`);
+      throw new HttpException(
+        `Video with identifier ${identifier} not found`,
+        404
+      );
     }
 
     // @ts-ignore
@@ -156,6 +163,12 @@ export class MediaService {
       );
     }
 
-    return functionToCall(body);
+    // Invoke it ON the instance. `functionToCall(body)` called it detached, so
+    // `this` was undefined inside any @ExposeVideoFunction method that reads a
+    // field or calls a sibling method, and it threw at runtime. The check above
+    // has to stay on the unbound reference: @ExposeVideoFunction stores its
+    // metadata on the prototype method itself, and a bound copy would not carry
+    // it, so binding earlier would reject every exposed function.
+    return functionToCall.call(video.instance, body);
   }
 }

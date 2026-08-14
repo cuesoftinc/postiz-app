@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { EmailInterface } from '@gitroom/nestjs-libraries/emails/email.interface';
+import { htmlToPlainText } from '@gitroom/helpers/utils/html.to.plain.text';
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -39,7 +40,13 @@ export class NodeMailerProvider implements EmailInterface {
       from: `${emailFromName} <${emailFromAddress}>`, // sender address
       to: to, // list of receivers
       subject: subject, // Subject line
-      text: html, // plain text body
+      // The text part is DERIVED from the HTML, never the HTML itself. This
+      // used to read `text: html`, so anyone on a text-only client (and every
+      // spam filter that scores this part) got the styled template as source,
+      // and values escaped upstream arrived as their entity text: an org
+      // called "Smith & Co" read "Smith &amp; Co", and the activation link was
+      // buried in an <a> tag.
+      text: htmlToPlainText(html), // plain text body
       html: html, // html body
     });
 

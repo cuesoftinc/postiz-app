@@ -46,6 +46,15 @@ export class VideoManager {
       (p: any) => p.identifier === identifier
     );
 
+    // An unknown identifier arrives here as undefined, and the return type says
+    // so, but reading `video.target` below happened first and threw a
+    // TypeError. That made every caller's `if (!video)` guard dead code and
+    // turned a bad `identifier` in the request body into a 500 instead of the
+    // 404 the guard was written to report.
+    if (!video) {
+      return undefined;
+    }
+
     return {
       ...video,
       instance: this._moduleRef.get(video.target, {
