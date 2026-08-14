@@ -1,0 +1,149 @@
+---
+name: Build and Push (release)
+
+# Runs when a GitHub release is published, and only then. `types: [released]`
+# excludes prereleases and excludes the draft that has not been published yet.
+#
+# Tags written:
+#   latest                the moving pointer, owned by this workflow alone
+#   <release tag name>    e.g. cuesoft-v2.23.0, the immutable one
+# The commit is already green: it was gated by build-and-test.yml on the PR and
+# again on the merge that put it on cuesoft/customizations. A release re-tags that
+# same tree, so it does not re-run the gate.
+#
+# The tag is taken raw rather than parsed as semver, because this fork's tags
+# carry a `cuesoft-` prefix that semver handling would mangle or reject.
+#
+# There is no deploy job, by design and not by omission. The production host
+# builds the image LOCALLY and never pulls; the GHCR image exists so the team can
+# pull a known-good build. Nothing in CI touches the running deployment.
+
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cuesoft-release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    # Native arm64 to match the self-hosted host, on GitHub's arm64 hosted
+    # runner. No QEMU: emulating this build would take hours.
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+      # id-token + attestations are what the signed provenance step needs, and
+      # they are the only reason either is granted. Sigstore mints its
+      # short-lived signing cert from the OIDC token; the attestation itself is
+      # stored against this repo. Nothing else here needs them. Note that once
+      # ANY permissions block exists every unlisted scope becomes `none`, so all
+      # four have to be spelled out.
+      id-token: write
+      attestations: write
+    outputs:
+      # Everything downstream consumes the digest, never a tag. See the lesson
+      # recorded on the "Record immutable digest" step below.
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Build the released commit, not whatever the branch tip happens to be
+          # by the time this runs.
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/cuesoftinc/postiz-app
+          # Both tags are stated outright, and latest=false stops the action
+          # adding a second, differently derived `latest` of its own.
+          flavor: latest=false
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ github.event.release.tag_name }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push (linux/arm64)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.dev
+          platforms: linux/arm64
+          push: true
+          # BuildKit attaches both of these to the image index in GHCR, so they
+          # travel with the image and need no GitHub API to read:
+          #   docker buildx imagetools inspect <ref> --format '{{json .Provenance}}'
+          #   docker buildx imagetools inspect <ref> --format '{{json .SBOM}}'
+          # mode=max records the full build graph (source revision, base image
+          # digests, build args) rather than just the materials.
+          provenance: mode=max
+          sbom: true
+          # Release builds are always clean. The GHA layer cache used on the merge
+          # path served stale binaries when it was also used here: rc5 through rc7
+          # shipped a pre-Jul-6 binary while tagged with current commits, because
+          # COPY and compile layers cache-hit across source changes. This build is
+          # roughly 15 minutes cold at about 3.6GB; releases are rare, so paying
+          # the full rebuild is the right trade for knowing the artefact matches
+          # the tag.
+          no-cache: true
+          # The string shown in the app's side panel, and on this path it is THE
+          # RELEASE TAG. It was hardcoded to v2.23.0, upstream Postiz's release
+          # inherited at fork time, which meant a release cut as v1.0.0 would
+          # still have displayed v2.23.0: the one place the version is read was
+          # the one place it was guaranteed wrong.
+          build-args: |
+            NEXT_PUBLIC_VERSION=${{ github.event.release.tag_name }}
+
+      # The BuildKit attestations above are unsigned: anyone who can write to the
+      # GHCR package can rewrite them alongside the image. This step signs a SLSA
+      # provenance statement for the same digest through Sigstore, keyed to this
+      # repo and this workflow run, so a puller can check it came from here:
+      #   gh attestation verify oci://ghcr.io/cuesoftinc/postiz-app:<tag> \
+      #     --repo cuesoftinc/postiz-app
+      # push-to-registry stays off (the default): the attestation lives in
+      # GitHub's store, which keeps the registry write path unchanged.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ghcr.io/cuesoftinc/postiz-app
+          subject-digest: ${{ steps.build.outputs.digest }}
+
+      # Consume the DIGEST, never the tag. A registry mirror in front of the
+      # registry can and has served a stale manifest for a freshly pushed release
+      # tag: rc5 through rc8 of another service all ran the rc4 image while their
+      # tags pointed at correct images. A digest is content-addressed and cannot
+      # be stale. This is why the job exports outputs.digest and why this line
+      # prints the pinnable reference rather than the tag.
+      - name: Record immutable digest
+        run: |
+          {
+            echo '### Release image pushed'
+            echo ''
+            echo '- Release: [`${{ github.event.release.tag_name }}`](${{ github.event.release.html_url }})'
+            echo '- Commit: `${{ github.sha }}`'
+            echo ''
+            echo 'Pin this (digest, cannot go stale):'
+            echo ''
+            echo '```'
+            echo 'POSTIZ_IMAGE=ghcr.io/cuesoftinc/postiz-app@${{ steps.build.outputs.digest }}'
+            echo '```'
+            echo ''
+            echo 'Tags written: `${{ steps.meta.outputs.tags }}`'
+          } >> "$GITHUB_STEP_SUMMARY"

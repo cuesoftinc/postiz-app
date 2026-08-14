@@ -1,0 +1,155 @@
+---
+name: Build and Push (cuesoft/customizations)
+
+# Runs on every merge into cuesoft/customizations, which is this fork's DEFAULT
+# branch. `main` only tracks upstream Postiz and nothing ships from it.
+#
+# Shape: gate first, then build and push one immutable tag per commit.
+#   sha-<full commit sha>   the only tag this workflow writes
+# `latest` is NOT written here. It belongs to releases alone
+# (build-push-and-release-production.yml), so that pulling `latest` means the
+# last release and never the last merge.
+#
+# There is no deploy job, by design and not by omission. The production host
+# builds the image LOCALLY and never pulls; the GHCR image exists so the team can
+# pull a known-good build. Nothing in CI touches the running deployment.
+
+on:
+  push:
+    branches:
+      - cuesoft/customizations
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# cancel-in-progress is off on purpose. This workflow's product is a per-commit
+# immutable tag, so cancelling the older run of two quick merges would leave a
+# merged commit with no image and no sign that one is missing. Serialising also
+# means the second build reads the first one's layer cache instead of racing it.
+concurrency:
+  group: cuesoft-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Same five steps a PR runs, from the same file, so the gate cannot drift.
+  validate:
+    uses: ./.github/workflows/build-and-test.yml
+
+  build-and-push:
+    needs: validate
+    # Native arm64 to match the self-hosted host, on GitHub's arm64 hosted
+    # runner. No QEMU: emulating this build would take hours.
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+      # id-token + attestations are what the signed provenance step needs, and
+      # they are the only reason either is granted. Sigstore mints its
+      # short-lived signing cert from the OIDC token; the attestation itself is
+      # stored against this repo. Nothing else here needs them. Note that once
+      # ANY permissions block exists every unlisted scope becomes `none`, so all
+      # four have to be spelled out.
+      id-token: write
+      attestations: write
+    outputs:
+      # Everything downstream consumes the digest, never a tag. See the lesson
+      # recorded on the "Record immutable digest" step below.
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/cuesoftinc/postiz-app
+          # latest=false is explicit so no code path here can ever move
+          # `latest`, whatever the event turns out to be.
+          flavor: latest=false
+          # format=long keeps the existing sha-<40 char> tag shape. The short
+          # 7-char default would have silently orphaned every reference to the
+          # long form, including the `gh attestation verify` recipe below.
+          tags: |
+            type=sha,format=long
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push (linux/arm64)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.dev
+          platforms: linux/arm64
+          push: true
+          # BuildKit attaches both of these to the image index in GHCR, so they
+          # travel with the image and need no GitHub API to read:
+          #   docker buildx imagetools inspect <ref> --format '{{json .Provenance}}'
+          #   docker buildx imagetools inspect <ref> --format '{{json .SBOM}}'
+          # mode=max records the full build graph (source revision, base image
+          # digests, build args) rather than just the materials.
+          provenance: mode=max
+          sbom: true
+          # The image is roughly 3.6GB and a cold build takes about 15 minutes,
+          # which is the real cost of pushing on every merge. The GHA layer cache
+          # is what makes that cost bearable here, and the trade it carries is
+          # that a cache hit can serve a layer built from older source. On this
+          # path that is acceptable: merges are frequent, each one is tagged with
+          # its own commit, and a suspect build is one re-run away. RELEASES take
+          # the opposite trade, see no-cache in
+          # build-push-and-release-production.yml.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # The string shown in the app's side panel. It answers exactly one
+          # question, "which build am I looking at?", so it must not be a
+          # constant. It was hardcoded to v2.23.0, which is UPSTREAM Postiz's
+          # release, inherited at fork time: it never moved, so the footer could
+          # never tell a stale deploy from a fresh one. On this path it is the
+          # branch and the commit sha, which is the only thing that identifies a
+          # merge build. Releases use the release tag instead.
+          build-args: |
+            NEXT_PUBLIC_VERSION=${{ github.ref_name }}@${{ github.sha }}
+
+      # The BuildKit attestations above are unsigned: anyone who can write to the
+      # GHCR package can rewrite them alongside the image. This step signs a SLSA
+      # provenance statement for the same digest through Sigstore, keyed to this
+      # repo and this workflow run, so a puller can check it came from here:
+      #   gh attestation verify oci://ghcr.io/cuesoftinc/postiz-app:sha-<sha> \
+      #     --repo cuesoftinc/postiz-app
+      # push-to-registry stays off (the default): the attestation lives in
+      # GitHub's store, which keeps the registry write path unchanged.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ghcr.io/cuesoftinc/postiz-app
+          subject-digest: ${{ steps.build.outputs.digest }}
+
+      # Consume the DIGEST, never the tag. A registry mirror in front of GHCR can
+      # and has served a stale manifest for a freshly pushed tag, so a pull by
+      # tag can quietly hand back an older image while the tag itself points at
+      # the right one. A digest is content-addressed and cannot be stale. This is
+      # why the job exports outputs.digest and why this line prints the pinnable
+      # reference rather than the tag.
+      - name: Record immutable digest
+        run: |
+          {
+            echo '### Image pushed'
+            echo ''
+            echo 'Pin this (digest, cannot go stale):'
+            echo ''
+            echo '```'
+            echo 'POSTIZ_IMAGE=ghcr.io/cuesoftinc/postiz-app@${{ steps.build.outputs.digest }}'
+            echo '```'
+            echo ''
+            echo 'Tags written: `${{ steps.meta.outputs.tags }}`'
+          } >> "$GITHUB_STEP_SUMMARY"

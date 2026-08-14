@@ -23,9 +23,10 @@ updates:
       - dependency-name: "prisma"
       - dependency-name: "@prisma/client"
 
-  # Without this, every action pin in .github/workflows/ is frozen forever. The
-  # pins are SHAs with the version in a trailing comment, which is the form
-  # Dependabot reads and bumps; nothing else will.
+  # Actions are referenced by MAJOR tag (@v4), matching the Cuesoft standard in
+  # cueprise, so minor and patch updates arrive on their own and only a major
+  # needs a PR. That is the trade: a retagged action can change under us, which
+  # SHA pinning would have prevented and this deliberately does not.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

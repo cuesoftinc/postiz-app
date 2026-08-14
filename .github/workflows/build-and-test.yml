@@ -1,0 +1,76 @@
+---
+name: Validate
+
+# THE GATE. Five steps, in this order: install (frozen lockfile), test, lint,
+# typecheck, build. Node is pinned to 22.20.0 and pnpm to 10.6.1 through
+# corepack. Do not reorder, split or drop any of them, and do not float either
+# version: a green run here is the only evidence any other workflow has that the
+# tree is sound.
+#
+# Two entry points, deliberately:
+#   pull_request  A PR into cuesoft/customizations (or into main, which tracks
+#                 upstream) runs these five steps and NOTHING else. No image is
+#                 built and nothing is pushed on a PR.
+#   workflow_call The merge workflow calls this file, so the gate runs once and
+#                 the image build waits on it. Copying the five steps into that
+#                 file instead would let the two copies drift, and the copy that
+#                 guards the push is the one that matters.
+#
+# There is no `push:` trigger. The push to cuesoft/customizations reaches these
+# steps through build-push-and-release-staging.yml, which needs the result;
+# firing here as well would run the gate twice per merge. Pushes to main are
+# upstream syncs and are validated when they arrive as a PR.
+
+on:
+  pull_request:
+  merge_group:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Keyed differently from the callers' groups on purpose: a called workflow that
+# shares a concurrency group with its caller deadlocks, because it waits on the
+# run that is waiting on it.
+#
+# Cancellation is limited to pull_request runs, where superseding an outdated
+# run is free. When this file is CALLED from the merge workflow the event is
+# `push`, and cancelling there would cancel the gate out from under a build that
+# was already running, leaving that merged commit with no image and no sign that
+# one is missing. Those runs queue instead.
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    name: Test, typecheck, and build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.20.0
+
+      - name: Enable pinned pnpm
+        run: corepack enable && corepack prepare pnpm@10.6.1 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Security regression tests
+        run: pnpm test
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Build
+        run: pnpm run build
