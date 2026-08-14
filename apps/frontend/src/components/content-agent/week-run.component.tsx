@@ -99,6 +99,24 @@ type WeekRunPayload = {
   posts: RunPost[];
   unmatched: { id: string; platform: string | null; datetime: string | null }[];
   stray: string[];
+  /** THE THIRD WAY THE JOIN BREAKS, and the one neither list above can show: a
+   *  post that WAS pushed to Postiz and was then dropped or renamed by a
+   *  schedule rebuild. The rebuild rewrites the record and the schedule
+   *  together, so those two agree with each other and the week reads as
+   *  complete, while the push state still holds a live Postiz id that appears
+   *  in no list on this page. The post outlives every record of it.
+   *  `inSchedule` separates the two cases: true means the schedule still
+   *  carries the id and `unmatched` names it too, from the other side; false
+   *  means this row is its only mention anywhere.
+   *  Optional because a bridge older than this field does not send it, and an
+   *  absent field must render as nothing rather than as zero orphans confirmed. */
+  orphanedPushes?: {
+    id: string;
+    status: string;
+    postizId: string | null;
+    pushedFor: string | null;
+    inSchedule: boolean;
+  }[];
   handoffs: { id: string; platform: string | null; kind: string; detail: string }[];
   verification: {
     complete: boolean;
@@ -106,6 +124,7 @@ type WeekRunPayload = {
     scheduleProblem: string | null;
     unmatchedCount: number;
     strayCount: number;
+    orphanedPushCount?: number;
     scheduleEdited: boolean | null;
     contentEdited: boolean | null;
     contentMissing: boolean;
@@ -117,6 +136,9 @@ type WeekRunPayload = {
       linked: number;
       unlinked: number;
       driftCount: number;
+      /** the same number as `orphanedPushCount`, carried in the push block
+       *  because that block is the push summary a reviewer reads */
+      orphaned?: number;
     };
   };
   account: {
@@ -161,6 +183,7 @@ type RunIndexEntry = {
   authored?: boolean;
   complete?: boolean;
   unmatchedCount?: number;
+  orphanedPushCount?: number;
   violations?: number;
 };
 
@@ -336,20 +359,38 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
     // rides along because approving a week whose record does not match the
     // schedule releases only the part they agree on, and that is exactly the
     // case where a reader should stop.
+    //
+    // Read off the two failures SEPARATELY rather than off `complete`, which is
+    // false for either: an orphaned push does not mean the record and the
+    // schedule disagree, and telling the reader it does would send them to
+    // rebuild a week whose record is fine. Both cases end at the same place,
+    // since this button reaches only the posts in the record, but they are
+    // different things to go and check.
+    const ver = run?.verification;
+    const joinBroken =
+      !!ver &&
+      (ver.unmatchedCount > 0 || ver.strayCount > 0 || !ver.scheduleReadable);
+    // Counted off the list, exactly as the page below counts it, so the confirm
+    // can never name a different number from the table it was read from.
+    const orphanCount = run?.orphanedPushes?.length || 0;
     const confirmed = await areYouSure({
       title: `${t('release_posts', 'Release')} ${awaitingCount} ${
         awaitingCount === 1 ? t('post', 'post') : t('posts', 'posts')
       }?`,
-      description:
-        run?.verification?.complete === false
-          ? t(
-              'approve_week_incomplete_confirm',
-              'The record and the schedule disagree, so scheduled posts missing from this record will NOT be released. Rebuild the week if you need all of it.'
-            )
-          : t(
-              'approve_week_confirm',
-              'This clears needs-approval and queues them for publishing at their scheduled times.'
-            ),
+      description: joinBroken
+        ? t(
+            'approve_week_incomplete_confirm',
+            'The record and the schedule disagree, so scheduled posts missing from this record will NOT be released. Rebuild the week if you need all of it.'
+          )
+        : orphanCount > 0
+        ? `${orphanCount} ${t(
+            'approve_week_orphaned_confirm',
+            'posts were pushed under ids this record no longer has. This button cannot reach them, so deal with those in Postiz.'
+          )}`
+        : t(
+            'approve_week_confirm',
+            'This clears needs-approval and queues them for publishing at their scheduled times.'
+          ),
       approveLabel: t('release', 'Release'),
       cancelLabel: t('cancel', 'Cancel'),
     });
@@ -515,6 +556,13 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
   const v = run.verification;
   const p = run.postiz;
   const broken = v.unmatchedCount > 0 || v.strayCount > 0 || !v.scheduleReadable;
+  // Kept OUT of `broken`, which is about the record disagreeing with the
+  // schedule. An orphaned push is the failure where those two agree perfectly
+  // and a post is live in Postiz anyway, so it gets its own sentence everywhere
+  // rather than being folded into a count of mismatches. Read once, from the
+  // list, so the pill, the banner, the check and the table cannot disagree.
+  const orphaned = run.orphanedPushes || [];
+  const orphanCount = orphaned.length;
 
   return (
     <div className="flex flex-col gap-[16px] p-[20px] phone:px-[16px]">
@@ -552,10 +600,25 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
                     'posts in the record that the schedule no longer has'
                   )}`}
             </Pill>
-          ) : (
+          ) : orphanCount === 0 ? (
             <Pill tone="ok">
               {run.posts.length}{' '}
               {t('posts_all_matched', 'posts, all matched to the schedule')}
+            </Pill>
+          ) : null}
+          {/* Its own pill, never a branch of the one above: the chain there
+              shows a single reason and would swallow this behind an unmatched
+              count, and this is the reason with something live at the end of
+              it. When it is the ONLY problem, the all-matched pill is
+              suppressed above rather than shown next to it, because the record
+              matching the schedule is true and beside the point. */}
+          {orphanCount > 0 && (
+            <Pill tone="bad">
+              {orphanCount}{' '}
+              {t(
+                'orphaned_pushes',
+                'pushed posts this record no longer accounts for'
+              )}
             </Pill>
           )}
           {v.contentEdited && (
@@ -594,6 +657,20 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
             {t(
               'week_run_incomplete_warning',
               'This is NOT a complete picture of the week. The record and the schedule disagree, so anything below is only the part they have in common — do not approve the week from this page until it is rebuilt.'
+            )}
+          </div>
+        )}
+        {/* A second banner rather than a clause in the first, because the two
+            say different things and one of them names work outside this page.
+            A stray is a record that overstates itself; this is a post that
+            exists in Postiz, may be queued to publish, and is reachable from
+            nothing here except the id in the table below. */}
+        {orphanCount > 0 && (
+          <div className="rounded-[10px] border border-red-500/30 bg-red-500/5 px-[12px] py-[10px] text-[13px] text-red-400 leading-[1.55]">
+            {orphanCount}{' '}
+            {t(
+              'orphaned_pushes_warning',
+              'posts were pushed to Postiz and then dropped or renamed by a rebuild. They are still there, they may still be queued to publish, and nothing on this page schedules them any more. Open each one in Postiz by the id below and delete it, or rebuild and re-push the week so it owns them again. Releasing this week does not touch them.'
             )}
           </div>
         )}
@@ -734,29 +811,54 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
               : t('as_recorded', 'as recorded')
           }
         />
+        {/* `present` is about the posts THIS record holds, so a week whose
+            pushes were all orphaned by a rebuild reports "not pushed yet" while
+            every one of them sits in Postiz. That is the reading this row must
+            never hand back on its own, so the orphan count is stated beside it
+            and outranks it for tone. */}
         <Check
           label={t('pushed', 'Pushed:')}
           tone={
-            !v.push.present
+            orphanCount > 0
+              ? 'bad'
+              : !v.push.present
               ? 'muted'
               : v.push.byStatus.failed || v.push.byStatus.unmapped
               ? 'bad'
               : 'ok'
           }
-          verdict={
+          verdict={[
             !v.push.present
               ? t('not_pushed_yet', 'not pushed yet')
               : Object.entries(v.push.byStatus)
                   .map(([k, n]) => `${n} ${k}`)
-                  .join(', ')
-          }
-          detail={
-            v.push.present && v.push.unlinked > 0
-              ? `${v.push.unlinked} ${t(
-                  'not_linked_to_postiz',
-                  'of them carry no Postiz id, so their live state cannot be checked from here. Weeks pushed before 12 Aug 2026 never recorded one.'
+                  .join(', '),
+            orphanCount > 0
+              ? `${orphanCount} ${t(
+                  'orphaned_pushes_short',
+                  'pushed under an id this record no longer has'
                 )}`
-              : undefined
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+          detail={
+            [
+              orphanCount > 0
+                ? t(
+                    'orphaned_pushes_detail',
+                    'Those are live in Postiz with nothing here pointing at them. They are listed under the week below.'
+                  )
+                : '',
+              v.push.present && v.push.unlinked > 0
+                ? `${v.push.unlinked} ${t(
+                    'not_linked_to_postiz',
+                    'of them carry no Postiz id, so their live state cannot be checked from here. Weeks pushed before 12 Aug 2026 never recorded one.'
+                  )}`
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ') || undefined
           }
         />
         {!!p && (
@@ -977,6 +1079,96 @@ export const WeekRun: FC<{ initialWeek: number | null }> = ({ initialWeek }) => 
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Pushed, and then dropped by a rebuild. Listed WITH the week for the
+              same reason as the block above, that it is part of what publishes,
+              and last, because unlike everything else on this page these rows
+              are not fixed from this page. The Postiz id is the point of the
+              table: it is the only handle left on the post. */}
+          {!!orphaned.length && (
+            <div>
+              <div className="text-[13px] font-[600] text-red-400 mb-[2px]">
+                {t('pushed_not_in_record', 'Pushed, but not in this record')} (
+                {orphaned.length})
+              </div>
+              <div className="text-[12px] text-newTextColor/50 mb-[6px]">
+                {t(
+                  'pushed_not_in_record_hint',
+                  'Open each one in Postiz by its id. Releasing this week does not reach them.'
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-[14px]">
+                  <thead className="bg-newTableHeader">
+                    <tr>
+                      {/* No fixed width, and nowrap: at 402px a two-word header
+                          in a 70px column wraps to two lines, and the cells
+                          under it carry a date as well as a time. The column
+                          sizes itself to the widest of the three. */}
+                      <th className="border border-newTableBorder px-[10px] py-[6px] text-start font-[550] whitespace-nowrap">
+                        {t('pushed_for_column', 'Pushed for')}
+                      </th>
+                      <th className="border border-newTableBorder px-[10px] py-[6px] text-start font-[550]">
+                        {t('post', 'Post')}
+                      </th>
+                      <th className="border border-newTableBorder px-[10px] py-[6px] text-start font-[550]">
+                        {t('postiz_id', 'Postiz id')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orphaned.map((o) => {
+                      // Dated here rather than under a day heading like the rest
+                      // of the week: these rows belong to no day the record
+                      // still claims, so the date has to travel with the row.
+                      const day = dayOf(o.pushedFor);
+                      return (
+                        <tr key={o.id}>
+                          <td className="border border-newTableBorder px-[10px] py-[6px] align-top whitespace-nowrap">
+                            {timeOf(o.pushedFor)}
+                            {!!day && (
+                              <div className="text-[12px] text-newTextColor/50">
+                                {prettyDay(day)}
+                              </div>
+                            )}
+                          </td>
+                          <td className="border border-newTableBorder px-[10px] py-[6px] align-top">
+                            <div className="font-[550] break-all">{o.id}</div>
+                            {/* The distinction the row exists for: whether the
+                                week still publishes this thing under a name the
+                                record lost, or whether nothing anywhere but this
+                                line knows about it. */}
+                            <div className="text-[12px] text-newTextColor/50">
+                              {o.status} ·{' '}
+                              {o.inSchedule
+                                ? t(
+                                    'orphan_still_scheduled',
+                                    'still in the schedule, missing only from the record'
+                                  )
+                                : t(
+                                    'orphan_only_mention',
+                                    'in neither the record nor the schedule'
+                                  )}
+                            </div>
+                          </td>
+                          <td className="border border-newTableBorder px-[10px] py-[6px] align-top break-all">
+                            {o.postizId || (
+                              <span className="text-[12px] text-newTextColor/40">
+                                {t(
+                                  'no_postiz_id',
+                                  'none recorded, pushed before ids were captured'
+                                )}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
