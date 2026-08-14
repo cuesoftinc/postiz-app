@@ -20,6 +20,72 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-14
+
+Everything CodeQL found on its first real scan of this codebase, and images that
+run on more than one architecture.
+
+### Security
+
+- **The SSRF guard had never run against its primary payload.** `ssrf.safe.dispatcher.ts`
+  put its IP check in the Agent's `connect.lookup` hook, and `node:net` skips DNS
+  resolution entirely when the host is already an IP literal, so the check never
+  fired for `http://169.254.169.254/` or for a redirect hop to one. Measured on
+  Node 22 and 26: an IP-literal target reached a loopback listener and returned
+  its body with **zero** calls into the guard. Every `getSsrfSafeDispatcher()`
+  call site inherited that. The check now lives in the connector, which runs per
+  connection and does see IP literals, and three regression tests dial a real
+  socket rather than reasoning about one, because this hole was invisible to
+  every form of reading the code.
+- `POST /webhooks/send` and `read.or.fetch.ts` had no dispatcher at all.
+  `read.or.fetch` was the only outbound call in the tree with no guard
+  whatsoever, reachable from post media at five call sites.
+- **Reflected XSS on `/auth/login` and `/auth/register`.** Express types a string
+  response body as `text/html`, so a cross-site form POST rendered the reflected
+  error as markup. Both now pin `text/plain` with `nosniff`.
+- The Listmonk provider logged its connect payload, which carries a username and
+  password in clear text.
+- Google My Business persisted an unvalidated `data.id` as `internalId` and then
+  spliced it into a URL on every publish and every analytics load. Validating
+  `locationName` alone left the identical injection one field over, stored rather
+  than transient.
+- Instagram and LinkedIn ids are validated by shape rather than encoded.
+  `encodeURIComponent` alone throws `URIError` on a lone surrogate, uncaught on
+  that path, turning a malformed id into an opaque 500 instead of a connect error.
+- `stripHtml` decoded entities **after** stripping tags, so `&lt;script&gt;`
+  survived the strip and decoded into real markup on the way out.
+- Invite emails interpolated the company name, sender name and sender email into
+  HTML sent to an attacker-chosen recipient. Subjects are now escaped centrally.
+- The R2 multipart endpoints returned SDK stack traces to the client.
+- `uploadSimple` buffered a remote response with no size cap in both storage
+  providers, including the live R2 path. It reuses the cap the public API already
+  applied.
+- An auth middleware that failed **open**: with no validator configured it
+  accepted any non-empty bearer token. No caller reaches that branch today, but
+  the default for an auth middleware must be deny.
+
+### Added
+
+- **Multi-arch images.** Both release workflows build `linux/amd64` and
+  `linux/arm64` on native runners and merge them into one manifest list, with the
+  attestation bound to the list rather than to one platform. CI had only ever
+  built arm64, which no longer matches the host.
+
+### Fixed
+
+- The admin popover's click-away layer was `fixed` with no `z-index`, so it
+  painted above the static panel and swallowed every click. All four admin chips
+  and Stop impersonating did nothing but close the popover. Worse on phones,
+  where the same tap collapsed the whole thing to a dot.
+- `videoFunction` invoked its resolved method unbound, and its `if (!video)`
+  guard was unreachable because the lookup dereferenced the result before it
+  could return undefined, making an unknown identifier a 500 rather than a 400.
+- Mail sent HTML as the plain-text alternative, so text-only clients saw raw
+  markup and `Smith &amp; Co` for an ampersand.
+- A second CodeQL workflow was uploading SARIF alongside GitHub's default setup,
+  which rejects it, so every push to the default branch failed on a scan that had
+  actually succeeded.
+
 ## [1.0.0] - 2026-08-14
 
 The first release that is ours. Covers the fork from its first commit on 2026-08-07.
