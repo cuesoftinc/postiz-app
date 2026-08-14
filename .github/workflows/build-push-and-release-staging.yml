@@ -5,11 +5,25 @@ name: Build and Push (cuesoft/customizations)
 # branch. `main` is frozen inherited Postiz history: nothing ships from it and
 # nothing merges into it.
 #
-# Shape: gate first, then build and push one immutable tag per commit.
+# Shape: gate first, then build each platform on its own native runner and
+# publish ONE multi-arch tag per commit.
 #   sha-<full commit sha>   the only tag this workflow writes
 # `latest` is NOT written here. It belongs to releases alone
 # (build-push-and-release-production.yml), so that pulling `latest` means the
 # last release and never the last merge.
+#
+# WHY TWO PLATFORMS. This built linux/arm64 only, to match a self-hosted host
+# that was macOS arm64. That host moved to Ubuntu x86_64 on 2026-08-15 and the
+# arm64 machine is KEPT as the rollback target, so from that date a single-arch
+# image is unrunnable on one of the two hosts whichever arch it is built for.
+# Both arches now ship in one manifest list and the runtime picks its own.
+#
+# WHY A MATRIX OF NATIVE RUNNERS AND NOT ONE JOB WITH TWO PLATFORMS. The
+# original comment here was right: emulating this build would take hours. A
+# ~3.6GB image whose build compiles the whole monorepo is the worst possible
+# QEMU workload, so there is no QEMU anywhere in this file. Instead amd64 builds
+# on ubuntu-24.04 and arm64 builds on ubuntu-24.04-arm, each on real silicon and
+# both at the same time, which keeps wall clock at roughly what one arch cost.
 #
 # There is no deploy job, by design and not by omission. The production host
 # builds the image LOCALLY and never pulls; the GHCR image exists so the team can
@@ -32,6 +46,11 @@ concurrency:
   group: cuesoft-build-${{ github.ref }}
   cancel-in-progress: false
 
+# Named once so the per-arch push, the manifest list and the attestation subject
+# cannot drift apart by a typo in one of them.
+env:
+  IMAGE: ghcr.io/cuesoftinc/postiz-app
+
 jobs:
   # Same five steps a PR runs, from the same file, so the gate cannot drift.
   validate:
@@ -39,24 +58,34 @@ jobs:
 
   build-and-push:
     needs: validate
-    # Native arm64 to match the self-hosted host, on GitHub's arm64 hosted
-    # runner. No QEMU: emulating this build would take hours.
-    runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      # One arch failing must not cancel the other. Whether the other arch also
+      # fails is the fact that says "this is a real break" rather than "this is
+      # arch-specific", and cancelling it destroys that log.
+      fail-fast: false
+      matrix:
+        include:
+          # Native amd64: the Ubuntu x86_64 host this fork now deploys to.
+          # `slug` is the same string with the slash removed, because
+          # `linux/amd64` is legal in neither an artifact name nor a cache scope.
+          - platform: linux/amd64
+            slug: linux-amd64
+            runner: ubuntu-24.04
+          # Native arm64: the macOS arm64 machine kept as the rollback target.
+          - platform: linux/arm64
+            slug: linux-arm64
+            runner: ubuntu-24.04-arm
     permissions:
       contents: read
+      # Pushes the per-arch manifest by digest.
       packages: write
-      # id-token + attestations are what the signed provenance step needs, and
-      # they are the only reason either is granted. Sigstore mints its
-      # short-lived signing cert from the OIDC token; the attestation itself is
-      # stored against this repo. Nothing else here needs them. Note that once
-      # ANY permissions block exists every unlisted scope becomes `none`, so all
-      # four have to be spelled out.
-      id-token: write
-      attestations: write
-    outputs:
-      # Everything downstream consumes the digest, never a tag. See the lesson
-      # recorded on the "Record immutable digest" step below.
-      digest: ${{ steps.build.outputs.digest }}
+      # NOTE that once ANY permissions block exists every unlisted scope becomes
+      # `none`, so each scope a job needs has to be spelled out. This job
+      # deliberately gets NO id-token and NO attestations: the thing worth
+      # attesting is the manifest list, which does not exist yet here, and the
+      # per-arch digests it is assembled from are not what anyone pulls. Those
+      # two scopes live on the `manifest` job below and nowhere else.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -72,7 +101,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/cuesoftinc/postiz-app
+          images: ${{ env.IMAGE }}
           # latest=false is explicit so no code path here can ever move
           # `latest`, whatever the event turns out to be.
           flavor: latest=false
@@ -85,26 +114,34 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push (linux/arm64)
+      - name: Build and push by digest (${{ matrix.platform }})
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.dev
-          platforms: linux/arm64
-          push: true
-          # Consume what the metadata step computed. Without these the action
-          # builds and then fails with "tag is needed when pushing to
-          # registry": metadata-action produced the right tags and nothing
-          # read them (caught by the first release run, 2026-08-14).
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: ${{ matrix.platform }}
+          # NO `tags:` and NO `push: true` here, and that is not the 2026-08-14
+          # mistake repeating itself. That failure was tags COMPUTED AND NEVER
+          # CONSUMED ("tag is needed when pushing to registry"); here the tags
+          # are consumed, once, by the `manifest` job that assembles the list.
+          # Tagging a per-arch build would mean the tag briefly resolved to a
+          # single-arch image, which is exactly the breakage this change exists
+          # to end. push-by-digest gives the push a content address instead of a
+          # name, and name-canonical stamps the canonical repository into the
+          # image so the manifest list can reference it. The labels below still
+          # apply per arch: they live in each platform's image config.
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.meta.outputs.labels }}
           # BuildKit attaches both of these to the image index in GHCR, so they
           # travel with the image and need no GitHub API to read:
           #   docker buildx imagetools inspect <ref> --format '{{json .Provenance}}'
           #   docker buildx imagetools inspect <ref> --format '{{json .SBOM}}'
           # mode=max records the full build graph (source revision, base image
-          # digests, build args) rather than just the materials.
+          # digests, build args) rather than just the materials. Each arch gets
+          # its own pair, and `imagetools create` copies the attestation
+          # manifests into the list alongside the platform manifests, so the
+          # recipe above keeps working on the multi-arch ref.
           provenance: mode=max
           sbom: true
           # The image is roughly 3.6GB and a cold build takes about 15 minutes,
@@ -115,8 +152,11 @@ jobs:
           # its own commit, and a suspect build is one re-run away. RELEASES take
           # the opposite trade, see no-cache in
           # build-push-and-release-production.yml.
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # scope= is per platform and not optional: the default scope is shared,
+          # so amd64 and arm64 would write over each other's layers under one key
+          # and each build would restore the other arch's binaries.
+          cache-from: type=gha,scope=${{ matrix.slug }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.slug }}
           # The string shown in the app's side panel. It answers exactly one
           # question, "which build am I looking at?", so it must not be a
           # constant. It was hardcoded to v2.23.0, which is UPSTREAM Postiz's
@@ -127,35 +167,159 @@ jobs:
           build-args: |
             NEXT_PUBLIC_VERSION=${{ github.ref_name }}@${{ github.sha }}
 
+      # The digest is the only thing the merge job needs from this one, and a
+      # matrix cannot write to a job output without the last arch to finish
+      # clobbering the first. So each arch drops an empty file NAMED for its
+      # digest and the merge job reads the filenames.
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.slug }}
+          path: /tmp/digests/*
+          # A silently empty artifact would produce a manifest list missing an
+          # arch, which is the failure this whole file is fixing.
+          if-no-files-found: error
+          retention-days: 1
+
+  # Assembling the list is a separate job because it can only run once BOTH
+  # arches are pushed, and because it is the only place a tag is written.
+  manifest:
+    needs: build-and-push
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # `imagetools create` pushes the manifest list.
+      packages: write
+      # id-token + attestations are what the signed provenance step needs, and
+      # they are the only reason either is granted. Sigstore mints its
+      # short-lived signing cert from the OIDC token; the attestation itself is
+      # stored against this repo. Same rule as above: once ANY permissions block
+      # exists every unlisted scope becomes `none`, so all four are spelled out.
+      id-token: write
+      attestations: write
+    outputs:
+      # The MANIFEST LIST digest. Before this workflow was multi-arch the job
+      # output was a single build's digest; that digest still exists per arch but
+      # it is not what anyone should ever pin, because pinning it pins one
+      # architecture. Everything downstream consumes THIS one. See the lesson
+      # recorded on the "Record immutable digest" step below.
+      digest: ${{ steps.manifest.outputs.digest }}
+    steps:
+      # Nothing here builds, but metadata-action computing the tag set a second
+      # time is easier to trust when it runs in the same shape as the build jobs.
+      # type=sha,format=long is a pure function of the event, so the two
+      # computations cannot disagree.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=sha,format=long
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # This step, and only this step, writes tags. It reads them from
+      # DOCKER_METADATA_OUTPUT_JSON rather than steps.meta.outputs.tags because
+      # that output is newline separated and would need splitting by hand.
+      - name: Create manifest list and push
+        id: manifest
+        working-directory: /tmp/digests
+        run: |
+          set -euo pipefail
+
+          # A missing arch must fail loudly. `imagetools create` is perfectly
+          # happy to build a one-entry list, which would put the commit's tag on
+          # a single-arch image and reintroduce the bug this file just fixed.
+          # Bump this if the matrix above gains a platform.
+          expected=2
+          found=$(find . -maxdepth 1 -type f | wc -l | tr -d ' ')
+          if [ "$found" -ne "$expected" ]; then
+            echo "Expected $expected per-arch digests, found $found." >&2
+            ls -la >&2
+            exit 1
+          fi
+
+          # Every file in this directory is one arch's digest, named for it.
+          # Kept out of printf's FORMAT string on purpose: $IMAGE belongs in the
+          # arguments, not the format, or a `%` in the name would be read as a
+          # conversion.
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(for d in *; do printf '%s@sha256:%s ' "$IMAGE" "$d"; done)
+
+          # The tags now resolve to the list. Read ITS digest back, by tag, and
+          # hand that to the attestation and the summary. Taking the first tag
+          # from the metadata JSON works on both this file and the release file,
+          # where `version` is ambiguous between two raw tags.
+          ref=$(jq -cr '.tags[0]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          digest=$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' | jq -r '.digest')
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Manifest list $ref -> $digest"
+
       # The BuildKit attestations above are unsigned: anyone who can write to the
       # GHCR package can rewrite them alongside the image. This step signs a SLSA
       # provenance statement for the same digest through Sigstore, keyed to this
       # repo and this workflow run, so a puller can check it came from here:
       #   gh attestation verify oci://ghcr.io/cuesoftinc/postiz-app:sha-<sha> \
       #     --repo cuesoftinc/postiz-app
+      # The subject is the MANIFEST LIST digest, not a per-arch digest, because
+      # the list is what a tag resolves to and therefore what a puller hands to
+      # `verify`. Attesting the per-arch digests instead would leave every
+      # verification of the tag unmatched.
       # push-to-registry stays off (the default): the attestation lives in
       # GitHub's store, which keeps the registry write path unchanged.
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v4
         with:
-          subject-name: ghcr.io/cuesoftinc/postiz-app
-          subject-digest: ${{ steps.build.outputs.digest }}
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
 
       # Consume the DIGEST, never the tag. A registry mirror in front of GHCR can
       # and has served a stale manifest for a freshly pushed tag, so a pull by
       # tag can quietly hand back an older image while the tag itself points at
       # the right one. A digest is content-addressed and cannot be stale. This is
       # why the job exports outputs.digest and why this line prints the pinnable
-      # reference rather than the tag.
+      # reference rather than the tag. The digest printed is the list's, so one
+      # POSTIZ_IMAGE value is correct on both the amd64 host and the arm64
+      # rollback machine.
       - name: Record immutable digest
         run: |
           {
             echo '### Image pushed'
             echo ''
+            echo 'Platforms: `linux/amd64`, `linux/arm64` (one manifest list)'
+            echo ''
             echo 'Pin this (digest, cannot go stale):'
             echo ''
             echo '```'
-            echo 'POSTIZ_IMAGE=ghcr.io/cuesoftinc/postiz-app@${{ steps.build.outputs.digest }}'
+            echo 'POSTIZ_IMAGE=ghcr.io/cuesoftinc/postiz-app@${{ steps.manifest.outputs.digest }}'
             echo '```'
             echo ''
             echo 'Tags written: `${{ steps.meta.outputs.tags }}`'
