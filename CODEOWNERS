@@ -1,0 +1,20 @@
+# Default owners of everything in the repo unless a later rule takes precedence.
+# GitHub resolves code owners to users or teams only, never to a bare org handle,
+# so these are the org's standard default reviewers. Replace them with a
+# @cuesoftinc/<team> once a team exists; the last matching rule wins.
+* @hibeekaey @chordzz
+
+# Anything that can publish to a live social account, or that decides whether a
+# post is allowed to publish at all.
+/libraries/nestjs-libraries/src/integrations/social/ @hibeekaey @chordzz
+/apps/orchestrator/src/                              @hibeekaey @chordzz
+
+# Security regressions are pinned here. Changing or deleting one of these tests
+# needs the same review as changing the code it guards.
+/tests/security/ @hibeekaey @chordzz
+
+# Licence, policy, and the CI gate. LICENSE is AGPL-3.0 and is not ours to change.
+/LICENSE                    @hibeekaey @chordzz
+/SECURITY.md                @hibeekaey @chordzz
+/CODEOWNERS                 @hibeekaey @chordzz
+/.github/workflows/         @hibeekaey @chordzz
