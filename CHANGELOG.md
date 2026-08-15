@@ -20,6 +20,43 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-15
+
+### Fixed
+
+- **The Approvals tab gated the owner's own posting, not just Ace's drafts.**
+  It read `Post.needsApproval`, an org-wide field with no role bypass anywhere
+  in `applyApprovalGate`: turning the org's approval gate on so the tab could
+  show Ace's tagged drafts meant every manual post, including the owner's own,
+  was also forced through the approval step. Reverted to the pre-existing
+  `needs-approval` TAG mechanism, and this time `approvalTag` is actually
+  threaded through `CalendarContext` to the components that read it, which the
+  first version of this code never did. Verified against a real tagged draft in
+  the running app, not just typecheck and unit tests, since neither exercises
+  this UI path.
+- **nginx published the container's internal port in redirects.** A request
+  for `/api` came back with `Location: http://…:5000/api/`, the container-only
+  port handed to the public and https downgraded to http, because of nginx's
+  default `absolute_redirect on` rebuilding the header from what the server is
+  bound to rather than what the client asked for. Fixed with
+  `absolute_redirect off` / `port_in_redirect off`; this server is only ever
+  reached through the Cloudflare Tunnel, so a relative redirect keeps the
+  client on the origin it already had.
+
+### Added
+
+- **A CodeQL model pack** (`.github/codeql/extensions/`) teaching the
+  JavaScript queries about this repo's own guards —
+  `getSsrfSafeDispatcher`/`ssrfSafeDispatcher`, `sanitizeForLog`, `escapeHtml`,
+  `htmlToPlainText` — so code that is actually guarded stops re-reporting as a
+  false positive on every new commit that touches it. The barrier kinds were
+  read out of the CodeQL 2.26.3 library rather than guessed. GitHub's own docs
+  do not list JavaScript as a supported language for model packs under default
+  setup even though the library declares the predicates and the JS queries
+  consume them, so this is recorded as expected-but-unconfirmed until a scan
+  proves it: watch whether the three `js/log-injection` alerts it targets stay
+  dismissed on a new commit to those files.
+
 ## [1.1.0] - 2026-08-14
 
 Everything CodeQL found on its first real scan of this codebase, and images that
