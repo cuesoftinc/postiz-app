@@ -373,6 +373,9 @@ export const CalendarContext = createContext({
   setListState: (state: ListStateFilter) => {
     /** empty **/
   },
+  /** The resolved 'needs-approval' tag row (Approvals v1), so the list view's
+   *  tab counts can filter on its id without re-resolving it themselves. */
+  approvalTag: null as { id: string; name: string } | null,
   /** Calendar-view state filter (?state=). 'all' = absent = no extra clause. */
   state: 'all' as ListStateFilter,
   /** Comma-separated tag-id filter (?tags=), applied to both views. */
@@ -642,33 +645,49 @@ export const CalendarWeekProvider: FC<{
     };
   }, [filters, params, displayTimezone]);
 
+  // Approvals v1: resolve the org's 'needs-approval' tag (read-path; the tag
+  // itself is created through the existing tags UI, and by push-postiz.mjs /
+  // the Ace pipeline when it force-creates drafts).
+  //
+  // BACK ON THE TAG, NOT THE FIELD (owner's call, 2026-08-15). Post.needsApproval
+  // is a real org-wide gate: turning it on so this tab could read it also forced
+  // EVERY post through the approval step, including the owner's own, with no
+  // role-based bypass anywhere in applyApprovalGate (posts.service.ts). That is
+  // the wrong trade for a single-admin, trusted pipeline: the tag gives the same
+  // visible "needs a look" signal without gating manual posting at all. The
+  // field-based version stays available in git history if a future multi-user
+  // setup ever needs the tamper-proof form back.
+  const { data: approvalTagData } = useSWR(
+    // resolved for the whole list view — the tab count pills need it too
+    filters.display === 'list' ? '/posts/tags?approvals' : null,
+    async () => {
+      const data = await (await fetch('/posts/tags')).json();
+      const tags = Array.isArray(data?.tags) ? data.tags : [];
+      return (
+        tags.find(
+          (tag: any) =>
+            (tag.name || '').toLowerCase().trim().replace(/\s+/g, '-') ===
+            APPROVAL_TAG_NAME
+        ) || null
+      );
+    }
+  );
+  const approvalTag = approvalTagData || null;
+
   // List view data fetcher.
-  //
-  // APPROVALS resolves off the FIELD. It used to resolve by looking the
-  // 'needs-approval' tag up by name and filtering on its id, which meant the feed
-  // depended on a row any user can rename or delete from the tags UI: do that and
-  // every pending post silently leaves the Approvals tab while the server goes on
-  // refusing to publish it. `needsApproval=only` reads Post.needsApproval, which
-  // is the same value the server enforces the gate with, so the tab shows exactly
-  // what is gated and nothing in the UI can disarm it.
-  //
-  // It also composes, where the tag filter could not: `tags` was SPENT on the
-  // approval tag before, so the user's own tag filter was silently dropped on this
-  // one tab. The two are independent clauses now and both apply.
   const listParams = useMemo(() => {
     const search = new URLSearchParams({
       page: listPage.toString(),
       limit: '100',
       customer: filters?.customer?.toString() || '',
       integration: filters?.integration?.toString() || '',
-      // Approvals are drafts, so the state clause still narrows to DRAFT; the
-      // pseudo-state itself never goes over the wire.
+      // Approvals = drafts carrying the needs-approval tag
       state: listState === 'approvals' ? 'draft' : listState,
     });
     if (listState === 'approvals') {
-      search.set('needsApproval', 'only');
-    }
-    if (filters.tags) {
+      // unknown id yields an empty (not unfiltered) feed when the tag is absent
+      search.set('tags', approvalTag?.id || '__no-approval-tag__');
+    } else if (filters.tags) {
       search.set('tags', filters.tags);
     }
     return search.toString();
@@ -678,6 +697,7 @@ export const CalendarWeekProvider: FC<{
     filters.integration,
     filters.tags,
     listState,
+    approvalTag?.id,
   ]);
 
   const loadListData = useCallback(async () => {
@@ -934,6 +954,7 @@ export const CalendarWeekProvider: FC<{
         setListPage,
         listState,
         setListState,
+        approvalTag,
         displayTimezone,
         setDisplayTimezone,
         lastCalendarDisplay,
