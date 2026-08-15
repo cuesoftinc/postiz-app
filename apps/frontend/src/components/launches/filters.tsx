@@ -2007,8 +2007,9 @@ export const Filters = () => {
   );
 
   // Buffer's list tabs: Queue · Drafts · Approvals · Sent — no 'All', Queue is
-  // the default landing state. Approvals = drafts the gate has flagged
-  // (needsApproval=only), not drafts carrying a tag by that name.
+  // the default landing state. Approvals = drafts carrying the needs-approval
+  // tag (calendar.context.tsx resolves it), restored 2026-08-15: see the note
+  // on listParams there for why the field-based gate was the wrong trade here.
   const listStateOptions: {
     value: ListStateFilter;
     label: string;
@@ -2028,20 +2029,13 @@ export const Filters = () => {
   // Per-tab count pills (Buffer): four feather-light list queries, 1 row each,
   // sharing the active customer/channel/tag filters. Read-path only.
   //
-  // A COUNT AND ITS LIST MUST NOT BE ABLE TO DISAGREE, so each of these builds the
-  // same query the list itself builds (calendar.context's listParams) with
-  // page=1&limit=1 and reads `.total`. That is why Approvals now sets
-  // `needsApproval=only` here as well: while the count asked for the
-  // 'needs-approval' TAG and the list asked for the FIELD, any post the server
-  // gated without the tag attached, or any tag someone renamed, would show a
-  // pill number that contradicted the rows underneath it. One source, one answer.
-  //
-  // The old `approvalTag?.id` key input is gone with the tag lookup it keyed:
-  // there is no longer an id that resolves an SWR hop after mount, so nothing here
-  // needs to wait for one.
+  // A COUNT AND ITS LIST MUST NOT BE ABLE TO DISAGREE, so this builds the same
+  // query the list itself builds (calendar.context's listParams): Approvals
+  // filters on the resolved needs-approval TAG id, same as the list, with the
+  // same unknown-id-yields-empty-not-unfiltered fallback.
   const countsKey = `tab-counts-${calendar.customer || ''}-${
     calendar.integration || ''
-  }-${calendar.tags || ''}-${calendar.listTotal}`;
+  }-${calendar.tags || ''}-${calendar.approvalTag?.id || ''}-${calendar.listTotal}`;
   const loadTabCounts = useCallback(async () => {
     const entries = await Promise.all(
       (['scheduled', 'draft', 'approvals', 'published'] as const).map(
@@ -2054,11 +2048,11 @@ export const Filters = () => {
             state: state === 'approvals' ? 'draft' : state,
           });
           if (state === 'approvals') {
-            search.set('needsApproval', 'only');
-          }
-          // Applied to Approvals too, exactly like listParams: the tag filter is
-          // its own clause now instead of being spent on resolving the tab.
-          if (calendar.tags) {
+            search.set(
+              'tags',
+              calendar.approvalTag?.id || '__no-approval-tag__'
+            );
+          } else if (calendar.tags) {
             search.set('tags', calendar.tags);
           }
           const raw = expandPostsList(
@@ -2069,7 +2063,12 @@ export const Filters = () => {
       )
     );
     return Object.fromEntries(entries) as Record<string, number>;
-  }, [calendar.customer, calendar.integration, calendar.tags]);
+  }, [
+    calendar.customer,
+    calendar.integration,
+    calendar.tags,
+    calendar.approvalTag?.id,
+  ]);
   const { data: tabCounts } = useSWR(isListView ? countsKey : null, loadTabCounts);
 
   const previousPage = useCallback(() => {
