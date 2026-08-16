@@ -20,6 +20,27 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-08-16
+
+### Fixed
+
+- **YouTube channel analytics failed silently.** `analytics()` ended in
+  `catch { return [] }`: the `checkAnalytics` RefreshToken retry can only fire
+  if an auth failure escapes the method, so a dead token produced an empty
+  chart, Redis-cached for an hour, with no error anywhere — for a week. Errors
+  are now logged with Google's response detail, and a 401 rethrows as
+  `RefreshToken`, the contract posting already honors (which is why posting
+  survived the same token while insights died). A 403 deliberately stays a
+  logged empty result: the service retries `RefreshToken` with `forceRefresh`,
+  and a post-refresh 403 (quota, API not enabled) would recurse forever.
+- **The delete-channel confirm painted behind the channel list that opened
+  it.** The manage-channels overlay sat at `z-[210]`, inside the modal band
+  [200-299], one layer above the store's first modal (200). It now sits at
+  199, the top of the fixed-page-furniture band; the canonical z scale in
+  `global.scss` records the move and the rejected alternative (a global
+  anchor bump would put the composer modal above the drag-drop overlay that
+  must beat it).
+
 ## [1.2.0] - 2026-08-15
 
 ### Fixed
