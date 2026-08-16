@@ -953,7 +953,24 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       });
 
       return acc;
-    } catch (err) {
+    } catch (err: any) {
+      // A bare `return []` here hid a dead token for a week (found 2026-08-15,
+      // migration night): checkAnalytics's reactive RefreshToken retry can only
+      // fire if an auth failure ESCAPES this method, and the swallowed empty
+      // result was then Redis-cached for an hour on top. So: 401 becomes
+      // RefreshToken (the same contract posting honors); everything else —
+      // 403 quota / API-not-enabled, network — is logged and stays an empty
+      // result. 403 must NOT become RefreshToken: the service retries
+      // RefreshToken with forceRefresh and a post-refresh 403 would recurse
+      // forever (refresh succeeds, analytics 403s again, repeat).
+      const status = err?.response?.status ?? err?.status;
+      const detail = JSON.stringify(
+        err?.response?.data?.error ?? err?.errors ?? err?.message ?? String(err)
+      );
+      console.error('YouTube channel analytics failed:', status, detail);
+      if (status === 401) {
+        throw new RefreshToken(this.identifier, detail, '{}');
+      }
       return [];
     }
   }

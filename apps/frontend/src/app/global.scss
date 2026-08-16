@@ -1014,10 +1014,14 @@ html[dir='rtl'] [dir='ltr'] {
              it (live-verified 1180px timezone-panel defect). The `!static`
              in-place escape (impersonate pill card) still resolves locally.
    [150-199] fixed page furniture - support bubble 199, impersonate pill 199,
-             bottom billing bar 150, chatbase launcher cap 199
+             bottom billing bar 150, chatbase launcher cap 199,
+             manage-channels overlay 199 (moved DOWN from 210 on 2026-08-15:
+             its own delete-channel confirm goes through the modal store,
+             whose first modal is 200, and 210 painted the overlay OVER the
+             confirm; an overlay that opens store modals must sit below 200)
    [200-299] modal layer - new-modal store keeps inline zIndex 200+index;
-             manage-channels overlay 210; fixed full-screen helpers:
-             drop.files 240, linkedin/post-url/finish.trial/heygen 250,
+             fixed full-screen helpers: drop.files 240,
+             linkedin/post-url/finish.trial/heygen 250,
              polonto 260, check.payment 290; login-required gate 200
    [300-599] in-modal popovers - tags/date/repeat/delay/information 300,
              subreddit autocompletes 400, emoji + customer select 500,

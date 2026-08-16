@@ -606,8 +606,14 @@ export const LaunchesComponent = () => {
       <Onboarding />
       <CalendarWeekProvider integrations={sortedIntegrations}>
         {manageOpen && (
+          /* z-[199], NOT the modal band: the delete/disable confirms this list
+             opens go through the modal store (zIndex 200+index), and at the
+             overlay's old 210 the FIRST store modal (200) painted behind it —
+             the confirm sat unclickable under this very list (2026-08-15).
+             199 = top of the fixed-page-furniture band in global.scss's z
+             scale: above every page dropdown (100), below every modal (200+). */
           <div
-            className="flex fixed inset-0 z-[210] bg-black/60 items-start justify-center overflow-y-auto py-[48px] phone:py-0"
+            className="flex fixed inset-0 z-[199] bg-black/60 items-start justify-center overflow-y-auto py-[48px] phone:py-0"
             onClick={(e) => {
               if (e.target === e.currentTarget) closeManage();
             }}
