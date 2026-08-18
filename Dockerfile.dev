@@ -9,9 +9,6 @@ RUN npm --no-update-notifier --no-fund --global install pnpm@10.6.1 pm2@6.0.8
 
 FROM base AS build
 
-ARG NEXT_PUBLIC_VERSION
-ENV NEXT_PUBLIC_VERSION=$NEXT_PUBLIC_VERSION
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     make \
@@ -23,6 +20,17 @@ COPY . /app
 
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile
+# Declared HERE, below the install layers, and not at the top of the stage.
+#
+# This value carries the commit SHA and a -dirty marker, so it differs on every
+# single build. Declared above the apt-get (where it used to be) it invalidated
+# that layer every time, reinstalling g++/make/python3 for 276s to arrive at a
+# byte-identical result. `pnpm run build` is its only consumer, so this is the
+# earliest point it is needed. Measured 2026-08-18: with the ARG moved down, the
+# apt layer reports CACHED on consecutive builds.
+ARG NEXT_PUBLIC_VERSION
+ENV NEXT_PUBLIC_VERSION=$NEXT_PUBLIC_VERSION
+
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
 # Keep the runtime image free of compilers and development-only packages.
