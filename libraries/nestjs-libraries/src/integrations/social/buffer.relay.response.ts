@@ -61,3 +61,46 @@ export const createPostFailure = (
   result: BufferCreatePostResponse['createPost']
 ): string | undefined =>
   isCreatePostSuccess(result) ? undefined : result?.message || 'unknown reason';
+
+export type CreateAttempt<T> = {
+  data: T | undefined;
+  failure: string | undefined;
+};
+
+/**
+ * Create a post; if Buffer refuses it while a first comment is attached, drop
+ * the comment and try exactly once more.
+ *
+ * THIS ORCHESTRATION IS THE THING THAT BROKE, so it lives here rather than
+ * inline in the provider: the original lost a post because the retry sat in a
+ * `catch` that an in-band refusal never reached, and no test could see that
+ * while it was buried in a method requiring the whole NestJS graph to import.
+ *
+ * Deliberately NOT gated on Buffer's wording. The old code only retried when
+ * the reason matched /first comment requires a paid plan/, so a reworded
+ * refusal reproduced the incident verbatim. Any refusal is sufficient here,
+ * because the retry's only action is to remove a first comment, it only runs
+ * when one was actually sent, and a post published without its comment beats a
+ * post that is lost. Retrying is safe after a REFUSAL specifically: Buffer
+ * rejected it, so there is nothing live to duplicate.
+ */
+export const withFirstCommentFallback = async <T>(opts: {
+  create: () => Promise<CreateAttempt<T>>;
+  hasFirstComment: () => boolean;
+  dropFirstComment: () => void;
+}): Promise<CreateAttempt<T> & { droppedFirstCommentAfter?: string }> => {
+  const first = await opts.create();
+  if (!first.failure || !opts.hasFirstComment()) {
+    return first;
+  }
+
+  opts.dropFirstComment();
+  const second = await opts.create();
+
+  // Only a SUCCEEDING retry reports a dropped comment: saying so after a second
+  // failure would tell the operator to hand-post a comment for a post that does
+  // not exist.
+  return second.failure
+    ? second
+    : { ...second, droppedFirstCommentAfter: first.failure };
+};

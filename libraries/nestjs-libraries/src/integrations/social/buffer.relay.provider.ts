@@ -16,6 +16,7 @@ import {
   createPostFailure,
   isCreatePostSuccess,
   PAID_PLAN_FIRST_COMMENT,
+  withFirstCommentFallback,
 } from './buffer.relay.response';
 
 /**
@@ -1050,10 +1051,11 @@ export abstract class BufferRelayProvider
         input.metadata = metadata;
       }
 
-      // One attempt, with the reason normalised whichever way it arrives: a
-      // plan rejection comes back in band (200, an error member of the union)
-      // and throws nothing, while a transport or top-level GraphQL failure
-      // throws. The retry below has to see both, so both become `failure`.
+      const hasFirstComment = () => !!input.metadata?.linkedin?.firstComment;
+
+      // One attempt, with the reason normalised whichever way it arrives. An
+      // in-band refusal (200, an error member of the union) throws nothing and
+      // becomes a `failure`; a transport or top-level GraphQL failure throws.
       const create = async (): Promise<{
         data: BufferCreatePostResponse | undefined;
         failure: string | undefined;
@@ -1069,27 +1071,36 @@ export abstract class BufferRelayProvider
             failure: createPostFailure(answer?.createPost),
           };
         } catch (err: any) {
-          if (!PAID_PLAN_FIRST_COMMENT.test(err?.message || '')) throw err;
+          // A THROWN error is ambiguous — it can mean Buffer never saw the post,
+          // or saw it and the response was lost — so it is converted into a
+          // retryable failure only for the one wording known to be a definitive
+          // refusal, and only when there is a comment to drop. Everything else
+          // keeps its original error, whose `json` carries Buffer's raw `errors`
+          // array; swallowing it here would replace that with `{}` and cost the
+          // next investigation the only evidence it has.
+          if (
+            !hasFirstComment() ||
+            !PAID_PLAN_FIRST_COMMENT.test(err?.message || '')
+          ) {
+            throw err;
+          }
           return { data: undefined, failure: err.message };
         }
       };
 
-      let { data, failure } = await create();
+      const { data, failure, droppedFirstCommentAfter } =
+        await withFirstCommentFallback({
+          create,
+          hasFirstComment,
+          dropFirstComment: () => {
+            if (input.metadata) delete input.metadata.linkedin;
+          },
+        });
 
-      // Buffer's plan rejects LinkedIn first comments. Losing the comment is
-      // far better than losing the post, so retry without it and say so.
-      if (
-        failure &&
-        input.metadata?.linkedin?.firstComment &&
-        PAID_PLAN_FIRST_COMMENT.test(failure)
-      ) {
-        delete input.metadata.linkedin;
-        ({ data, failure } = await create());
-        if (!failure) {
-          console.warn(
-            `[${this.identifier}] Buffer's plan rejected the first comment, so the post was published WITHOUT it. Add it by hand.`
-          );
-        }
+      if (droppedFirstCommentAfter) {
+        console.warn(
+          `[${this.identifier}] Buffer refused the post while a first comment was attached, so it was published WITHOUT the comment. Add it by hand. Buffer said: ${droppedFirstCommentAfter}`
+        );
       }
 
       const result = data?.createPost;

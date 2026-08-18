@@ -4,6 +4,7 @@ const {
   createPostFailure,
   isCreatePostSuccess,
   PAID_PLAN_FIRST_COMMENT,
+  withFirstCommentFallback,
 } = require('@gitroom/nestjs-libraries/integrations/social/buffer.relay.response');
 
 // The 2026-08-18 regression, verbatim. Buffer answered HTTP 200 with no
@@ -56,4 +57,88 @@ test('a refusal with nothing to say still reads as a refusal', () => {
   assert.equal(createPostFailure({ __typename: 'WeirdError', message: '' }), 'unknown reason');
   assert.equal(createPostFailure(undefined), 'unknown reason');
   assert.equal(createPostFailure(null), 'unknown reason');
+});
+
+// --- the orchestration, which is what actually lost the post -----------------
+//
+// The message bug above is the visible half. The half that cost a post was the
+// retry living in a `catch` an in-band refusal never reached, so these drive the
+// fallback directly with a fake `create` and assert it fires without anything
+// being thrown.
+
+/** A create() that refuses `refusals` times, then succeeds. */
+const fakeCreate = (refusals, message = 'Invalid post: LinkedIn first comment requires a paid plan.') => {
+  const calls = [];
+  const fn = async () => {
+    calls.push(true);
+    return calls.length <= refusals
+      ? { data: undefined, failure: message }
+      : { data: { createPost: { __typename: 'PostActionSuccess', post: { id: 'p1', dueAt: 'x' } } }, failure: undefined };
+  };
+  fn.calls = calls;
+  return fn;
+};
+
+test('an in-band refusal triggers the fallback without anything being thrown', async () => {
+  const create = fakeCreate(1);
+  let dropped = false;
+  const out = await withFirstCommentFallback({
+    create,
+    hasFirstComment: () => true,
+    dropFirstComment: () => { dropped = true; },
+  });
+  assert.equal(create.calls.length, 2, 'must retry after an in-band refusal');
+  assert.equal(dropped, true, 'must drop the first comment before retrying');
+  assert.equal(out.failure, undefined, 'the post must end up published');
+  assert.ok(out.droppedFirstCommentAfter, 'the operator must be told to hand-post the comment');
+});
+
+test('the fallback is not gated on Buffer wording', async () => {
+  // The old code only retried on /first comment requires a paid plan/. If Buffer
+  // rewords, that reproduces the incident, so any refusal must be enough.
+  const create = fakeCreate(1, 'Some entirely new refusal Buffer invented today');
+  const out = await withFirstCommentFallback({
+    create,
+    hasFirstComment: () => true,
+    dropFirstComment: () => {},
+  });
+  assert.equal(create.calls.length, 2);
+  assert.equal(out.failure, undefined);
+});
+
+test('no first comment means no retry, since there is nothing to drop', async () => {
+  const create = fakeCreate(1);
+  let dropped = false;
+  const out = await withFirstCommentFallback({
+    create,
+    hasFirstComment: () => false,
+    dropFirstComment: () => { dropped = true; },
+  });
+  assert.equal(create.calls.length, 1);
+  assert.equal(dropped, false);
+  assert.ok(out.failure, 'the refusal must surface rather than being swallowed');
+});
+
+test('an accepted post is created exactly once', async () => {
+  const create = fakeCreate(0);
+  const out = await withFirstCommentFallback({
+    create,
+    hasFirstComment: () => true,
+    dropFirstComment: () => assert.fail('must not drop a comment on success'),
+  });
+  assert.equal(create.calls.length, 1, 'no duplicate post');
+  assert.equal(out.droppedFirstCommentAfter, undefined);
+});
+
+test('a retry that also fails does not claim a comment needs hand-posting', async () => {
+  // Otherwise the operator is told to comment on a post that does not exist.
+  const create = fakeCreate(2);
+  const out = await withFirstCommentFallback({
+    create,
+    hasFirstComment: () => true,
+    dropFirstComment: () => {},
+  });
+  assert.equal(create.calls.length, 2, 'exactly one retry, never a loop');
+  assert.ok(out.failure);
+  assert.equal(out.droppedFirstCommentAfter, undefined);
 });
