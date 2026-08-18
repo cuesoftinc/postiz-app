@@ -20,6 +20,8 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-08-18
+
 ### Fixed
 
 - **A LinkedIn post was lost outright when Buffer refused its first comment.**
@@ -39,6 +41,19 @@ in their later releases is reflected below. Only changes that are ours are liste
   it once. One post lost on 2026-08-18; an audit of every error ever recorded
   bounds the exposure to that single incident, `InvalidInputError` being the
   only non-success member the relay has seen since it went live on 12/13 Aug.
+
+### Changed
+
+- **`Dockerfile.dev` reinstalled its `apt-get` toolchain on every build.**
+  `ARG NEXT_PUBLIC_VERSION` / `ENV NEXT_PUBLIC_VERSION=$NEXT_PUBLIC_VERSION`
+  carries the commit SHA plus a `-dirty` marker, so it differs on every build
+  and invalidated the layer beneath it — `g++`/`make`/`python3`, reinstalled
+  each time to reproduce a byte-identical layer. The declaration moves below
+  the install layers, just above its only consumer (`pnpm run build`).
+  Measured at 276.2s per build; two builds afterward report `#9 CACHED`. The
+  4.56GB runtime `COPY` remains the dominant cost and was not addressed here —
+  several restructurings were tried and reverted because they measured worse
+  or failed on `pnpm install` not being manifest-pure in this tree.
 
 ## [1.2.1] - 2026-08-16
 
