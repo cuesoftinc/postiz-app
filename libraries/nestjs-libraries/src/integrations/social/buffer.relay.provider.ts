@@ -11,6 +11,13 @@ import dayjs from 'dayjs';
 import { Integration } from '@prisma/client';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { mayRetryBufferGraphql } from './buffer.relay.retry';
+import {
+  BufferCreatePostResponse,
+  createPostFailure,
+  isCreatePostSuccess,
+  PAID_PLAN_FIRST_COMMENT,
+  withFirstCommentFallback,
+} from './buffer.relay.response';
 
 /**
  * Buffer relay providers.
@@ -52,6 +59,10 @@ const BUFFER_APP_URL = 'https://publish.buffer.com';
 // date, no second approval step. A gate in Buffer would strand posts behind a
 // queue nobody is watching.
 
+// `MutationError` is an INTERFACE rather than a member of the union, so this
+// fragment selects `message` off every concrete error type that implements it
+// (`InvalidInputError`, …) while `__typename` reports that concrete name. The
+// message is therefore always readable; the typename is never 'MutationError'.
 const CREATE_POST = `mutation($input: CreatePostInput!) {
   createPost(input: $input) {
     __typename
@@ -207,13 +218,6 @@ type BufferCreatePostInput = {
     linkedin?: { firstComment: string };
     tiktok?: { isAiGenerated: boolean };
   };
-};
-
-type BufferCreatePostResponse = {
-  createPost?:
-    | { __typename: 'PostActionSuccess'; post: { id: string; dueAt: string } }
-    | { __typename: 'MutationError'; message: string }
-    | null;
 };
 
 /**
@@ -1047,45 +1051,65 @@ export abstract class BufferRelayProvider
         input.metadata = metadata;
       }
 
-      let data: BufferCreatePostResponse | undefined;
-      try {
-        data = await this.graphql<BufferCreatePostResponse>(
-          CREATE_POST,
-          { input },
-          'mutation'
-        );
-      } catch (err: any) {
-        // Buffer's free plan rejects first comments. Losing the comment is far
-        // better than losing the post, so retry without it and say so.
-        if (
-          input.metadata?.linkedin?.firstComment &&
-          /first comment requires a paid plan/i.test(err?.message || '')
-        ) {
-          delete input.metadata.linkedin;
-          data = await this.graphql<BufferCreatePostResponse>(
+      const hasFirstComment = () => !!input.metadata?.linkedin?.firstComment;
+
+      // One attempt, with the reason normalised whichever way it arrives. An
+      // in-band refusal (200, an error member of the union) throws nothing and
+      // becomes a `failure`; a transport or top-level GraphQL failure throws.
+      const create = async (): Promise<{
+        data: BufferCreatePostResponse | undefined;
+        failure: string | undefined;
+      }> => {
+        try {
+          const answer = await this.graphql<BufferCreatePostResponse>(
             CREATE_POST,
             { input },
             'mutation'
           );
-          console.warn(
-            `[${this.identifier}] Buffer's plan rejected the first comment, so the post was published WITHOUT it. Add it by hand.`
-          );
-        } else {
-          throw err;
+          return {
+            data: answer,
+            failure: createPostFailure(answer?.createPost),
+          };
+        } catch (err: any) {
+          // A THROWN error is ambiguous — it can mean Buffer never saw the post,
+          // or saw it and the response was lost — so it is converted into a
+          // retryable failure only for the one wording known to be a definitive
+          // refusal, and only when there is a comment to drop. Everything else
+          // keeps its original error, whose `json` carries Buffer's raw `errors`
+          // array; swallowing it here would replace that with `{}` and cost the
+          // next investigation the only evidence it has.
+          if (
+            !hasFirstComment() ||
+            !PAID_PLAN_FIRST_COMMENT.test(err?.message || '')
+          ) {
+            throw err;
+          }
+          return { data: undefined, failure: err.message };
         }
+      };
+
+      const { data, failure, droppedFirstCommentAfter } =
+        await withFirstCommentFallback({
+          create,
+          hasFirstComment,
+          dropFirstComment: () => {
+            if (input.metadata) delete input.metadata.linkedin;
+          },
+        });
+
+      if (droppedFirstCommentAfter) {
+        console.warn(
+          `[${this.identifier}] Buffer refused the post while a first comment was attached, so it was published WITHOUT the comment. Add it by hand. Buffer said: ${droppedFirstCommentAfter}`
+        );
       }
 
       const result = data?.createPost;
-      if (result?.__typename !== 'PostActionSuccess') {
+      if (!isCreatePostSuccess(result)) {
         throw new BadBody(
           this.identifier,
           JSON.stringify(result || {}).slice(0, 300),
           JSON.stringify(input).slice(0, 300),
-          `Buffer refused the post: ${
-            result?.__typename === 'MutationError'
-              ? result.message
-              : 'unknown reason'
-          }`
+          `Buffer refused the post: ${failure || 'unknown reason'}`
         );
       }
 
