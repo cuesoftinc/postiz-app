@@ -20,6 +20,26 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+### Fixed
+
+- **A LinkedIn post was lost outright when Buffer refused its first comment.**
+  Buffer's plan rejects `metadata.linkedin.firstComment`, and it rejects it IN
+  BAND: HTTP 200, no top-level `errors` array, the refusal carried as a member
+  of the `createPost` union. `BufferRelayProvider.post` keyed its
+  degrade-gracefully retry on a *thrown* error, so nothing ever caught it and
+  the post died `nonRetryable` after three attempts. The operator saw only
+  "Buffer refused the post: unknown reason", because the message was read only
+  when `__typename` equalled `MutationError` — the INTERFACE name, which is
+  never what comes back (the concrete member was `InvalidInputError`). The
+  refusal is now read off the response, so the retry fires and the post
+  publishes without the comment as it was always meant to, and every error
+  member surfaces its own message instead of one hard-coded typename. Reading
+  the union moved to `buffer.relay.response.ts` with regression tests, because a
+  `try`/`catch` could not have covered this and review alone had already missed
+  it once. One post lost on 2026-08-18; an audit of every error ever recorded
+  bounds the exposure to that single incident, `InvalidInputError` being the
+  only non-success member the relay has seen since it went live on 12/13 Aug.
+
 ## [1.2.1] - 2026-08-16
 
 ### Fixed

@@ -11,6 +11,12 @@ import dayjs from 'dayjs';
 import { Integration } from '@prisma/client';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { mayRetryBufferGraphql } from './buffer.relay.retry';
+import {
+  BufferCreatePostResponse,
+  createPostFailure,
+  isCreatePostSuccess,
+  PAID_PLAN_FIRST_COMMENT,
+} from './buffer.relay.response';
 
 /**
  * Buffer relay providers.
@@ -52,6 +58,10 @@ const BUFFER_APP_URL = 'https://publish.buffer.com';
 // date, no second approval step. A gate in Buffer would strand posts behind a
 // queue nobody is watching.
 
+// `MutationError` is an INTERFACE rather than a member of the union, so this
+// fragment selects `message` off every concrete error type that implements it
+// (`InvalidInputError`, …) while `__typename` reports that concrete name. The
+// message is therefore always readable; the typename is never 'MutationError'.
 const CREATE_POST = `mutation($input: CreatePostInput!) {
   createPost(input: $input) {
     __typename
@@ -207,13 +217,6 @@ type BufferCreatePostInput = {
     linkedin?: { firstComment: string };
     tiktok?: { isAiGenerated: boolean };
   };
-};
-
-type BufferCreatePostResponse = {
-  createPost?:
-    | { __typename: 'PostActionSuccess'; post: { id: string; dueAt: string } }
-    | { __typename: 'MutationError'; message: string }
-    | null;
 };
 
 /**
@@ -1047,45 +1050,55 @@ export abstract class BufferRelayProvider
         input.metadata = metadata;
       }
 
-      let data: BufferCreatePostResponse | undefined;
-      try {
-        data = await this.graphql<BufferCreatePostResponse>(
-          CREATE_POST,
-          { input },
-          'mutation'
-        );
-      } catch (err: any) {
-        // Buffer's free plan rejects first comments. Losing the comment is far
-        // better than losing the post, so retry without it and say so.
-        if (
-          input.metadata?.linkedin?.firstComment &&
-          /first comment requires a paid plan/i.test(err?.message || '')
-        ) {
-          delete input.metadata.linkedin;
-          data = await this.graphql<BufferCreatePostResponse>(
+      // One attempt, with the reason normalised whichever way it arrives: a
+      // plan rejection comes back in band (200, an error member of the union)
+      // and throws nothing, while a transport or top-level GraphQL failure
+      // throws. The retry below has to see both, so both become `failure`.
+      const create = async (): Promise<{
+        data: BufferCreatePostResponse | undefined;
+        failure: string | undefined;
+      }> => {
+        try {
+          const answer = await this.graphql<BufferCreatePostResponse>(
             CREATE_POST,
             { input },
             'mutation'
           );
+          return {
+            data: answer,
+            failure: createPostFailure(answer?.createPost),
+          };
+        } catch (err: any) {
+          if (!PAID_PLAN_FIRST_COMMENT.test(err?.message || '')) throw err;
+          return { data: undefined, failure: err.message };
+        }
+      };
+
+      let { data, failure } = await create();
+
+      // Buffer's plan rejects LinkedIn first comments. Losing the comment is
+      // far better than losing the post, so retry without it and say so.
+      if (
+        failure &&
+        input.metadata?.linkedin?.firstComment &&
+        PAID_PLAN_FIRST_COMMENT.test(failure)
+      ) {
+        delete input.metadata.linkedin;
+        ({ data, failure } = await create());
+        if (!failure) {
           console.warn(
             `[${this.identifier}] Buffer's plan rejected the first comment, so the post was published WITHOUT it. Add it by hand.`
           );
-        } else {
-          throw err;
         }
       }
 
       const result = data?.createPost;
-      if (result?.__typename !== 'PostActionSuccess') {
+      if (!isCreatePostSuccess(result)) {
         throw new BadBody(
           this.identifier,
           JSON.stringify(result || {}).slice(0, 300),
           JSON.stringify(input).slice(0, 300),
-          `Buffer refused the post: ${
-            result?.__typename === 'MutationError'
-              ? result.message
-              : 'unknown reason'
-          }`
+          `Buffer refused the post: ${failure || 'unknown reason'}`
         );
       }
 
