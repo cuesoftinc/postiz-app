@@ -28,6 +28,11 @@ const ALLOWED_EXT_TO_MIME: Record<string, string> = {
   '.tif': 'image/tiff',
   '.tiff': 'image/tiff',
   '.mp4': 'video/mp4',
+  // LinkedIn carousels; kept in step with DOCUMENT_MIME_TYPES in
+  // allowed.mime.types.ts. This map stays extension-keyed because the
+  // multipart flow has to name the object's key before it has any bytes to
+  // sniff, so it cannot consume the shared Sets directly.
+  '.pdf': 'application/pdf',
 };
 
 function normalizeExtension(filename: string): string | null {

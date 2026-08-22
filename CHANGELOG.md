@@ -20,6 +20,26 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+### Fixed
+
+- **Every LinkedIn carousel upload failed with a 500, because the PDF allow-list
+  was added to one of five copies.** `application/pdf` was allowed in
+  `custom.upload.validation.ts` (and given a 100MB cap in `getMaxSize`) so that
+  `LinkedinProvider` could reach LinkedIn's `/documents` endpoint, which it has
+  always supported. But the same list was retyped in `cloudflare.storage.ts`,
+  `local.storage.ts` and `public.integrations.controller.ts`, and those copies
+  were never touched. So a carousel PDF passed `CustomFileValidationPipe` at the
+  `/public/v1/upload` boundary and was then rejected one layer deeper inside
+  `CloudflareStorage.uploadFile` — as a bare `Error` rather than an
+  `HttpException`, which is why the caller saw an opaque HTTP 500 instead of a
+  400 naming the file type. All copies now compose from
+  `upload/allowed.mime.types.ts`, which keeps the deliberate distinction the
+  duplicates were blurring: `UPLOAD_ALLOWED_MIME_TYPES` is what a caller may
+  upload, `STORAGE_ALLOWED_MIME_TYPES` adds the audio a provider may persist but
+  no caller may send. `r2.uploader.ts` stays extension-keyed — the multipart flow
+  must name the object key before it has bytes to sniff — and gained `.pdf`
+  alongside.
+
 ## [1.2.2] - 2026-08-18
 
 ### Fixed

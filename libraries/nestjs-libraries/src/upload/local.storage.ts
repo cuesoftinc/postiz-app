@@ -4,23 +4,10 @@ import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/we
 import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { parseDataUrl } from '@gitroom/nestjs-libraries/upload/data.url';
 import { getMaxSize } from '@gitroom/nestjs-libraries/upload/custom.upload.validation';
+import { STORAGE_ALLOWED_MIME_TYPES } from '@gitroom/nestjs-libraries/upload/allowed.mime.types';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { fromBuffer } = require('file-type');
 
-const LOCAL_STORAGE_ALLOWED_MIME = new Set<string>([
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/avif',
-  'image/bmp',
-  'image/tiff',
-  'video/mp4',
-  'audio/mpeg',
-  'audio/mp4',
-  'audio/wav',
-  'audio/ogg',
-]);
 export class LocalStorage implements IUploadProvider {
   constructor(private uploadDirectory: string) {}
 
@@ -57,7 +44,7 @@ export class LocalStorage implements IUploadProvider {
     // arbitrary file (e.g. .html/.svg with embedded script) into the
     // publicly served uploads directory on the app's own origin.
     const detected = await fromBuffer(body);
-    if (!detected || !LOCAL_STORAGE_ALLOWED_MIME.has(detected.mime)) {
+    if (!detected || !STORAGE_ALLOWED_MIME_TYPES.has(detected.mime)) {
       throw new Error('Unsupported file type.');
     }
     if (body.length > getMaxSize(detected.mime)) {
@@ -90,7 +77,7 @@ export class LocalStorage implements IUploadProvider {
   async uploadFile(file: Express.Multer.File): Promise<any> {
     try {
       const detected = await fromBuffer(file.buffer);
-      if (!detected || !LOCAL_STORAGE_ALLOWED_MIME.has(detected.mime)) {
+      if (!detected || !STORAGE_ALLOWED_MIME_TYPES.has(detected.mime)) {
         throw new Error('Unsupported file type.');
       }
       const safeExt = `.${detected.ext}`;
