@@ -20,6 +20,24 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+### Added
+
+- **Regression tests for the upload allow-lists** (`tests/security/upload.allowlist.test.cjs`).
+  1.2.3 fixed a `application/pdf` entry that had been added to one of six copies
+  of the same list, and left a comment asking future readers not to "reconcile"
+  the lists that differ deliberately. A comment cannot fail a build. These nine
+  tests encode the invariants instead: every uploadable type must also be
+  storable (the direction that actually broke, and the one that surfaces as an
+  opaque 500 from inside the storage provider); audio is storable but never
+  uploadable; `.avif`/`.bmp`/`.tiff` are storable but never postable; `getMaxSize`
+  caps every type the sets permit; a PDF gets LinkedIn's 100MB document headroom
+  rather than the 10MB image cap; and `ValidUrlExtension` accepts a stored `.pdf`,
+  survives a query string, and still refuses `.exe`, `.svg` and empty input.
+
+  Verified to fail for the right reason: removing `DOCUMENT_MIME_TYPES` from
+  `STORAGE_ALLOWED_MIME_TYPES` — exactly the 1.2.3 bug — turns two of them red
+  with "application/pdf is uploadable but not storable".
+
 ## [1.2.3] - 2026-08-23
 
 ### Fixed
