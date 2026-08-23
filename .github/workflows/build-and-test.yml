@@ -8,7 +8,7 @@ name: Validate
 # tree is sound.
 #
 # Two entry points, deliberately:
-#   pull_request  A PR into cuesoft/customizations (or into main, which tracks
+#   pull_request  A PR into main (or into backup, which tracks
 #                 upstream) runs these five steps and NOTHING else. No image is
 #                 built and nothing is pushed on a PR.
 #   workflow_call The merge workflow calls this file, so the gate runs once and
@@ -16,7 +16,7 @@ name: Validate
 #                 file instead would let the two copies drift, and the copy that
 #                 guards the push is the one that matters.
 #
-# There is no `push:` trigger. The push to cuesoft/customizations reaches these
+# There is no `push:` trigger. The push to main reaches these
 # steps through build-push-and-release-staging.yml, which needs the result;
 # firing here as well would run the gate twice per merge. Pushes to main are
 # upstream syncs and are validated when they arrive as a PR.

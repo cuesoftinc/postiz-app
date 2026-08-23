@@ -70,9 +70,9 @@ and the parts we can actually fix:
 
 ## Supported versions
 
-This repository ships from a branch, not a release. `cuesoft/customizations` is the default branch
+This repository ships from a branch, not a release. `main` is the default branch
 and the one that is deployed; fixes land there, and deployed environments are expected to track it.
-`main` is frozen inherited history and is not where our fixes go.
+`backup` is frozen inherited history and is not where our fixes go.
 
 There are no version tags. The Postiz tags this repository once carried were deleted, because they
 described Gitroom's releases and never ours, so nothing in the tag namespace can be read as a

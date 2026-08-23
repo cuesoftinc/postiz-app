@@ -9,7 +9,7 @@ name: Build and Push (release)
 #   <release tag name>    e.g. cuesoft-v2.23.0, the immutable one
 # Both are written ONCE, by the `manifest` job, onto the multi-arch list.
 # The commit is already green: it was gated by build-and-test.yml on the PR and
-# again on the merge that put it on cuesoft/customizations. A release re-tags that
+# again on the merge that put it on main. A release re-tags that
 # same tree, so it does not re-run the gate.
 #
 # The tag is taken raw rather than parsed as semver, because this fork's tags
