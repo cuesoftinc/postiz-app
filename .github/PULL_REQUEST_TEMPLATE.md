@@ -1,4 +1,4 @@
-<!-- Base this PR on `cuesoft/customizations`. Never on `main`: main is frozen inherited history. -->
+<!-- Base this PR on `main`. Never on `backup`: backup is frozen inherited history. -->
 
 ## Summary
 
@@ -40,7 +40,7 @@ Run what CI runs, all four:
 
 ## Fork checks
 
-- [ ] Base branch is `cuesoft/customizations`.
+- [ ] Base branch is `main`.
 - [ ] Commits follow Conventional Commits (`feat:`, `fix:`, `chore:`, ...).
 - [ ] If this deletes code, the PR shows how you know it is unused: no importers, no route that
       reaches it, no configuration that switches it on.

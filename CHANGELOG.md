@@ -4,7 +4,7 @@ All notable changes to this repository are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-This repository is **not versioned yet**. It ships from the `cuesoft/customizations` branch, which
+This repository is **not versioned yet**. It ships from the `main` branch, which
 is the default branch and what deploys. Releases are tagged from it. When a
 release is tagged, entries move into a dated section then.
 
@@ -19,6 +19,41 @@ code is derived from, up to the last sync we took. We do not merge from them any
 in their later releases is reflected below. Only changes that are ours are listed.
 
 ## [Unreleased]
+
+### Changed
+
+- **The default branch is now `main`; the inherited upstream branch is `backup`.**
+  This fork's default was `cuesoft/customizations`, with the frozen upstream tree
+  sitting on `main` — so the one branch everything targets had a non-obvious name
+  and the conventional name pointed at history nothing ships from. They have
+  swapped: `main` is the default and what deploys, `backup` is the frozen
+  inherited Postiz tree.
+
+  The risk in this was not the rename, it was a `push:` trigger. GitHub matches
+  those by name and fails **silently**: the staging workflow listed only
+  `cuesoft/customizations`, so the instant the branch was renamed it would have
+  fired on nothing — merges producing no image, no failed job, no error, the first
+  symptom being someone noticing GHCR had gone quiet. The trigger was widened to
+  accept both names in a separate change that landed *first*, so no window
+  existed, and the old name is dropped here.
+
+  `main-protection` was retargeted and renamed to `backup-protection`. It pinned
+  `refs/heads/main`, which after the rename would have landed on the live default,
+  duplicating `default-branch-protection` (`~DEFAULT_BRANCH`) while leaving the
+  archived branch unprotected — the exact inversion of its intent. It now pins
+  `refs/heads/backup` with deletion and non-fast-forward rules; the pull_request
+  rule was dropped, since nothing is meant to merge into an archive at all.
+
+  Prose references were updated across `CONTRIBUTING.md`, `SECURITY.md`,
+  `PARITY-CATALOG.md`, the PR template and the workflow headers. Several of those
+  named *both* branches in one breath ("base on X, never on `main`"), so a
+  substitution of the old name alone left them contradicting themselves; each was
+  rewritten rather than swapped.
+
+  Existing clones need `git remote set-head origin -a`, and any clone with a
+  single-branch fetch refspec needs `remote.origin.fetch` repointed — GitHub
+  redirects the old default for pushes and fetches, but a pinned refspec is not
+  covered by that redirect.
 
 ## [1.2.4] - 2026-08-23
 

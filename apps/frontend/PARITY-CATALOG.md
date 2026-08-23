@@ -6,7 +6,7 @@ This file is the loop ledger for the pixel-level Buffer replica: every user-faci
 gets a row; a missed surface is a parity hole. Companion docs: `BUFFER-REPLICA-SPEC.md`
 (measured values), the scratchpad measurement notes (`buffer-measurements-r1.md`,
 `buffer-measurements-2026-08-13.md`, `parity-gaps-r1.md`, `backlog.md`), and the
-`cuesoft/customizations` git log (each wave commit documents what was measured and
+`main` git log (each wave commit documents what was measured and
 applied). Scratchpad notes live outside the repo and are session-scoped: anything from
 them that a future reader needs must be copied into this file or the spec, which is what
 the 2026-08-13 changelog entry does.

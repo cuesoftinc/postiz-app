@@ -18,19 +18,19 @@ contribution funnel.
 
 | Branch | What it is |
 | --- | --- |
-| `cuesoft/customizations` | The default branch. Everything we build targets it, and it is what deploys. |
-| `main` | Frozen history. It holds the inherited Postiz tree as it stood at the last sync we ever took. Protected. Nothing ships from it and nothing merges into it. |
+| `main` | The default branch. Everything we build targets it, and it is what deploys. |
+| `backup` | Frozen history. It holds the inherited Postiz tree as it stood at the last sync we ever took. Protected. Nothing ships from it and nothing merges into it. Named `main` until the 2026-08-23 rename, when the default branch took that name. |
 
-Branch from `cuesoft/customizations` and open the pull request back into it:
+Branch from `main` and open the pull request back into it:
 
 ```bash
 git fetch origin
-git switch -c feat/short-description origin/cuesoft/customizations
+git switch -c feat/short-description origin/main
 ```
 
 Never open a pull request against `main`, and never merge work into it. It is kept as a record of
 where this code came from and it does not move any more. Maintainers can push directly to
-`cuesoft/customizations`, but a pull request is the normal route because that is where review and
+`main`, but a pull request is the normal route because that is where review and
 the CI gate happen.
 
 ## Deleting code (this rule has changed)

@@ -1,9 +1,9 @@
 ---
-name: Build and Push (cuesoft/customizations)
+name: Build and Push (main)
 
-# Runs on every merge into cuesoft/customizations, which is this fork's DEFAULT
-# branch. `main` is frozen inherited Postiz history: nothing ships from it and
-# nothing merges into it.
+# Runs on every merge into main, which is this fork's DEFAULT branch. `backup`
+# is the frozen inherited Postiz history: nothing ships from it and nothing
+# merges into it.
 #
 # Shape: gate first, then build each platform on its own native runner and
 # publish ONE multi-arch tag per commit.
@@ -32,15 +32,10 @@ name: Build and Push (cuesoft/customizations)
 on:
   push:
     branches:
-      # BOTH names on purpose, for the duration of the default-branch rename
-      # (cuesoft/customizations -> main, with the old inherited main archived as
-      # `backup`). A `push:` trigger matches by NAME, silently: the moment the
-      # branch is renamed, a trigger naming only the old one fires on nothing,
-      # and merges stop producing a staging image with no error anywhere. Listing
-      # both means the rename cannot open that window. Drop the old name once the
-      # rename has landed and this has fired green from `main`.
+      # A `push:` trigger matches by NAME and fails silently — a stale name here
+      # fires on nothing and merges stop producing an image with no error
+      # anywhere. Keep this in step with the default branch.
       - main
-      - cuesoft/customizations
   workflow_dispatch:
 
 permissions:
