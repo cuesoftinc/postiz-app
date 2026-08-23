@@ -3,22 +3,9 @@ import {
   Injectable,
   PipeTransform,
 } from '@nestjs/common';
+import { UPLOAD_ALLOWED_MIME_TYPES } from '@gitroom/nestjs-libraries/upload/allowed.mime.types';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { fromBuffer } = require('file-type');
-
-const ALLOWED_MIME_TYPES = new Set<string>([
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/avif',
-  'image/bmp',
-  'image/tiff',
-  'video/mp4',
-  // Cuesoft fork: LinkedIn carousel documents — LinkedinProvider natively uploads
-  // PDFs to LinkedIn's /documents endpoint; only this allowlist was blocking them.
-  'application/pdf',
-]);
 
 @Injectable()
 export class CustomFileValidationPipe implements PipeTransform {
@@ -37,7 +24,7 @@ export class CustomFileValidationPipe implements PipeTransform {
     }
 
     const detected = await fromBuffer(value.buffer);
-    if (!detected || !ALLOWED_MIME_TYPES.has(detected.mime)) {
+    if (!detected || !UPLOAD_ALLOWED_MIME_TYPES.has(detected.mime)) {
       throw new BadRequestException('Unsupported file type.');
     }
 
@@ -68,10 +55,11 @@ export function getMaxSize(mimeType: string): number {
   } else if (mimeType === 'application/pdf') {
     return 100 * 1024 * 1024; // 100 MB — LinkedIn's document upload cap
   } else if (mimeType.startsWith('audio/')) {
-    // The storage providers accept audio (music beds); the upload validators
-    // do not, and reject it by allow-list BEFORE reaching here, so this branch
-    // widens nothing. It exists so uploadSimple can cap audio rather than
-    // throw "Unsupported file type" on a file its own allow-list permitted.
+    // STORAGE_ALLOWED_MIME_TYPES accepts audio (music beds);
+    // UPLOAD_ALLOWED_MIME_TYPES does not, and rejects it BEFORE reaching here,
+    // so this branch widens nothing. It exists so uploadSimple can cap audio
+    // rather than throw "Unsupported file type" on a file its own allow-list
+    // permitted.
     return 100 * 1024 * 1024; // 100 MB
   } else {
     throw new BadRequestException('Unsupported file type.');

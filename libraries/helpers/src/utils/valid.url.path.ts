@@ -3,25 +3,25 @@ import {
   ValidatorConstraintInterface,
   ValidatorConstraint,
 } from 'class-validator';
+import { POSTABLE_MEDIA_EXTENSIONS } from '@gitroom/nestjs-libraries/upload/allowed.mime.types';
 
 @ValidatorConstraint({ name: 'checkValidExtension', async: false })
 export class ValidUrlExtension implements ValidatorConstraintInterface {
   validate(text: string, args: ValidationArguments) {
-    return (
-      !!text?.split?.('?')?.[0].endsWith('.png') ||
-      !!text?.split?.('?')?.[0].endsWith('.jpg') ||
-      !!text?.split?.('?')?.[0].endsWith('.jpeg') ||
-      !!text?.split?.('?')?.[0].endsWith('.gif') ||
-      !!text?.split?.('?')?.[0].endsWith('.webp') ||
-      !!text?.split?.('?')?.[0].endsWith('.mp4')
-    );
+    const withoutQuery = text?.split?.('?')?.[0];
+    if (!withoutQuery) {
+      return false;
+    }
+    return POSTABLE_MEDIA_EXTENSIONS.some((ext) => withoutQuery.endsWith(ext));
   }
 
   defaultMessage(args: ValidationArguments) {
-    // here you can provide default error message if validation failed
-    return (
-      'File must have a valid extension: .png, .jpg, .jpeg, .gif, .webp, or .mp4'
-    );
+    // Derived from the list, so the message can never name a different set of
+    // extensions than the one actually enforced.
+    const all = POSTABLE_MEDIA_EXTENSIONS;
+    return `File must have a valid extension: ${all
+      .slice(0, -1)
+      .join(', ')}, or ${all[all.length - 1]}`;
   }
 }
 
