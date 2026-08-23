@@ -20,6 +20,8 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-08-23
+
 ### Fixed
 
 - **Every LinkedIn carousel upload failed with a 500, because the PDF allow-list
