@@ -57,11 +57,23 @@ export const STORAGE_ALLOWED_MIME_TYPES: ReadonlySet<string> = new Set<string>([
 ]);
 
 // What may be ATTACHED to a post, checked by extension off the stored URL
-// rather than by sniffing bytes (ValidUrlExtension, applied to MediaDto). This
-// is deliberately NARROWER than what may be uploaded: .avif, .bmp and .tiff are
-// safe to hold in a bucket but the platforms will not take them, so they are
-// storable and not postable. Widening this list means checking the providers
-// first, not matching it to the MIME sets above.
+// rather than by sniffing bytes (ValidUrlExtension, applied to MediaDto).
+//
+// Deliberately NARROWER than UPLOAD_ALLOWED_MIME_TYPES. The gap is load-bearing
+// in BOTH directions, so do not "reconcile" the two lists:
+//
+//   - Widening THIS list is a publish-time risk, not a validation nicety. A
+//     format the platforms refuse fails at the publish minute, on a post that
+//     was already accepted and scheduled, instead of at upload with a clean 400.
+//
+//   - Narrowing the UPLOAD list to match would break avatar ingest. uploadSimple
+//     also pulls integration profile pictures straight off the platforms' own
+//     CDNs (integration.repository.ts, updateIntegration) and third-party
+//     generated images. Those CDNs serve whatever they like, increasingly avif
+//     and webp, and those bytes have to be storable whether or not anyone could
+//     attach them to a post.
+//
+// So .avif, .bmp and .tiff are storable and not postable, on purpose.
 export const POSTABLE_MEDIA_EXTENSIONS = [
   '.png',
   '.jpg',
