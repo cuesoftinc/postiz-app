@@ -55,3 +55,20 @@ export const STORAGE_ALLOWED_MIME_TYPES: ReadonlySet<string> = new Set<string>([
   ...DOCUMENT_MIME_TYPES,
   ...AUDIO_MIME_TYPES,
 ]);
+
+// What may be ATTACHED to a post, checked by extension off the stored URL
+// rather than by sniffing bytes (ValidUrlExtension, applied to MediaDto). This
+// is deliberately NARROWER than what may be uploaded: .avif, .bmp and .tiff are
+// safe to hold in a bucket but the platforms will not take them, so they are
+// storable and not postable. Widening this list means checking the providers
+// first, not matching it to the MIME sets above.
+export const POSTABLE_MEDIA_EXTENSIONS = [
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.mp4',
+  // LinkedIn carousels; see DOCUMENT_MIME_TYPES.
+  '.pdf',
+] as const;

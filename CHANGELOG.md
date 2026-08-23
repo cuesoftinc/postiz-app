@@ -40,6 +40,18 @@ in their later releases is reflected below. Only changes that are ours are liste
   must name the object key before it has bytes to sniff — and gained `.pdf`
   alongside.
 
+- **The same drift had a second layer: a PDF that uploaded could still not be
+  attached to a post.** With the allow-lists fixed, the carousel reached R2 and
+  then failed at post creation instead — `ValidUrlExtension`, the class-validator
+  constraint on `MediaDto`, checks the stored URL's extension against its own
+  hard-coded list of six and rejected `.pdf` with a 400. It now derives from
+  `POSTABLE_MEDIA_EXTENSIONS` in the same shared module, and its error message is
+  generated from that list so it can never name a different set than the one
+  enforced. That list stays deliberately narrower than the upload allow-list:
+  `.avif`, `.bmp` and `.tiff` are safe to store but the platforms will not accept
+  them, so they remain storable and not postable. The constraint also no longer
+  reports `true` for a path that is only a query string.
+
 ## [1.2.2] - 2026-08-18
 
 ### Fixed
