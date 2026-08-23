@@ -32,6 +32,14 @@ name: Build and Push (cuesoft/customizations)
 on:
   push:
     branches:
+      # BOTH names on purpose, for the duration of the default-branch rename
+      # (cuesoft/customizations -> main, with the old inherited main archived as
+      # `backup`). A `push:` trigger matches by NAME, silently: the moment the
+      # branch is renamed, a trigger naming only the old one fires on nothing,
+      # and merges stop producing a staging image with no error anywhere. Listing
+      # both means the rename cannot open that window. Drop the old name once the
+      # rename has landed and this has fired green from `main`.
+      - main
       - cuesoft/customizations
   workflow_dispatch:
 
