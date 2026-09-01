@@ -20,6 +20,41 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+### Fixed
+
+- **`linkedin-page` connects without the OpenID Connect scopes.** Upstream's
+  provider asks for `openid` + `profile` and reads the connecting member from
+  `/v2/userinfo`. Our LinkedIn app holds Community Management but cannot add
+  *Sign In with LinkedIn using OpenID Connect* — a separate product, and every
+  "Request access" button on the Products page was greyed out while the
+  Community Management review was open (01 Sep 2026). Because `checkScopes()`
+  compares the provider's array against the scopes the token comes back with,
+  **every** connect failed with `NotEnoughScopes` before a page could be picked.
+
+  The provider now asks for the five scopes the app actually holds
+  (`w_member_social`, `r_basicprofile`, `rw_organization_admin`,
+  `w_organization_social`, `r_organization_social`) and takes the member fields
+  from `/v2/me` through a shared `fetchMember()` helper, replacing two calls
+  with one. Both code paths already called `/v2/me` for `vanityName`, so
+  `r_basicprofile` access is not a new assumption.
+
+  Contained because neither caller keeps those fields: `isBetweenSteps = true`,
+  so `authenticate()`'s identity is the intermediate record only and
+  `POST /connect` replaces id/name/picture with the organization's own via
+  `fetchPageInformation()`; and `refresh()` re-saves the row with the
+  integration's existing `internalId`/name/picture, so only the token fields
+  survive a refresh. The member id is now a legacy numeric id rather than
+  userinfo's `sub`, and nothing downstream compares them.
+
+  Personal `linkedin` is untouched — it still asks for `openid`, and we do not
+  connect it. **Do not re-add the two scopes to `linkedin-page`** if the product
+  is granted later: fewer scopes is the better resting state, and re-adding them
+  reintroduces the failure.
+
+  Verified on the Cuesoft host: the channel connected as `linkedin-page`
+  "Cuesoft" (organization `11761352`) with a refresh token issued, and a
+  scheduled post with a first comment created a parent + child post pair on it.
+
 ### Changed
 
 - **The default branch is now `main`; the inherited upstream branch is `backup`.**
