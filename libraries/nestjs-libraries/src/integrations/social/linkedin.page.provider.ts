@@ -25,9 +25,16 @@ export class LinkedinPageProvider
   override isBetweenSteps = true;
   override refreshWait = true;
   override maxConcurrentJob = 2; // LinkedIn Page has professional posting limits
+  // NO `openid` / `profile` HERE, DELIBERATELY. Upstream asks for both and reads
+  // the connecting member from /v2/userinfo, but our LinkedIn app cannot grant
+  // them: "Sign In with LinkedIn using OpenID Connect" is a separate product and
+  // every "Request access" button was greyed out while the Community Management
+  // review was open (01 Sep 2026). checkScopes() compares this array against the
+  // scopes the token comes back with, so leaving them in fails EVERY connect
+  // with NotEnoughScopes. The five below are the ones the app actually holds, and
+  // /v2/me (r_basicprofile) supplies the member fields userinfo used to — see
+  // authenticate() and refreshToken().
   override scopes = [
-    'openid',
-    'profile',
     'w_member_social',
     'r_basicprofile',
     'rw_organization_admin',
@@ -59,33 +66,22 @@ export class LinkedinPageProvider
       })
     ).json();
 
-    const { vanityName } = await (
-      await fetch('https://api.linkedin.com/v2/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
-
-    const {
-      name,
-      sub: id,
-      picture,
-    } = await (
-      await fetch('https://api.linkedin.com/v2/userinfo', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
+    // /v2/me instead of /v2/userinfo (see scopes). Of everything returned here
+    // only the three token fields are actually consumed: refresh() in
+    // refresh.integration.service.ts re-saves the row with the integration's
+    // OWN internalId, name and picture, so id/name/picture below never reach
+    // the database. They are populated truthfully rather than left blank so a
+    // future caller that does read them is not reading lies.
+    const { id: memberId, localizedFirstName, localizedLastName, vanityName } =
+      await this.fetchMember(accessToken);
 
     return {
-      id,
+      id: memberId,
       accessToken,
       refreshToken,
       expiresIn: expires_in,
-      name,
-      picture,
+      name: [localizedFirstName, localizedLastName].filter(Boolean).join(' '),
+      picture: '',
       username: vanityName,
     };
   }
@@ -207,6 +203,26 @@ export class LinkedinPageProvider
     };
   }
 
+  // The r_basicprofile read that replaces /v2/userinfo for both authenticate()
+  // and refreshToken(). Kept to the four fields those two need: a projection is
+  // not requested because r_basicprofile returns them by default and asking for
+  // profilePicture would spend the call on an avatar the page-selection step
+  // throws away.
+  private async fetchMember(accessToken: string): Promise<{
+    id?: string;
+    localizedFirstName?: string;
+    localizedLastName?: string;
+    vanityName?: string;
+  }> {
+    return (
+      await fetch('https://api.linkedin.com/v2/me', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+    ).json();
+  }
+
   override async authenticate(params: {
     code: string;
     codeVerifier: string;
@@ -239,33 +255,22 @@ export class LinkedinPageProvider
 
     this.checkScopes(this.scopes, scope);
 
-    const {
-      name,
-      sub: id,
-      picture,
-    } = await (
-      await fetch('https://api.linkedin.com/v2/userinfo', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
-
-    const { vanityName } = await (
-      await fetch('https://api.linkedin.com/v2/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
+    // /v2/me instead of /v2/userinfo (see scopes). isBetweenSteps = true, so this
+    // identity is the INTERMEDIATE record only: the frontend then lists the pages
+    // this member administers (companies()) and POST /connect replaces every
+    // field here with the organization's own id, name and logo via
+    // fetchPageInformation(). The member id is a legacy numeric id rather than
+    // userinfo's `sub` for the same reason, and nothing downstream compares them.
+    const { id: memberId, localizedFirstName, localizedLastName, vanityName } =
+      await this.fetchMember(accessToken);
 
     return {
-      id: id,
+      id: memberId,
       accessToken,
       refreshToken,
       expiresIn,
-      name,
-      picture,
+      name: [localizedFirstName, localizedLastName].filter(Boolean).join(' '),
+      picture: '',
       username: vanityName,
     };
   }
