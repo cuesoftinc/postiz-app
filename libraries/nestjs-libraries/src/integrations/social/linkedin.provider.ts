@@ -794,7 +794,15 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
           actor,
           object: parentPostId,
           message: {
-            text: this.fixText(post.message),
+            // NOT fixText. That escapes for LinkedIn's LittleText format, which
+            // the Posts API `commentary` field requires and unescapes on render
+            // (see createLinkedInPostPayload). This is the Comments API, whose
+            // `message.text` is PLAIN TEXT — escaping here reaches the reader as
+            // literal backslashes. A first comment citing "Lost in the Middle
+            // (TACL 2024)" published as "Lost in the Middle \(TACL 2024\)" on
+            // 08 Sep 2026. The two calls even speak different API versions
+            // (202601 vs 202306); they do not share a text contract.
+            text: post.message,
           },
         }),
       }

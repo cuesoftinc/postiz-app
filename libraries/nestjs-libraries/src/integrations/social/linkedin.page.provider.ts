@@ -687,7 +687,9 @@ export class LinkedinPageProvider
             actor: `urn:li:organization:${integration.internalId}`,
             object: id,
             message: {
-              text: this.fixText(fields.post),
+              // Plain text, not LittleText — same contract as createCommentPost,
+              // same reason. Escaping here would print literal backslashes.
+              text: fields.post,
             },
           }),
         }
