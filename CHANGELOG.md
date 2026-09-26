@@ -4,14 +4,8 @@ All notable changes to this repository are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-This repository is **not versioned yet**. It ships from the `main` branch, which
-is the default branch and what deploys. Releases are tagged from it. When a
-release is tagged, entries move into a dated section then.
-
-There are no inherited tags left to confuse that. The Postiz tags this repository carried at fork
-time (`v2.23.0` and earlier) described Gitroom's releases, never ours, and they have been deleted:
-the `v*` namespace here is ours alone, and the first release tagged in it will be our own semantic
-version starting from scratch. No number and no date are promised here until one is cut.
+This fork releases from `main` under its own `v*` tags. The inherited Postiz
+tags were removed when this fork began publishing its own releases.
 
 Postiz's own release notes live at
 [gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app/releases) and cover the history this
@@ -20,75 +14,21 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
-### Fixed
-
-- **`linkedin-page` connects without the OpenID Connect scopes.** Upstream's
-  provider asks for `openid` + `profile` and reads the connecting member from
-  `/v2/userinfo`. Our LinkedIn app holds Community Management but cannot add
-  *Sign In with LinkedIn using OpenID Connect* — a separate product, and every
-  "Request access" button on the Products page was greyed out while the
-  Community Management review was open (01 Sep 2026). Because `checkScopes()`
-  compares the provider's array against the scopes the token comes back with,
-  **every** connect failed with `NotEnoughScopes` before a page could be picked.
-
-  The provider now asks for the five scopes the app actually holds
-  (`w_member_social`, `r_basicprofile`, `rw_organization_admin`,
-  `w_organization_social`, `r_organization_social`) and takes the member fields
-  from `/v2/me` through a shared `fetchMember()` helper, replacing two calls
-  with one. Both code paths already called `/v2/me` for `vanityName`, so
-  `r_basicprofile` access is not a new assumption.
-
-  Contained because neither caller keeps those fields: `isBetweenSteps = true`,
-  so `authenticate()`'s identity is the intermediate record only and
-  `POST /connect` replaces id/name/picture with the organization's own via
-  `fetchPageInformation()`; and `refresh()` re-saves the row with the
-  integration's existing `internalId`/name/picture, so only the token fields
-  survive a refresh. The member id is now a legacy numeric id rather than
-  userinfo's `sub`, and nothing downstream compares them.
-
-  Personal `linkedin` is untouched — it still asks for `openid`, and we do not
-  connect it. **Do not re-add the two scopes to `linkedin-page`** if the product
-  is granted later: fewer scopes is the better resting state, and re-adding them
-  reintroduces the failure.
-
-  Verified on the Cuesoft host: the channel connected as `linkedin-page`
-  "Cuesoft" (organization `11761352`) with a refresh token issued, and a
-  scheduled post with a first comment created a parent + child post pair on it.
+## [1.2.5] - 2026-09-26
 
 ### Changed
 
-- **The default branch is now `main`; the inherited upstream branch is `backup`.**
-  This fork's default was `cuesoft/customizations`, with the frozen upstream tree
-  sitting on `main` — so the one branch everything targets had a non-obvious name
-  and the conventional name pointed at history nothing ships from. They have
-  swapped: `main` is the default and what deploys, `backup` is the frozen
-  inherited Postiz tree.
+- `main` is the default branch; `backup` preserves the inherited tree.
+- Image processing uses sharp 0.35.4.
+- Email delivery uses Nodemailer 9.1.1.
+- The web app uses Next.js 16.3.6.
 
-  The risk in this was not the rename, it was a `push:` trigger. GitHub matches
-  those by name and fails **silently**: the staging workflow listed only
-  `cuesoft/customizations`, so the instant the branch was renamed it would have
-  fired on nothing — merges producing no image, no failed job, no error, the first
-  symptom being someone noticing GHCR had gone quiet. The trigger was widened to
-  accept both names in a separate change that landed *first*, so no window
-  existed, and the old name is dropped here.
+### Fixed
 
-  `main-protection` was retargeted and renamed to `backup-protection`. It pinned
-  `refs/heads/main`, which after the rename would have landed on the live default,
-  duplicating `default-branch-protection` (`~DEFAULT_BRANCH`) while leaving the
-  archived branch unprotected — the exact inversion of its intent. It now pins
-  `refs/heads/backup` with deletion and non-fast-forward rules; the pull_request
-  rule was dropped, since nothing is meant to merge into an archive at all.
-
-  Prose references were updated across `CONTRIBUTING.md`, `SECURITY.md`,
-  `PARITY-CATALOG.md`, the PR template and the workflow headers. Several of those
-  named *both* branches in one breath ("base on X, never on `main`"), so a
-  substitution of the old name alone left them contradicting themselves; each was
-  rewritten rather than swapped.
-
-  Existing clones need `git remote set-head origin -a`, and any clone with a
-  single-branch fetch refspec needs `remote.origin.fetch` repointed — GitHub
-  redirects the old default for pushes and fetches, but a pinned refspec is not
-  covered by that redirect.
+- LinkedIn Pages connect without OpenID Connect scopes.
+- LinkedIn first comments publish as plain text.
+- Uploads reject indexed multipart fields and use Multer 2.4.0.
+- Next.js includes the September 2026 security fix.
 
 ## [1.2.4] - 2026-08-23
 
