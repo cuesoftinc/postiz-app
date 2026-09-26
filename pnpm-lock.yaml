@@ -440,8 +440,8 @@ importers:
         specifier: ^0.66.0
         version: 0.66.0(request@2.88.2)
       nodemailer:
-        specifier: ^7.0.11
-        version: 7.0.13
+        specifier: ^9.1.1
+        version: 9.1.1
       nostr-tools:
         specifier: ^2.24.1
         version: 2.24.1(typescript@5.6.3)
@@ -13182,8 +13182,8 @@ packages:
     resolution: {integrity: sha512-s4Hrg5q+VPl4/tJVG++pImxF6eb8tNJNj4KnDqAOKL6zGU34lo9RXmyAN158njwGN+v8hdNf8s9fWIYW9hPb5A==}
     engines: {node: '>=0.12'}
 
-  nodemailer@7.0.13:
-    resolution: {integrity: sha512-PNDFSJdP+KFgdsG3ZzMXCgquO7I6McjY2vlqILjtJd0hy8wEvtugS9xKRF2NWlPNGxvLCXlTNIae4serI7dinw==}
+  nodemailer@9.1.1:
+    resolution: {integrity: sha512-izw9mVKFix6YSnC9eLgV6g1opl9DUlRio9ZNcq+Wu9Ujn2UwF+8Nl0B8nz22kEC+CTZCvinkxwJ0DeFbb6NwcQ==}
     engines: {node: '>=6.0.0'}
 
   nopt@5.0.0:
@@ -32329,7 +32329,7 @@ snapshots:
       - request
       - supports-color
 
-  nodemailer@7.0.13: {}
+  nodemailer@9.1.1: {}
 
   nopt@5.0.0:
     dependencies:
