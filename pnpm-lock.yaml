@@ -716,9 +716,19 @@ importers:
 
   apps/backend: {}
 
+  apps/commands: {}
+
+  apps/extension: {}
+
   apps/frontend: {}
 
   apps/orchestrator: {}
+
+  apps/sdk:
+    dependencies:
+      node-fetch:
+        specifier: ^3.3.2
+        version: 3.3.2
 
 packages:
 
