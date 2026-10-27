@@ -14,6 +14,14 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-10-27
+
+### Changed
+
+- Email delivery uses Nodemailer 10.0.9.
+- HTTP requests use axios 1.20.0.
+- The MCP server uses @modelcontextprotocol/sdk 1.32.2.
+
 ## [1.2.5] - 2026-09-26
 
 ### Changed
