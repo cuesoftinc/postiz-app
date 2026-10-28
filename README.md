@@ -58,8 +58,7 @@ pnpm run build
 ## Deployment
 
 The production host **builds the image locally and never pulls it**. Deployment tooling, the
-compose stack, secrets handling and the runbooks live in the
-[design-system](https://github.com/cuesoftinc/design-system) repository under `postiz/`, alongside
+compose stack, secrets handling and the runbooks are maintained outside this repository, alongside
 the weekly content pipeline that feeds this app through its public API.
 
 Two things worth knowing before you touch a deploy:
