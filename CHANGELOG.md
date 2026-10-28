@@ -62,7 +62,7 @@ in their later releases is reflected below. Only changes that are ours are liste
   survives a query string, and still refuses `.exe`, `.svg` and empty input.
 
   Verified to fail for the right reason: removing `DOCUMENT_MIME_TYPES` from
-  `STORAGE_ALLOWED_MIME_TYPES` — exactly the 1.2.3 bug — turns two of them red
+  `STORAGE_ALLOWED_MIME_TYPES`, exactly the 1.2.3 bug, turns two of them red
   with "application/pdf is uploadable but not storable".
 
 ## [1.2.3] - 2026-08-23
@@ -77,19 +77,19 @@ in their later releases is reflected below. Only changes that are ours are liste
   `local.storage.ts` and `public.integrations.controller.ts`, and those copies
   were never touched. So a carousel PDF passed `CustomFileValidationPipe` at the
   `/public/v1/upload` boundary and was then rejected one layer deeper inside
-  `CloudflareStorage.uploadFile` — as a bare `Error` rather than an
+  `CloudflareStorage.uploadFile`, as a bare `Error` rather than an
   `HttpException`, which is why the caller saw an opaque HTTP 500 instead of a
   400 naming the file type. All copies now compose from
   `upload/allowed.mime.types.ts`, which keeps the deliberate distinction the
   duplicates were blurring: `UPLOAD_ALLOWED_MIME_TYPES` is what a caller may
   upload, `STORAGE_ALLOWED_MIME_TYPES` adds the audio a provider may persist but
-  no caller may send. `r2.uploader.ts` stays extension-keyed — the multipart flow
-  must name the object key before it has bytes to sniff — and gained `.pdf`
+  no caller may send. `r2.uploader.ts` stays extension-keyed, the multipart flow
+  must name the object key before it has bytes to sniff, and gained `.pdf`
   alongside.
 
 - **The same drift had a second layer: a PDF that uploaded could still not be
   attached to a post.** With the allow-lists fixed, the carousel reached R2 and
-  then failed at post creation instead — `ValidUrlExtension`, the class-validator
+  then failed at post creation instead, `ValidUrlExtension`, the class-validator
   constraint on `MediaDto`, checks the stored URL's extension against its own
   hard-coded list of six and rejected `.pdf` with a 400. It now derives from
   `POSTABLE_MEDIA_EXTENSIONS` in the same shared module, and its error message is
@@ -110,7 +110,7 @@ in their later releases is reflected below. Only changes that are ours are liste
   degrade-gracefully retry on a *thrown* error, so nothing ever caught it and
   the post died `nonRetryable` after three attempts. The operator saw only
   "Buffer refused the post: unknown reason", because the message was read only
-  when `__typename` equalled `MutationError` — the INTERFACE name, which is
+  when `__typename` equalled `MutationError`, the INTERFACE name, which is
   never what comes back (the concrete member was `InvalidInputError`). The
   refusal is now read off the response, so the retry fires and the post
   publishes without the comment as it was always meant to, and every error
@@ -126,11 +126,11 @@ in their later releases is reflected below. Only changes that are ours are liste
 - **`Dockerfile.dev` reinstalled its `apt-get` toolchain on every build.**
   `ARG NEXT_PUBLIC_VERSION` / `ENV NEXT_PUBLIC_VERSION=$NEXT_PUBLIC_VERSION`
   carries the commit SHA plus a `-dirty` marker, so it differs on every build
-  and invalidated the layer beneath it — `g++`/`make`/`python3`, reinstalled
+  and invalidated the layer beneath it, `g++`/`make`/`python3`, reinstalled
   each time to reproduce a byte-identical layer. The declaration moves below
   the install layers, just above its only consumer (`pnpm run build`).
   Measured at 276.2s per build; two builds afterward report `#9 CACHED`. The
-  4.56GB runtime `COPY` remains the dominant cost and was not addressed here —
+  4.56GB runtime `COPY` remains the dominant cost and was not addressed here,
   several restructurings were tried and reverted because they measured worse
   or failed on `pnpm install` not being manifest-pure in this tree.
 
@@ -141,7 +141,7 @@ in their later releases is reflected below. Only changes that are ours are liste
 - **YouTube channel analytics failed silently.** `analytics()` ended in
   `catch { return [] }`: the `checkAnalytics` RefreshToken retry can only fire
   if an auth failure escapes the method, so a dead token produced an empty
-  chart, Redis-cached for an hour, with no error anywhere — for a week. Errors
+  chart, Redis-cached for an hour, with no error anywhere, for a week. Errors
   are now logged with Google's response detail, and a 401 rethrows as
   `RefreshToken`, the contract posting already honors (which is why posting
   survived the same token while insights died). A 403 deliberately stays a
@@ -181,9 +181,9 @@ in their later releases is reflected below. Only changes that are ours are liste
 ### Added
 
 - **A CodeQL model pack** (`.github/codeql/extensions/`) teaching the
-  JavaScript queries about this repo's own guards —
+  JavaScript queries about this repo's own guards,
   `getSsrfSafeDispatcher`/`ssrfSafeDispatcher`, `sanitizeForLog`, `escapeHtml`,
-  `htmlToPlainText` — so code that is actually guarded stops re-reporting as a
+  `htmlToPlainText`, so code that is actually guarded stops re-reporting as a
   false positive on every new commit that touches it. The barrier kinds were
   read out of the CodeQL 2.26.3 library rather than guessed. GitHub's own docs
   do not list JavaScript as a supported language for model packs under default
