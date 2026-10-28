@@ -23,8 +23,8 @@ updates:
       - dependency-name: "prisma"
       - dependency-name: "@prisma/client"
 
-  # Actions are referenced by MAJOR tag (@v4), matching the Cuesoft standard in
-  # cueprise, so minor and patch updates arrive on their own and only a major
+  # Actions are referenced by MAJOR tag (@v4), matching the Cuesoft standard,
+  # so minor and patch updates arrive on their own and only a major
   # needs a PR. That is the trade: a retagged action can change under us, which
   # SHA pinning would have prevented and this deliberately does not.
   - package-ecosystem: "github-actions"
