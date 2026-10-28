@@ -77,7 +77,7 @@ in their later releases is reflected below. Only changes that are ours are liste
   `local.storage.ts` and `public.integrations.controller.ts`, and those copies
   were never touched. So a carousel PDF passed `CustomFileValidationPipe` at the
   `/public/v1/upload` boundary and was then rejected one layer deeper inside
-  `CloudflareStorage.uploadFile`, as a bare `Error` rather than an
+  `CloudflareStorage.uploadFile` — as a bare `Error` rather than an
   `HttpException`, which is why the caller saw an opaque HTTP 500 instead of a
   400 naming the file type. All copies now compose from
   `upload/allowed.mime.types.ts`, which keeps the deliberate distinction the
@@ -89,7 +89,7 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 - **The same drift had a second layer: a PDF that uploaded could still not be
   attached to a post.** With the allow-lists fixed, the carousel reached R2 and
-  then failed at post creation instead, `ValidUrlExtension`, the class-validator
+  then failed at post creation instead — `ValidUrlExtension`, the class-validator
   constraint on `MediaDto`, checks the stored URL's extension against its own
   hard-coded list of six and rejected `.pdf` with a 400. It now derives from
   `POSTABLE_MEDIA_EXTENSIONS` in the same shared module, and its error message is
@@ -107,10 +107,10 @@ in their later releases is reflected below. Only changes that are ours are liste
   Buffer's plan rejects `metadata.linkedin.firstComment`, and it rejects it IN
   BAND: HTTP 200, no top-level `errors` array, the refusal carried as a member
   of the `createPost` union. `BufferRelayProvider.post` keyed its
-  degrade-gracefully retry on a *thrown* error, so nothing ever caught it and
+  degrade-gracefully retry on a _thrown_ error, so nothing ever caught it and
   the post died `nonRetryable` after three attempts. The operator saw only
   "Buffer refused the post: unknown reason", because the message was read only
-  when `__typename` equalled `MutationError`, the INTERFACE name, which is
+  when `__typename` equalled `MutationError` — the INTERFACE name, which is
   never what comes back (the concrete member was `InvalidInputError`). The
   refusal is now read off the response, so the retry fires and the post
   publishes without the comment as it was always meant to, and every error
@@ -126,11 +126,11 @@ in their later releases is reflected below. Only changes that are ours are liste
 - **`Dockerfile.dev` reinstalled its `apt-get` toolchain on every build.**
   `ARG NEXT_PUBLIC_VERSION` / `ENV NEXT_PUBLIC_VERSION=$NEXT_PUBLIC_VERSION`
   carries the commit SHA plus a `-dirty` marker, so it differs on every build
-  and invalidated the layer beneath it, `g++`/`make`/`python3`, reinstalled
+  and invalidated the layer beneath it — `g++`/`make`/`python3`, reinstalled
   each time to reproduce a byte-identical layer. The declaration moves below
   the install layers, just above its only consumer (`pnpm run build`).
   Measured at 276.2s per build; two builds afterward report `#9 CACHED`. The
-  4.56GB runtime `COPY` remains the dominant cost and was not addressed here,
+  4.56GB runtime `COPY` remains the dominant cost and was not addressed here —
   several restructurings were tried and reverted because they measured worse
   or failed on `pnpm install` not being manifest-pure in this tree.
 
@@ -141,7 +141,7 @@ in their later releases is reflected below. Only changes that are ours are liste
 - **YouTube channel analytics failed silently.** `analytics()` ended in
   `catch { return [] }`: the `checkAnalytics` RefreshToken retry can only fire
   if an auth failure escapes the method, so a dead token produced an empty
-  chart, Redis-cached for an hour, with no error anywhere, for a week. Errors
+  chart, Redis-cached for an hour, with no error anywhere — for a week. Errors
   are now logged with Google's response detail, and a 401 rethrows as
   `RefreshToken`, the contract posting already honors (which is why posting
   survived the same token while insights died). A 403 deliberately stays a

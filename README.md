@@ -14,14 +14,14 @@ automatically, and ours do not reach them unless we send them.
 
 ## What we changed, and why
 
-| Area | What the fork does |
-| --- | --- |
-| Auth | Google SSO through our internal OIDC provider. Registration is disabled; users arrive by invite. |
+| Area                | What the fork does                                                                                                                                                                                                                                                                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth                | Google SSO through our internal OIDC provider. Registration is disabled; users arrive by invite.                                                                                                                                                                                                                                                |
 | LinkedIn and TikTok | Two providers, `linkedinbuffer` and `tiktokbuffer`, that connect like any other channel and hand the post to Buffer at publish time. Neither platform can be native here: TikTok's developer app was rejected for internal company use, and self-hosted Postiz needs its own credentials. There is exactly **one** gate and it lives in Postiz. |
-| Ace | A web chat backed by fenced Claude Code sessions, for drafting a week's copy in the product instead of a terminal. Sessions are owner-scoped; credentials never enter the child process. |
-| Approvals | Posts can be drafted without a date and released through an approval gate, one week at a time. |
-| Interface | A Buffer-parity pass over the whole app: measured geometry, one shared segmented control, empty states, and a size ladder in `global.scss` that rescales roughly 370 of Postiz's own arbitrary utility classes, so the authored class and the painted value differ. `apps/frontend/PARITY-CATALOG.md` explains it before you audit a size. |
-| Storage and mail | Cloudflare R2 for media, Brevo over SMTP for transactional mail. |
+| Ace                 | A web chat backed by fenced Claude Code sessions, for drafting a week's copy in the product instead of a terminal. Sessions are owner-scoped; credentials never enter the child process.                                                                                                                                                        |
+| Approvals           | Posts can be drafted without a date and released through an approval gate, one week at a time.                                                                                                                                                                                                                                                  |
+| Interface           | A Buffer-parity pass over the whole app: measured geometry, one shared segmented control, empty states, and a size ladder in `global.scss` that rescales roughly 370 of Postiz's own arbitrary utility classes, so the authored class and the painted value differ. `apps/frontend/PARITY-CATALOG.md` explains it before you audit a size.      |
+| Storage and mail    | Cloudflare R2 for media, Brevo over SMTP for transactional mail.                                                                                                                                                                                                                                                                                |
 
 ## Tech stack
 
