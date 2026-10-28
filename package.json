@@ -285,7 +285,9 @@
       "react": "19.2.4",
       "react-dom": "19.2.4",
       "@types/react": "19.1.8",
-      "@types/react-dom": "19.1.6"
+      "@types/react-dom": "19.1.6",
+      "qs@<6.16.1": "^6.16.1",
+      "undici@<6.29.1": "^6.29.1"
     },
     "onlyBuiltDependencies": [
       "bcrypt"
