@@ -414,7 +414,7 @@ importers:
         version: 2.1.35
       multer:
         specifier: ^2.4.0
-        version: 2.4.0
+        version: 2.5.0
       music-metadata:
         specifier: ^7.14.0
         version: 7.14.0
@@ -12877,6 +12877,10 @@ packages:
 
   multer@2.4.0:
     resolution: {integrity: sha512-7dqa0ZcFfzbefdTuIkzOSMvZWC0J7FLqBOjJUZvDCXShIURWKxAyTT1wHhnE5q19c7jOJf43IYYKjBmZVZmvhg==}
+    engines: {node: '>= 10.16.0'}
+
+  multer@2.5.0:
+    resolution: {integrity: sha512-BsqOzYGVq49JcW2IzoSAxeKYRevb+dGGPPWleOR8Lrlk4igwxu1/9pwSXlByhCb7MVZDrNJFC0IBP5/O5nLYRw==}
     engines: {node: '>= 10.16.0'}
 
   multiformats@9.9.0:
@@ -32056,6 +32060,12 @@ snapshots:
   ms@3.0.0-canary.1: {}
 
   multer@2.4.0:
+    dependencies:
+      append-field: 1.0.0
+      busboy: 1.6.0
+      type-is: 1.6.18
+
+  multer@2.5.0:
     dependencies:
       append-field: 1.0.0
       busboy: 1.6.0
