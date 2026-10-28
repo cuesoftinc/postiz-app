@@ -14,6 +14,13 @@ in their later releases is reflected below. Only changes that are ours are liste
 
 ## [Unreleased]
 
+## [1.2.7] - 2026-10-28
+
+### Changed
+
+- Email delivery uses Nodemailer 10.1.4.
+- File uploads use multer 2.5.0.
+
 ## [1.2.6] - 2026-10-27
 
 ### Changed
