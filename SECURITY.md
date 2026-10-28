@@ -93,9 +93,8 @@ covers; until then, identify a build by its commit.
   into an image and never hardcoded. `.env.example` is the template and holds placeholders only.
 - Ace's sessions run fenced: credentials must not be passed into a child process or echoed into
   chat output. A change that widens that fence is a security change and should be reviewed as one.
-- Deployment, the compose stack, and how secrets are supplied in production are documented in the
-  [design-system](https://github.com/cuesoftinc/design-system) repository under `postiz/`. Do not
-  copy production values into this repository to reproduce a bug.
+- Deployment, the compose stack, and how secrets are supplied in production are maintained outside this
+  repository. Do not copy production values into this repository to reproduce a bug.
 
 ## Security tests
 

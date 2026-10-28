@@ -62,7 +62,7 @@ in their later releases is reflected below. Only changes that are ours are liste
   survives a query string, and still refuses `.exe`, `.svg` and empty input.
 
   Verified to fail for the right reason: removing `DOCUMENT_MIME_TYPES` from
-  `STORAGE_ALLOWED_MIME_TYPES` — exactly the 1.2.3 bug — turns two of them red
+  `STORAGE_ALLOWED_MIME_TYPES`, exactly the 1.2.3 bug, turns two of them red
   with "application/pdf is uploadable but not storable".
 
 ## [1.2.3] - 2026-08-23
@@ -83,8 +83,8 @@ in their later releases is reflected below. Only changes that are ours are liste
   `upload/allowed.mime.types.ts`, which keeps the deliberate distinction the
   duplicates were blurring: `UPLOAD_ALLOWED_MIME_TYPES` is what a caller may
   upload, `STORAGE_ALLOWED_MIME_TYPES` adds the audio a provider may persist but
-  no caller may send. `r2.uploader.ts` stays extension-keyed — the multipart flow
-  must name the object key before it has bytes to sniff — and gained `.pdf`
+  no caller may send. `r2.uploader.ts` stays extension-keyed, the multipart flow
+  must name the object key before it has bytes to sniff, and gained `.pdf`
   alongside.
 
 - **The same drift had a second layer: a PDF that uploaded could still not be
@@ -107,7 +107,7 @@ in their later releases is reflected below. Only changes that are ours are liste
   Buffer's plan rejects `metadata.linkedin.firstComment`, and it rejects it IN
   BAND: HTTP 200, no top-level `errors` array, the refusal carried as a member
   of the `createPost` union. `BufferRelayProvider.post` keyed its
-  degrade-gracefully retry on a *thrown* error, so nothing ever caught it and
+  degrade-gracefully retry on a _thrown_ error, so nothing ever caught it and
   the post died `nonRetryable` after three attempts. The operator saw only
   "Buffer refused the post: unknown reason", because the message was read only
   when `__typename` equalled `MutationError` — the INTERFACE name, which is
@@ -181,9 +181,9 @@ in their later releases is reflected below. Only changes that are ours are liste
 ### Added
 
 - **A CodeQL model pack** (`.github/codeql/extensions/`) teaching the
-  JavaScript queries about this repo's own guards —
+  JavaScript queries about this repo's own guards,
   `getSsrfSafeDispatcher`/`ssrfSafeDispatcher`, `sanitizeForLog`, `escapeHtml`,
-  `htmlToPlainText` — so code that is actually guarded stops re-reporting as a
+  `htmlToPlainText`, so code that is actually guarded stops re-reporting as a
   false positive on every new commit that touches it. The barrier kinds were
   read out of the CodeQL 2.26.3 library rather than guessed. GitHub's own docs
   do not list JavaScript as a supported language for model packs under default
